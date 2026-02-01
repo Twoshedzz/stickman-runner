@@ -1,5 +1,6 @@
 import React, { Suspense, useCallback, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
 import { ScoreDisplay } from '../components/ui/ScoreDisplay';
 import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
@@ -12,13 +13,14 @@ const GameCanvas = React.lazy(() =>
 );
 
 export const GameScreen = () => {
-    const { gameState, onJump, tick, highScore } = useGameLoop();
-    const { playMusic, stopMusic, musicStatus } = useBackgroundMusic();
+    const { gameState, gameMetrics, onJump, restartGame, tick, highScore } = useGameLoop();
+    const { playMusic, stopMusic } = useBackgroundMusic();
 
     const handleInteraction = useCallback(() => {
+        if (gameState.gameOver) return; // Prevent restart on generic tap
         playMusic();
         onJump();
-    }, [playMusic, onJump]);
+    }, [playMusic, onJump, gameState.gameOver]);
 
     // Watch for Game Over to stop music
     useEffect(() => {
@@ -31,14 +33,18 @@ export const GameScreen = () => {
     useEffect(() => {
         if (Platform.OS === 'web') {
             const handleKeyDown = (e: KeyboardEvent) => {
-                if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (!gameState.gameOver && (e.code === 'Space' || e.code === 'ArrowUp')) {
                     handleInteraction();
+                }
+                if (gameState.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+                    restartGame();
+                    playMusic();
                 }
             };
             window.addEventListener('keydown', handleKeyDown);
             return () => window.removeEventListener('keydown', handleKeyDown);
         }
-    }, [handleInteraction]);
+    }, [handleInteraction, gameState.gameOver, restartGame, playMusic]);
 
     return (
         <View style={styles.container}>
@@ -54,22 +60,27 @@ export const GameScreen = () => {
                 <Pressable style={styles.inputLayer} onPress={handleInteraction} />
 
                 {/* 3. UI Overlay */}
-                <View style={styles.uiLayer}>
+                <View style={styles.uiLayer} pointerEvents="box-none">
                     {/* Start Screen */}
                     {!gameState.gameStarted && !gameState.gameOver && (
                         <View style={styles.startScreenContainer}>
                             <Text style={styles.titleText}>STICKMAN</Text>
                             <Text style={styles.titleSubText}>RUNNER</Text>
-                            <Text style={styles.startText}>Tap to Start</Text>
-                            <Text style={{ color: 'white', marginTop: 20, fontSize: 12 }}>Music: {musicStatus}</Text>
+                            <Pressable
+                                style={[styles.restartButton, styles.startButton]}
+                                onPress={handleInteraction}
+                            >
+                                <Text style={[styles.restartButtonText, styles.startButtonText]}>START GAME</Text>
+                            </Pressable>
                         </View>
                     )}
 
                     {/* HUD - Only show if playing or Game Over */}
                     {(gameState.gameStarted || gameState.gameOver) && (
                         <React.Fragment>
-                            <HealthBar health={gameState.player.health} maxHealth={gameState.player.maxHealth} />
-                            <ScoreDisplay score={gameState.score} />
+                            <HealthBar health={gameMetrics.health} maxHealth={gameMetrics.maxHealth} />
+                            <EnergyBar energy={gameMetrics.energy} />
+                            <ScoreDisplay score={gameMetrics.score} />
                         </React.Fragment>
                     )}
 
@@ -79,7 +90,16 @@ export const GameScreen = () => {
                             <Text style={styles.gameOverTitle}>GAME OVER</Text>
                             <Text style={styles.gameOverScore}>Final Score: {gameState.score}</Text>
                             <Text style={styles.highScoreText}>Best: {highScore}</Text>
-                            <Text style={styles.restartText}>Tap anywhere to restart</Text>
+
+                            <Pressable
+                                style={styles.restartButton}
+                                onPress={() => {
+                                    playMusic();
+                                    restartGame();
+                                }}
+                            >
+                                <Text style={styles.restartButtonText}>PLAY AGAIN</Text>
+                            </Pressable>
                         </View>
                     )}
                 </View>
@@ -112,75 +132,126 @@ const styles = StyleSheet.create({
     },
     uiLayer: {
         ...StyleSheet.absoluteFillObject,
-        pointerEvents: 'none',
+        // pointerEvents removed from style, used as prop instead
         zIndex: 20,
         justifyContent: 'center',
         alignItems: 'center',
     },
     gameOverContainer: {
-        backgroundColor: 'rgba(0,0,0,0.85)',
-        paddingVertical: 30,
-        paddingHorizontal: 50,
-        borderRadius: 16,
+        backgroundColor: 'rgba(15, 12, 41, 0.95)', // Deep Purple
+        paddingVertical: 40,
+        paddingHorizontal: 60,
+        borderRadius: 20,
         alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.30,
-        shadowRadius: 4.65,
-        elevation: 8,
+        borderWidth: 2,
+        borderColor: '#ff00cc', // Neon Pink Border
+        shadowColor: "#ff00cc",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 10,
     },
     gameOverTitle: {
-        color: '#ff4444',
-        fontSize: 42,
+        color: '#ff00cc', // Neon Pink
+        fontSize: 48,
         fontWeight: '900',
         marginBottom: 10,
-        letterSpacing: 2,
+        letterSpacing: 4,
+        textShadowColor: '#ff00cc',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+        fontStyle: 'italic',
     },
     gameOverScore: {
-        color: 'white',
-        fontSize: 24,
+        color: '#00ffff', // Cyan
+        fontSize: 32,
         fontWeight: 'bold',
         marginBottom: 5,
+        textShadowColor: 'rgba(0, 255, 255, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
     },
     highScoreText: {
-        color: '#FFD700', // Gold color
-        fontSize: 18,
+        color: '#ffdd55', // Sun Yellow
+        fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 20,
-        letterSpacing: 1,
+        marginBottom: 30,
+        letterSpacing: 2,
     },
-    restartText: {
-        color: '#aaa',
-        fontSize: 16,
+    restartButton: {
+        backgroundColor: '#FF1493', // Deep Pink
+        paddingVertical: 15,
+        paddingHorizontal: 50,
+        borderRadius: 30,
+        marginTop: 10,
+        borderWidth: 2,
+        borderColor: '#fff',
+        shadowColor: "#FF1493",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 15,
+        elevation: 8,
+    },
+    startButton: {
+        backgroundColor: '#00ffff', // Cyan
+        borderColor: '#fff',
+        shadowColor: "#00ffff",
+    },
+    startButtonText: {
+        color: '#0f0c29', // Deep Purple (Background color)
+        textShadowColor: 'rgba(255, 255, 255, 0.5)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 0, // Remove shadow or make it glow
+    },
+    restartButtonText: {
+        color: 'white',
+        fontSize: 24,
+        fontWeight: '900',
+        letterSpacing: 3,
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 2,
     },
     startScreenContainer: {
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'rgba(15, 12, 41, 0.8)',
+        padding: 40,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 0, 204, 0.3)',
     },
     titleText: {
-        fontSize: 48,
+        fontSize: 64,
         fontWeight: '900',
-        color: '#333',
-        letterSpacing: 4,
+        color: '#00ffff', // Cyan
+        letterSpacing: 6,
         fontStyle: 'italic',
+        textShadowColor: '#00ffff',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 15,
     },
     titleSubText: {
-        fontSize: 48,
+        fontSize: 64,
         fontWeight: '900',
-        color: '#ff4444',
-        letterSpacing: 4,
+        color: '#ff00cc', // Pink
+        letterSpacing: 6,
         fontStyle: 'italic',
-        marginBottom: 40,
+        marginBottom: 50,
+        textShadowColor: '#ff00cc',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 15,
     },
     startText: {
-        fontSize: 24,
-        color: '#333',
+        fontSize: 28,
+        color: 'white',
         fontWeight: 'bold',
-        opacity: 0.8,
+        opacity: 1,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        textShadowColor: '#fff',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
     }
 });
