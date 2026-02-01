@@ -15,3 +15,16 @@ export const HEART_HEAL = 3;
 export const GRAVITY = 0.6;
 export const JUMP_FORCE = -12;
 export const BASE_SPEED = 4;
+
+// Visuals (Synthwave Theme)
+export const COLOR_SKY_TOP = "#0f0c29";
+export const COLOR_SKY_MID = "#302b63";
+export const COLOR_SKY_BOTTOM = "#ff00cc"; // Pink fade at horizon
+export const COLOR_SUN = "#ffdd55";
+export const COLOR_CITY_BACK = "#2c1e4a";
+export const COLOR_CITY_FRONT = "#000000"; // Darker for contrast
+export const COLOR_GROUND_NEON = "#ff00cc"; // Reset keeping neon glow
+export const COLOR_GROUND_LINE = "#FFB6C1"; // Light Pink for the line itself
+export const COLOR_HP_DEEP = "#FF1493"; // Deep Pink for Health/Hearts
+export const COLOR_OBSTACLE = "#ffff00"; // Yellow
+export const COLOR_OBSTACLE_GLOW = "#ffa500"; // Orange/Gold Glow

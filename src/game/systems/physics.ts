@@ -8,6 +8,9 @@ export const applyPhysics = (state: GameState) => {
     player.dy += GRAVITY;
     player.y += player.dy;
 
+    // Update Distance (for parallax)
+    state.distance += BASE_SPEED;
+
     // Ground Collision
     const groundY = SCREEN_HEIGHT - GROUND_HEIGHT - PLAYER_SIZE;
     if (player.y >= groundY) {

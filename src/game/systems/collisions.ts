@@ -21,12 +21,13 @@ export const checkCollisions = (state: GameState) => {
         const obsR = obsX + size;
         const obsB = obsY + size;
 
-        // AABB Collision
+        // AABB Collision with Forgiveness (Hitbox reduction)
+        const hitMargin = 5;
         if (
-            playerX < obsR &&
-            playerR > obsX &&
-            playerY < obsB &&
-            playerB > obsY
+            playerX + hitMargin < obsR - hitMargin &&
+            playerR - hitMargin > obsX + hitMargin &&
+            playerY + hitMargin < obsB - hitMargin &&
+            playerB - hitMargin > obsY + hitMargin
         ) {
             // Collision detected!
 
@@ -36,7 +37,7 @@ export const checkCollisions = (state: GameState) => {
                 // Remove heart
                 state.obstacles.splice(i, 1);
                 i--;
-                return false; // Not a game-ending collision
+                return true; // Collision occurred (trigger UI update)
             }
 
             // 1. Deal Damage

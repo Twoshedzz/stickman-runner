@@ -16,7 +16,9 @@ export interface GameState {
         type?: 'red' | 'purple' | 'heart';
     }[];
     score: number;
+    distance: number;
     gameOver: boolean;
+    gameStarted: boolean;
 }
 
 export const createInitialState = (): GameState => ({
@@ -30,5 +32,7 @@ export const createInitialState = (): GameState => ({
     },
     obstacles: [],
     score: 0,
+    distance: 0,
     gameOver: false,
+    gameStarted: false,
 });

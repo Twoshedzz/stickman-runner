@@ -27,7 +27,7 @@ export const useGameLoop = () => {
         const loop = () => {
             const state = stateRef.current;
 
-            if (!state.gameOver) {
+            if (!state.gameOver && state.gameStarted) {
                 applyPhysics(state);
                 spawnObstacle(state);
                 const isCollision = checkCollisions(state);
@@ -40,7 +40,12 @@ export const useGameLoop = () => {
                 }
 
                 if (isCollision) {
-                    // Collision logic is handled in checkCollisions (health reduction, game over)
+                    // Force Deep Clone of State & Player to ensure React detects the change immediately
+                    // This creates a new object reference for gameState, triggering updates in components checking shallow equality.
+                    stateRef.current = {
+                        ...state,
+                        player: { ...state.player }
+                    };
                 }
             }
 
@@ -65,7 +70,12 @@ export const useGameLoop = () => {
         if (state.gameOver) {
             console.log('Resetting game state');
             stateRef.current = createInitialState();
+            stateRef.current.gameStarted = true; // Auto-start on restart
             resetSpawner();
+        } else if (!state.gameStarted) {
+            console.log('Starting Game!');
+            state.gameStarted = true;
+            jump(state); // Optional: Jump immediately on start?
         } else {
             // Always attempt to jump, let physics decide if it's allowed (double jump)
             jump(state);

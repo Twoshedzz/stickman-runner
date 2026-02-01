@@ -1,7 +1,10 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useCallback, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { HealthBar } from '../components/ui/HealthBar';
+import { ScoreDisplay } from '../components/ui/ScoreDisplay';
 import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
 import { useGameLoop } from '../game/loop/useGameLoop';
+import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
 
 // Lazy load GameCanvas to ensure Skia is initialized before import (on Web)
 const GameCanvas = React.lazy(() =>
@@ -10,19 +13,32 @@ const GameCanvas = React.lazy(() =>
 
 export const GameScreen = () => {
     const { gameState, onJump, tick, highScore } = useGameLoop();
+    const { playMusic, stopMusic, musicStatus } = useBackgroundMusic();
+
+    const handleInteraction = useCallback(() => {
+        playMusic();
+        onJump();
+    }, [playMusic, onJump]);
+
+    // Watch for Game Over to stop music
+    useEffect(() => {
+        if (gameState.gameOver) {
+            stopMusic();
+        }
+    }, [gameState.gameOver, stopMusic]);
 
     // Web Keyboard Support
     useEffect(() => {
         if (Platform.OS === 'web') {
             const handleKeyDown = (e: KeyboardEvent) => {
                 if (e.code === 'Space' || e.code === 'ArrowUp') {
-                    onJump();
+                    handleInteraction();
                 }
             };
             window.addEventListener('keydown', handleKeyDown);
             return () => window.removeEventListener('keydown', handleKeyDown);
         }
-    }, [onJump]);
+    }, [handleInteraction]);
 
     return (
         <View style={styles.container}>
@@ -35,29 +51,29 @@ export const GameScreen = () => {
                 </View>
 
                 {/* 2. Input Layer - Transparent Absolute Overlay */}
-                <Pressable style={styles.inputLayer} onPress={onJump} />
+                <Pressable style={styles.inputLayer} onPress={handleInteraction} />
 
                 {/* 3. UI Overlay */}
                 <View style={styles.uiLayer}>
-                    {/* Health Bar */}
-                    <View style={styles.healthContainer}>
-                        <View style={styles.healthBarBackground}>
-                            <View
-                                style={[
-                                    styles.healthBarFill,
-                                    { width: `${(gameState.player.health / gameState.player.maxHealth) * 100}%` }
-                                ]}
-                            />
+                    {/* Start Screen */}
+                    {!gameState.gameStarted && !gameState.gameOver && (
+                        <View style={styles.startScreenContainer}>
+                            <Text style={styles.titleText}>STICKMAN</Text>
+                            <Text style={styles.titleSubText}>RUNNER</Text>
+                            <Text style={styles.startText}>Tap to Start</Text>
+                            <Text style={{ color: 'white', marginTop: 20, fontSize: 12 }}>Music: {musicStatus}</Text>
                         </View>
-                        <Text style={styles.healthText}>HP</Text>
-                    </View>
+                    )}
 
-                    {/* Score HUD */}
-                    <View style={styles.scoreContainer}>
-                        <Text style={styles.scoreLabel}>SCORE</Text>
-                        <Text style={styles.scoreValue}>{gameState.score}</Text>
-                    </View>
+                    {/* HUD - Only show if playing or Game Over */}
+                    {(gameState.gameStarted || gameState.gameOver) && (
+                        <React.Fragment>
+                            <HealthBar health={gameState.player.health} maxHealth={gameState.player.maxHealth} />
+                            <ScoreDisplay score={gameState.score} />
+                        </React.Fragment>
+                    )}
 
+                    {/* Game Over Modal */}
                     {gameState.gameOver && (
                         <View style={styles.gameOverContainer}>
                             <Text style={styles.gameOverTitle}>GAME OVER</Text>
@@ -101,49 +117,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    scoreContainer: {
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        alignItems: 'flex-end',
-    },
-    scoreLabel: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#333',
-        letterSpacing: 2,
-    },
-    scoreValue: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: '#333',
-    },
-    healthContainer: {
-        position: 'absolute',
-        top: 20,
-        left: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    healthBarBackground: {
-        width: 150,
-        height: 16,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 8,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.1)',
-    },
-    healthBarFill: {
-        height: '100%',
-        backgroundColor: '#ff4444',
-    },
-    healthText: {
-        fontSize: 16,
-        fontWeight: '900',
-        color: '#ff4444',
-    },
     gameOverContainer: {
         backgroundColor: 'rgba(0,0,0,0.85)',
         paddingVertical: 30,
@@ -185,4 +158,29 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
+    startScreenContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    titleText: {
+        fontSize: 48,
+        fontWeight: '900',
+        color: '#333',
+        letterSpacing: 4,
+        fontStyle: 'italic',
+    },
+    titleSubText: {
+        fontSize: 48,
+        fontWeight: '900',
+        color: '#ff4444',
+        letterSpacing: 4,
+        fontStyle: 'italic',
+        marginBottom: 40,
+    },
+    startText: {
+        fontSize: 24,
+        color: '#333',
+        fontWeight: 'bold',
+        opacity: 0.8,
+    }
 });
