@@ -1,4 +1,5 @@
 import { GROUND_HEIGHT, MAX_HEALTH, PLAYER_SIZE, SCREEN_HEIGHT } from './constants';
+import { Particle } from './particles';
 
 export interface GameState {
     player: {
@@ -13,10 +14,14 @@ export interface GameState {
         x: number;
         id: number;
         passed?: boolean;
-        type?: 'red' | 'purple' | 'heart';
+        type?: 'red' | 'purple' | 'heart' | 'boulder'; // Added boulder
+        phase?: number; // For oscillation
     }[];
+    particles: Particle[];
     score: number;
     distance: number;
+    lastDoubleObstacleDistance: number; // For tracking double obstacle cooldown
+    energy: number;
     gameOver: boolean;
     gameStarted: boolean;
 }
@@ -31,8 +36,11 @@ export const createInitialState = (): GameState => ({
         maxHealth: MAX_HEALTH,
     },
     obstacles: [],
+    particles: [],
     score: 0,
     distance: 0,
+    lastDoubleObstacleDistance: -1200, // Allow immediate double obstacle if RNG allows
+    energy: 100,
     gameOver: false,
     gameStarted: false,
 });

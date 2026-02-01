@@ -111,6 +111,19 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                 isRunning={gameState.gameStarted && !gameState.gameOver}
             />
 
+            {/* Particles */}
+            {gameState.particles.map(p => (
+                <Rect
+                    key={p.id}
+                    x={p.x}
+                    y={p.y}
+                    width={p.size}
+                    height={p.size}
+                    color={p.color}
+                    opacity={p.life}
+                />
+            ))}
+
             {/* Obstacles */}
             {obstacles.map((obs) => {
                 const isPurple = obs.type === 'purple';
@@ -148,6 +161,27 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                                 cy={SCREEN_HEIGHT - GROUND_HEIGHT - size / 2}
                                 r={size / 2}
                                 color={mainColor}
+                            />
+                        </Group>
+                    );
+                }
+
+                if (obs.type === 'boulder') {
+                    // Render Yellow Circle for Boulder
+                    return (
+                        <Group key={obs.id}>
+                            <Circle
+                                cx={obs.x + size / 2}
+                                cy={SCREEN_HEIGHT - GROUND_HEIGHT - size / 2}
+                                r={size / 2}
+                                color={COLOR_OBSTACLE}
+                            />
+                            {/* Texture/Shading (Simple inner circle) */}
+                            <Circle
+                                cx={obs.x + size / 2 - 5}
+                                cy={SCREEN_HEIGHT - GROUND_HEIGHT - size / 2 - 5}
+                                r={size / 4}
+                                color="rgba(255,255,255,0.4)" // Highlight
                             />
                         </Group>
                     );

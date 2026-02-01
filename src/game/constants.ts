@@ -28,3 +28,9 @@ export const COLOR_GROUND_LINE = "#FFB6C1"; // Light Pink for the line itself
 export const COLOR_HP_DEEP = "#FF1493"; // Deep Pink for Health/Hearts
 export const COLOR_OBSTACLE = "#ffff00"; // Yellow
 export const COLOR_OBSTACLE_GLOW = "#ffa500"; // Orange/Gold Glow
+export const COLOR_ENERGY = "#00ffff"; // Cyan
+
+// Energy
+export const MAX_ENERGY = 100;
+export const JUMP_ENERGY_COST = 100; // Depletes full bar
+export const ENERGY_REGEN = 0.5;
