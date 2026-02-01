@@ -1,5 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MAX_HEALTH } from '../constants';
+import { updateParticles } from '../particles';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump } from '../systems/physics';
@@ -7,8 +9,22 @@ import { resetSpawner, spawnObstacle } from '../systems/spawn';
 
 export const useGameLoop = () => {
     const stateRef = useRef<GameState>(createInitialState());
+    // Ensure energy is initialized
+    if (stateRef.current.energy === undefined) {
+        stateRef.current.energy = 100;
+    }
     const requestRef = useRef<number | null>(null);
-    const [renderTrigger, setRenderTrigger] = useState(0); // Force re-render
+
+    // UI State Sync (Optimized)
+    const [gameMetrics, setGameMetrics] = useState({
+        score: 0,
+        health: MAX_HEALTH,
+        energy: 100,
+        maxHealth: MAX_HEALTH
+    });
+    const metricsRef = useRef(gameMetrics); // Ref to avoid closure staleness in loop check
+
+    const [renderTrigger, setRenderTrigger] = useState(0); // For Canvas (60fps)
     const [highScore, setHighScore] = useState(0);
     const highScoreRef = useRef(0);
 
@@ -30,27 +46,42 @@ export const useGameLoop = () => {
             if (!state.gameOver && state.gameStarted) {
                 applyPhysics(state);
                 spawnObstacle(state);
+                state.particles = updateParticles(state.particles);
                 const isCollision = checkCollisions(state);
 
-                // Check High Score continuously
+                // Check High Score
                 if (state.score > highScoreRef.current) {
                     highScoreRef.current = state.score;
                     setHighScore(state.score);
                     AsyncStorage.setItem('HIGH_SCORE', state.score.toString());
                 }
 
-                if (isCollision) {
-                    // Force Deep Clone of State & Player to ensure React detects the change immediately
-                    // This creates a new object reference for gameState, triggering updates in components checking shallow equality.
-                    stateRef.current = {
-                        ...state,
-                        player: { ...state.player }
+                // Sync UI State (Throttled by actual changes)
+                if (
+                    state.score !== metricsRef.current.score ||
+                    state.player.health !== metricsRef.current.health ||
+                    state.energy !== metricsRef.current.energy ||
+                    state.player.maxHealth !== metricsRef.current.maxHealth
+                ) {
+                    const newMetrics = {
+                        score: state.score,
+                        health: state.player.health,
+                        energy: state.energy,
+                        maxHealth: state.player.maxHealth
                     };
+                    metricsRef.current = newMetrics;
+                    setGameMetrics(newMetrics);
+                }
+
+                if (isCollision) {
+                    // Update ref for immediate physics checks (though mutable state handles this)
+                    // We don't strictly need to clone stateRef for UI anymore as we use gameMetrics
+                    // But good for safety.
+                    stateRef.current = { ...state };
                 }
             }
 
-            // Force React to re-render to update the UI
-            // In a production specific game we might separate this or use Skia values directly
+            // Force React to re-render for Canvas (60fps)
             setRenderTrigger(prev => prev + 1);
 
             requestRef.current = requestAnimationFrame(loop);
@@ -62,29 +93,41 @@ export const useGameLoop = () => {
         };
     }, []);
 
-    // Stabilize onJump to prevent event listener churn
+    // Dedicated Restart Function
+    const restartGame = useCallback(() => {
+        // console.log('Resetting game state');
+        stateRef.current = createInitialState();
+        stateRef.current.gameStarted = true;
+        resetSpawner();
+        // Reset Metrics immediately
+        const initialMetrics = {
+            score: 0,
+            health: MAX_HEALTH,
+            energy: 100,
+            maxHealth: MAX_HEALTH
+        };
+        metricsRef.current = initialMetrics;
+        setGameMetrics(initialMetrics);
+    }, []);
+
+    // Input Handler
     const onJump = useCallback(() => {
         const state = stateRef.current;
-        console.log('Input received. GameOver:', state.gameOver, 'Grounded:', state.player.isGrounded);
+        if (state.gameOver) return;
 
-        if (state.gameOver) {
-            console.log('Resetting game state');
-            stateRef.current = createInitialState();
-            stateRef.current.gameStarted = true; // Auto-start on restart
-            resetSpawner();
-        } else if (!state.gameStarted) {
-            console.log('Starting Game!');
+        if (!state.gameStarted) {
             state.gameStarted = true;
-            jump(state); // Optional: Jump immediately on start?
+            jump(state);
         } else {
-            // Always attempt to jump, let physics decide if it's allowed (double jump)
             jump(state);
         }
     }, []);
 
     return {
         gameState: stateRef.current,
+        gameMetrics,
         onJump,
+        restartGame,
         tick: renderTrigger,
         highScore
     };

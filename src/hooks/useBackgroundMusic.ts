@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const useBackgroundMusic = () => {
@@ -6,6 +6,26 @@ export const useBackgroundMusic = () => {
     const [musicStatus, setMusicStatus] = useState<string>('Ready');
     const loadingRef = useRef(false);
     const soundRef = useRef<Audio.Sound | null>(null);
+
+    // Initial Configuration for Mobile Stability
+    useEffect(() => {
+        const configureAudio = async () => {
+            try {
+                await Audio.setAudioModeAsync({
+                    allowsRecordingIOS: false,
+                    staysActiveInBackground: false, // Pause when app backgrounded (good for games)
+                    playsInSilentModeIOS: true, // CRITICAL: Play even if switch is silent
+                    shouldDuckAndroid: true, // Duck other audio (notifications)
+                    interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+                    interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+                    playThroughEarpieceAndroid: false,
+                });
+            } catch (e) {
+                console.warn('Failed to set audio mode', e);
+            }
+        };
+        configureAudio();
+    }, []);
 
     const playMusic = useCallback(async () => {
         try {
