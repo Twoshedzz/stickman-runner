@@ -3,7 +3,7 @@
     "name": "stickman-runner",
     "slug": "stickman-runner",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "landscape",
     "icon": "./assets/images/icon.png",
     "scheme": "stickmanrunner",
     "userInterfaceStyle": "automatic",
