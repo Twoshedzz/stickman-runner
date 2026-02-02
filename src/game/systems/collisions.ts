@@ -74,7 +74,7 @@ export const checkCollisions = (state: GameState) => {
             // More particles, smaller size for pixel explosion look
             // Boulders count as big obstacles
             const isBig = !isPurple;
-            const particleCount = isBig ? 100 : 40;
+            const particleCount = isBig ? 30 : 15;
             state.particles = spawnParticles(
                 state.particles,
                 obs.x + size / 2,

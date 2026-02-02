@@ -15,6 +15,7 @@ const GameCanvas = React.lazy(() =>
 export const GameScreen = () => {
     const { gameState, gameMetrics, onJump, restartGame, tick, highScore } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
+    const [showInstructions, setShowInstructions] = React.useState(false);
 
     const handleInteraction = useCallback(() => {
         if (gameState.gameOver) return; // Prevent restart on generic tap
@@ -62,7 +63,7 @@ export const GameScreen = () => {
                 {/* 3. UI Overlay */}
                 <View style={styles.uiLayer} pointerEvents="box-none">
                     {/* Start Screen */}
-                    {!gameState.gameStarted && !gameState.gameOver && (
+                    {!gameState.gameStarted && !gameState.gameOver && !showInstructions && (
                         <View style={styles.startScreenContainer}>
                             <Text style={styles.titleText}>STICKMAN</Text>
                             <Text style={styles.titleSubText}>RUNNER</Text>
@@ -71,6 +72,12 @@ export const GameScreen = () => {
                                 onPress={handleInteraction}
                             >
                                 <Text style={[styles.restartButtonText, styles.startButtonText]}>START GAME</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.instructionsButton]}
+                                onPress={() => setShowInstructions(true)}
+                            >
+                                <Text style={styles.instructionsButtonText}>HOW TO PLAY</Text>
                             </Pressable>
                         </View>
                     )}
@@ -85,7 +92,7 @@ export const GameScreen = () => {
                     )}
 
                     {/* Game Over Modal */}
-                    {gameState.gameOver && (
+                    {gameState.gameOver && !showInstructions && (
                         <View style={styles.gameOverContainer}>
                             <Text style={styles.gameOverTitle}>GAME OVER</Text>
                             <Text style={styles.gameOverScore}>Final Score: {gameState.score}</Text>
@@ -99,6 +106,41 @@ export const GameScreen = () => {
                                 }}
                             >
                                 <Text style={styles.restartButtonText}>PLAY AGAIN</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.instructionsButton, { marginTop: 15 }]}
+                                onPress={() => setShowInstructions(true)}
+                            >
+                                <Text style={styles.instructionsButtonText}>HOW TO PLAY</Text>
+                            </Pressable>
+                        </View>
+                    )}
+
+                    {/* Instructions Modal */}
+                    {showInstructions && (
+                        <View style={styles.instructionsContainer}>
+                            <Text style={styles.instructionsTitle}>HOW TO PLAY</Text>
+
+                            <View style={styles.instructionRow}>
+                                <View style={[styles.instructionDot, { backgroundColor: '#ffff00' }]} />
+                                <Text style={styles.instructionText}>AVOID YELLOW OBSTACLES ⚠️</Text>
+                            </View>
+
+                            <View style={styles.instructionRow}>
+                                <View style={[styles.instructionDot, { backgroundColor: '#FF1493' }]} />
+                                <Text style={styles.instructionText}>PINK HEARTS = HEALTH ❤️</Text>
+                            </View>
+
+                            <View style={styles.instructionRow}>
+                                <View style={[styles.instructionDot, { backgroundColor: '#00ffff' }]} />
+                                <Text style={styles.instructionText}>DOUBLE JUMP USES ENERGY ⚡</Text>
+                            </View>
+
+                            <Pressable
+                                style={styles.closeButton}
+                                onPress={() => setShowInstructions(false)}
+                            >
+                                <Text style={styles.closeButtonText}>GOT IT</Text>
                             </Pressable>
                         </View>
                     )}
@@ -139,8 +181,8 @@ const styles = StyleSheet.create({
     },
     gameOverContainer: {
         backgroundColor: 'rgba(15, 12, 41, 0.95)', // Deep Purple
-        paddingVertical: 40,
-        paddingHorizontal: 60,
+        paddingVertical: 30, // Reduced from 40
+        paddingHorizontal: 40, // Reduced from 60
         borderRadius: 20,
         alignItems: 'center',
         borderWidth: 2,
@@ -153,9 +195,9 @@ const styles = StyleSheet.create({
     },
     gameOverTitle: {
         color: '#ff00cc', // Neon Pink
-        fontSize: 48,
+        fontSize: 36, // Reduced from 48
         fontWeight: '900',
-        marginBottom: 10,
+        marginBottom: 8,
         letterSpacing: 4,
         textShadowColor: '#ff00cc',
         textShadowOffset: { width: 0, height: 0 },
@@ -164,24 +206,24 @@ const styles = StyleSheet.create({
     },
     gameOverScore: {
         color: '#00ffff', // Cyan
-        fontSize: 32,
+        fontSize: 24, // Reduced from 32
         fontWeight: 'bold',
-        marginBottom: 5,
+        marginBottom: 4,
         textShadowColor: 'rgba(0, 255, 255, 0.5)',
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 10,
     },
     highScoreText: {
         color: '#ffdd55', // Sun Yellow
-        fontSize: 20,
+        fontSize: 16, // Reduced from 20
         fontWeight: 'bold',
-        marginBottom: 30,
+        marginBottom: 20, // Reduced from 30
         letterSpacing: 2,
     },
     restartButton: {
         backgroundColor: '#FF1493', // Deep Pink
-        paddingVertical: 15,
-        paddingHorizontal: 50,
+        paddingVertical: 12, // Reduced from 15
+        paddingHorizontal: 30, // Reduced from 50
         borderRadius: 30,
         marginTop: 10,
         borderWidth: 2,
@@ -205,7 +247,7 @@ const styles = StyleSheet.create({
     },
     restartButtonText: {
         color: 'white',
-        fontSize: 24,
+        fontSize: 20, // Reduced from 24
         fontWeight: '900',
         letterSpacing: 3,
         textTransform: 'uppercase',
@@ -253,5 +295,81 @@ const styles = StyleSheet.create({
         textShadowColor: '#fff',
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 10,
+    },
+    instructionsButton: {
+        marginTop: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 30,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#00ffff',
+    },
+    instructionsButtonText: {
+        color: '#00ffff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+    },
+    instructionsContainer: {
+        position: 'absolute',
+        backgroundColor: 'rgba(15, 12, 41, 0.98)',
+        padding: 30,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#00ffff',
+        alignItems: 'center',
+        zIndex: 50,
+        shadowColor: "#00ffff",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 20,
+    },
+    instructionsTitle: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#00ffff',
+        marginBottom: 25,
+        letterSpacing: 4,
+        fontStyle: 'italic',
+        textShadowColor: '#00ffff',
+        textShadowRadius: 10,
+    },
+    instructionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+        width: '100%',
+    },
+    instructionDot: {
+        width: 15,
+        height: 15,
+        borderRadius: 8,
+        marginRight: 15,
+        shadowColor: "white",
+        shadowOpacity: 0.8,
+        shadowRadius: 5,
+    },
+    instructionText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 1,
+    },
+    closeButton: {
+        marginTop: 25,
+        backgroundColor: '#FF1493',
+        paddingVertical: 12,
+        paddingHorizontal: 40,
+        borderRadius: 25,
+        borderWidth: 2,
+        borderColor: 'white',
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold',
+        letterSpacing: 2,
     }
 });

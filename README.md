@@ -1,50 +1,74 @@
-# Welcome to your Expo app 👋
+# Stickman Runner
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A retro-synthwave style endless runner game built with **React Native**, **Expo**, and **Shopify Skia**.
 
-## Get started
+## 🎮 How to Play
 
-1. Install dependencies
+* **Tap / Space / Up Arrow**: Jump
+* **Double Tap (in air)**: Double Jump (Costs Energy ⚡)
+* **Goal**: Run as far as possible!
 
-   ```bash
-   npm install
-   ```
+### Rules
 
-2. Start the app
+* ⚠️ **Avoid Yellow Obstacles**: Hitting them causes damage or game over.
+* ⚡ **Manage Energy**: Energy regenerates over time. Double jumping consumes it.
+* ❤️ **Collect Hearts**: Pink hearts restore health.
 
-   ```bash
-   npx expo start
-   ```
+## 🏗️ Project Structure
 
-In the output, you'll find options to open the app in a
+This project follows a custom game loop architecture, avoiding heavy game engines for learning purposes.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+/src
+  /game
+    /constants.ts      # Physics, Dimensions, Colors, Difficulty settings
+    /loop
+      useGameLoop.ts   # Main Game Loop (update logic, tick handling)
+    /systems
+      physics.ts       # Gravity, Jump logic, Movement
+      collisions.ts    # AABB Collision detection (Player vs Obstacles)
+      renderer.ts      # Rendering helpers
+  /components
+    GameCanvas.tsx     # Main rendering component (Skia Canvas)
+  /screens
+    GameScreen.tsx     # Main Entry Point, UI Overlay, Input Handling
+/app
+  index.tsx            # Expo Router Entry Point
+  _layout.tsx          # Root Layout
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🛠️ Tech Stack
 
-## Learn more
+* **Framework**: [Expo](https://expo.dev) + [React Native](https://reactnative.dev)
+* **Rendering**: [@shopify/react-native-skia](https://shopify.github.io/react-native-skia/) (High performance 2D graphics)
+* **Language**: TypeScript
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🚀 Running the Project
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. **Install Dependencies**:
 
-## Join the community
+    ```bash
+    npm install
+    ```
 
-Join our community of developers creating universal apps.
+2. **Start the Server**:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+    ```bash
+    npx expo start
+    ```
+
+3. **Run on Device**:
+    * Scan the QR code with **Expo Go** on your iOS/Android device.
+    * Press `w` to run in the web browser (limited performance).
+
+## 🎨 Visual Style
+
+The game features a **Synthwave / Neon** aesthetic with:
+
+* Bloom/Glow effects (simulated via opacity layers for performance)
+* Parallax scrolling background (City, Sun, Sky)
+* Dynamic lighting particles
+
+## 📝 Credits
+
+Built as a collaborative learning project to explore game development logic from scratch without a black-box engine.

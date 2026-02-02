@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAX_HEALTH } from '../constants';
+import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { updateParticles } from '../particles';
+import { STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump } from '../systems/physics';
@@ -9,9 +10,12 @@ import { resetSpawner, spawnObstacle } from '../systems/spawn';
 
 export const useGameLoop = () => {
     const stateRef = useRef<GameState>(createInitialState());
-    // Ensure energy is initialized
+    // Ensure energy/time is initialized
     if (stateRef.current.energy === undefined) {
         stateRef.current.energy = 100;
+    }
+    if (stateRef.current.timeOfDay === undefined) {
+        stateRef.current.timeOfDay = 0;
     }
     const requestRef = useRef<number | null>(null);
 
@@ -44,6 +48,38 @@ export const useGameLoop = () => {
             const state = stateRef.current;
 
             if (!state.gameOver && state.gameStarted) {
+                const currentStage = STAGES.find(s => s.id === state.stageId) || STAGES[0];
+
+                // Update Stage Progress (Distance Based)
+                // "Run Until Dawn" Logic
+                // Start: Sunset (Progress 0) -> Corresponds to Cycle 0.25 (Start of Sunset)
+                // End: Dawn (Progress 1) -> Corresponds to Cycle 1.0 (Sunrise)
+
+                // Reset distance relative to stage start? 
+                // For now, let's assume global distance is reset or we track stage distance.
+                // Simple approach: Use state.distance directly if we reset it on stage change.
+                // Let's assume state.distance accumulates. We need a 'stageStartDistance' in state or just calc relative.
+                // For MVP: Let's just use state.distance % duration for looping stages, or assume infinite for now.
+
+                // Let's implement actual progression:
+                // Cycle: 0.25 (Sunset Start) -> 1.0 (Sunrise) = 0.75 range
+
+                state.stageProgress = Math.min(state.distance / currentStage.durationDistance, 1);
+
+                const cycleStart = 0.25;
+                const cycleRange = 0.75; // 0.25 -> 1.0
+
+                const cycleProgress = cycleStart + (state.stageProgress * cycleRange);
+                state.timeOfDay = Math.floor(cycleProgress * TIME_CYCLE_DURATION);
+
+                // Stage Complete Check
+                if (state.stageProgress >= 1) {
+                    // TODO: Trigger Stage Transition
+                    // For now, loop back to start of night to keep running
+                    // state.distance = 0; 
+                    // state.stageProgress = 0;
+                }
+
                 applyPhysics(state);
                 spawnObstacle(state);
                 state.particles = updateParticles(state.particles);
@@ -57,10 +93,11 @@ export const useGameLoop = () => {
                 }
 
                 // Sync UI State (Throttled by actual changes)
+                // Use floor for energy to reduce updates (only update on integer changes)
                 if (
                     state.score !== metricsRef.current.score ||
                     state.player.health !== metricsRef.current.health ||
-                    state.energy !== metricsRef.current.energy ||
+                    Math.floor(state.energy) !== Math.floor(metricsRef.current.energy) ||
                     state.player.maxHealth !== metricsRef.current.maxHealth
                 ) {
                     const newMetrics = {
@@ -74,10 +111,8 @@ export const useGameLoop = () => {
                 }
 
                 if (isCollision) {
-                    // Update ref for immediate physics checks (though mutable state handles this)
-                    // We don't strictly need to clone stateRef for UI anymore as we use gameMetrics
-                    // But good for safety.
-                    stateRef.current = { ...state };
+                    // Optimized: No deep clone needed here as metrics handle UI
+                    // state is mutated in place for the game loop
                 }
             }
 

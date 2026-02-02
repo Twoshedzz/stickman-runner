@@ -8,9 +8,7 @@ import { SkiaWrapper } from '../src/components/SkiaWrapper';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+
 
 export default function RootLayout() {
   return (

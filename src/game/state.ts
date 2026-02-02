@@ -22,8 +22,12 @@ export interface GameState {
     distance: number;
     lastDoubleObstacleDistance: number; // For tracking double obstacle cooldown
     energy: number;
+    timeOfDay: number; // 0 to TIME_CYCLE_DURATION (Visual Only now, effectively)
     gameOver: boolean;
     gameStarted: boolean;
+    stageId: string;
+    stageProgress: number; // 0 (Dusk) -> 1 (Dawn)
+    shield: number;
 }
 
 export const createInitialState = (): GameState => ({
@@ -41,6 +45,10 @@ export const createInitialState = (): GameState => ({
     distance: 0,
     lastDoubleObstacleDistance: -1200, // Allow immediate double obstacle if RNG allows
     energy: 100,
+    timeOfDay: 0.35 * 6000, // Start at Sunset (approx 0.35 progress in old logic)
     gameOver: false,
     gameStarted: false,
+    stageId: 'stage_1_city',
+    stageProgress: 0,
+    shield: 0
 });

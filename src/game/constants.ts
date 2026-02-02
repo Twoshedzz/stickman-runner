@@ -16,10 +16,45 @@ export const GRAVITY = 0.6;
 export const JUMP_FORCE = -12;
 export const BASE_SPEED = 4;
 
-// Visuals (Synthwave Theme)
-export const COLOR_SKY_TOP = "#0f0c29";
-export const COLOR_SKY_MID = "#302b63";
-export const COLOR_SKY_BOTTOM = "#ff00cc"; // Pink fade at horizon
+// Visuals (Synthwave Theme & Day/Night Cycle)
+export const COLOR_SKY_TOP = "#0f0c29";   // Fallback
+export const COLOR_SKY_MID = "#302b63";   // Fallback
+export const COLOR_SKY_BOTTOM = "#ff00cc"; // Fallback
+
+export const TIME_CYCLE_DURATION = 6000; // Frames for full cycle (~100s at 60fps)
+
+export const THEME_DAY = {
+    skyTop: "#00b4db",
+    skyMid: "#48c6ef",
+    skyBottom: "#88defb",
+    sun: "#ffdd55",
+    celestialY: 50, // Sun height
+};
+
+export const THEME_SUNSET = {
+    skyTop: "#2c3e50",
+    skyMid: "#fd746c",
+    skyBottom: "#ff9068",
+    sun: "#ff512f",
+    celestialY: 200, // Sun setting
+};
+
+export const THEME_NIGHT = {
+    skyTop: "#0f0c29",
+    skyMid: "#302b63",
+    skyBottom: "#24243e",
+    sun: "#fdfbfb", // Moon
+    celestialY: 50, // Moon height
+};
+
+export const THEME_SUNRISE = {
+    skyTop: "#1a2a6c",
+    skyMid: "#b21f1f",
+    skyBottom: "#fdbb2d",
+    sun: "#ffdd55",
+    celestialY: 200, // Sun rising
+};
+
 export const COLOR_SUN = "#ffdd55";
 export const COLOR_CITY_BACK = "#2c1e4a";
 export const COLOR_CITY_FRONT = "#000000"; // Darker for contrast

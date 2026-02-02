@@ -27,7 +27,7 @@ export const createParticle = (
     vx: velocity.x,
     vy: velocity.y,
     life: 1.0,
-    decay: 0.01 + Math.random() * 0.02, // Slower decay (was 0.05-0.10)
+    decay: 0.03 + Math.random() * 0.03, // Faster decay for performance (was 0.01-0.03)
     color,
     size,
     target,
