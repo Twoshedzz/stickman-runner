@@ -1,9 +1,6 @@
 import { Circle, Group, Line } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
-
-// Types moved to animations.ts
-
-import { JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
+import { EXHAUSTED_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
 
 interface StickmanProps {
     x: number;
@@ -12,6 +9,7 @@ interface StickmanProps {
     isGrounded: boolean;
     isRunning: boolean;
     size: number;
+    status?: 'playing' | 'exhausted' | 'victory';
 }
 
 // Mirror function to generate the other half of the cycle
@@ -28,7 +26,7 @@ const FULL_CYCLE: Pose[] = [
     ...RUN_POSES.map(getMirroredPose)
 ];
 
-export const Stickman = ({ x, y, tick, isGrounded, isRunning, size }: StickmanProps) => {
+export const Stickman = ({ x, y, tick, isGrounded, isRunning, size, status = 'playing' }: StickmanProps) => {
     // Synthwave Stickman: White with Neon Glow
     const color = "white";
     const strokeWidth = 5; // Thicker for pictogram style
@@ -42,12 +40,13 @@ export const Stickman = ({ x, y, tick, isGrounded, isRunning, size }: StickmanPr
     const foreArmLen = limbLen2 * 0.8; // Shorter forearms per user request
 
     // Lean: Head/Shoulders are ahead of hips (Only when running)
-    const leanOffset = isRunning && isGrounded ? 6 * scale : 0;
-
-    // Center pivot (Implicit at x,y)
+    const leanOffset = isRunning && isGrounded && status === 'playing' ? 6 * scale : 0;
 
     // Interpolate Poses
     const pose = useMemo(() => {
+        if (status === 'exhausted') return EXHAUSTED_POSE;
+        if (status === 'victory') return STAND_POSE;
+
         if (!isGrounded) return JUMP_POSE;
         if (!isRunning) return STAND_POSE;
 
@@ -71,7 +70,7 @@ export const Stickman = ({ x, y, tick, isGrounded, isRunning, size }: StickmanPr
             lArm: interpolateLimb(p1.lArm, p2.lArm),
             rArm: interpolateLimb(p1.rArm, p2.rArm),
         };
-    }, [tick, isGrounded, isRunning]);
+    }, [tick, isGrounded, isRunning, status]);
 
     if (!pose) {
         return null;
@@ -88,17 +87,25 @@ export const Stickman = ({ x, y, tick, isGrounded, isRunning, size }: StickmanPr
     const anchorX = size / 2;
     const anchorY = headRadius + 2; // Head Position (Top)
 
-    const neck = { x: anchorX + leanOffset, y: anchorY + headRadius };
-    // Hip stays back, creating the lean
-    const hip = { x: anchorX, y: neck.y + bodyLength };
-    // Shoulders follow the spine (approx 20% down from neck)
+    // Exhausted Bend: Lower the neck significantly
+    const exhaustedBendY = status === 'exhausted' ? 12 * scale : 0;
+    const exhaustedBendX = status === 'exhausted' ? 8 * scale : 0;
+
+    const neck = {
+        x: anchorX + leanOffset + exhaustedBendX,
+        y: anchorY + headRadius + exhaustedBendY
+    };
+
+    // Hip stays roughly same place, maybe slightly lower in squat
+    const hip = { x: anchorX, y: anchorY + headRadius + bodyLength + (status === 'exhausted' ? 4 * scale : 0) };
+
+    // Shoulders
     const shoulders = {
         x: neck.x - (leanOffset * 0.2),
         y: neck.y + 4 * scale
     };
 
-    // Head Center slightly above neck
-    const headCenter = { x: neck.x, y: anchorY };
+    const headCenter = { x: neck.x, y: neck.y - headRadius }; // Head follows neck
 
     // Limbs
     const lKnee = getJoint(hip, pose.lLeg.upper, limbLen1);
@@ -137,5 +144,3 @@ export const Stickman = ({ x, y, tick, isGrounded, isRunning, size }: StickmanPr
         </Group>
     );
 };
-
-

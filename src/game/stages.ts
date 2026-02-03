@@ -16,7 +16,7 @@ export interface StageConfig {
         baseSpeed: number;
         spawnRate: number; // Interval in ms (approx)
     };
-    durationDistance: number; // Distance required to clear the stage (Reach Dawn)
+    courseLength: number; // Distance required to clear stage
 }
 
 export const STAGES: StageConfig[] = [
@@ -27,7 +27,7 @@ export const STAGES: StageConfig[] = [
         theme: {
             groundColor: '#ff00cc', // Neon Pink
             skyColors: ['#0f0c29', '#302b63', '#24243e'], // Deep Purple/Blue
-            sunColor: '#ff0099',
+            sunColor: '#FDB813', // Yellow
             moonColor: '#FEFCD7'
         },
         assets: {
@@ -37,7 +37,7 @@ export const STAGES: StageConfig[] = [
             baseSpeed: 5,
             spawnRate: 1500
         },
-        durationDistance: 2000 // Distance units to reach dawn
+        courseLength: 50000
     },
     {
         id: 'stage_2_beach',
@@ -56,7 +56,7 @@ export const STAGES: StageConfig[] = [
             baseSpeed: 6,
             spawnRate: 1300
         },
-        durationDistance: 2500
+        courseLength: 30000
     },
     {
         id: 'stage_3_landscape',
@@ -75,7 +75,7 @@ export const STAGES: StageConfig[] = [
             baseSpeed: 7,
             spawnRate: 1100
         },
-        durationDistance: 3000
+        courseLength: 40000
     },
     {
         id: 'stage_4_victory',
@@ -94,6 +94,6 @@ export const STAGES: StageConfig[] = [
             baseSpeed: 8,
             spawnRate: 900
         },
-        durationDistance: 4000
+        courseLength: 50000
     }
 ];

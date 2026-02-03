@@ -4,8 +4,8 @@ import { GameState } from '../state';
 let nextId = 0;
 
 export const spawnObstacle = (state: GameState) => {
-    // Phased Difficulty
-    const score = state.score;
+    // Phased Difficulty (Distance Based)
+    const dist = state.distance;
 
     let minDist = 600;
     let maxDist = 800;
@@ -13,27 +13,27 @@ export const spawnObstacle = (state: GameState) => {
     let availableTypes: ('red' | 'purple' | 'boulder')[] = ['purple'];
     let allowDouble = false;
 
-    if (score >= 60) {
+    if (dist >= 30000) {
         // Stage 5: Hardcore
         minDist = 300;
         maxDist = 500;
         spawnChance = 0.15;
         availableTypes = ['red', 'purple', 'boulder'];
         allowDouble = true;
-    } else if (score >= 40) {
+    } else if (dist >= 20000) {
         // Stage 4: Double Trouble
         minDist = 350;
         maxDist = 600;
         spawnChance = 0.12;
         availableTypes = ['red', 'purple', 'boulder'];
         allowDouble = true;
-    } else if (score >= 25) {
+    } else if (dist >= 12000) {
         // Stage 3: Boulders
         minDist = 400;
         maxDist = 600;
         spawnChance = 0.10;
         availableTypes = ['red', 'purple', 'boulder'];
-    } else if (score >= 10) {
+    } else if (dist >= 5000) {
         // Stage 2: Large Obstacles (Red/Yellow)
         minDist = 450;
         maxDist = 700;
@@ -62,8 +62,8 @@ export const spawnObstacle = (state: GameState) => {
 
             // Determine Type
             let type: 'red' | 'purple' | 'heart' | 'boulder' = 'purple';
-            if (Math.random() < 0.05) {
-                type = 'heart'; // Always 5% chance for heart if spawn triggered
+            if (Math.random() < 0.1) { // Boosted to 10%
+                type = 'heart';
             } else {
                 const randIndex = Math.floor(Math.random() * availableTypes.length);
                 type = availableTypes[randIndex];

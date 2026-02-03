@@ -81,3 +81,16 @@ export const STAND_POSE: Pose = {
     rArm: { upper: -0.85, lower: 1.6 },
     lArm: { upper: -0.85, lower: 1.6 }
 };
+
+export const EXHAUSTED_POSE: Pose = {
+    // Exhausted: Hands on knees
+    // Legs: Bent somewhat
+    rLeg: { upper: 0.5, lower: -0.7 },
+    lLeg: { upper: -0.2, lower: -0.3 },
+
+    // Arms: Reaching down to knees/thighs
+    // Upper arm fwd/down, lower arm back slightly? 
+    // Hands on knees -> Arm almost straight or slightly bent
+    rArm: { upper: 0.9, lower: 0.1 },
+    lArm: { upper: 0.9, lower: 0.1 }
+};

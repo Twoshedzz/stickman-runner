@@ -67,8 +67,12 @@ export const checkCollisions = (state: GameState) => {
                 continue;
             }
 
-            // 1. Deal Damage
-            state.player.health -= damage;
+            // 1. Deal Damage (Unless Debug Mode)
+            if (!state.debugMode) {
+                state.player.health -= damage;
+            } else {
+                console.log("Debug Mode: Damage Negated");
+            }
 
             // Explosion scaling
             // More particles, smaller size for pixel explosion look

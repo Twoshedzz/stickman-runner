@@ -17,6 +17,16 @@ export const useGameLoop = () => {
     if (stateRef.current.timeOfDay === undefined) {
         stateRef.current.timeOfDay = 0;
     }
+    // Fix for missing properties on hot reload
+    if (!stateRef.current.stageStatus) {
+        stateRef.current.stageStatus = 'playing';
+    }
+    if (stateRef.current.score === undefined) {
+        stateRef.current.score = 0;
+    }
+    if (stateRef.current.debugMode === undefined) {
+        stateRef.current.debugMode = false;
+    }
     const requestRef = useRef<number | null>(null);
 
     // UI State Sync (Optimized)
@@ -64,7 +74,7 @@ export const useGameLoop = () => {
                 // Let's implement actual progression:
                 // Cycle: 0.25 (Sunset Start) -> 1.0 (Sunrise) = 0.75 range
 
-                state.stageProgress = Math.min(state.distance / currentStage.durationDistance, 1);
+                state.stageProgress = Math.min(state.distance / currentStage.courseLength, 1);
 
                 const cycleStart = 0.25;
                 const cycleRange = 0.75; // 0.25 -> 1.0
@@ -73,17 +83,35 @@ export const useGameLoop = () => {
                 state.timeOfDay = Math.floor(cycleProgress * TIME_CYCLE_DURATION);
 
                 // Stage Complete Check
-                if (state.stageProgress >= 1) {
-                    // TODO: Trigger Stage Transition
-                    // For now, loop back to start of night to keep running
-                    // state.distance = 0; 
-                    // state.stageProgress = 0;
+                // Trigger 300px AFTER crossing the line for a victory lap
+                const isComplete = state.distance >= currentStage.courseLength + 300;
+
+                if (isComplete && state.stageStatus === 'playing') {
+                    console.log(`Stage Complete! (Debug: ${state.debugMode})`);
+                    state.stageStatus = 'exhausted';
+
+                    // Transition to Victory after 3 seconds
+                    setTimeout(() => {
+                        console.log("Victory Pose!");
+                        if (stateRef.current) {
+                            stateRef.current.stageStatus = 'victory';
+                        }
+                    }, 3000);
                 }
 
-                applyPhysics(state);
-                spawnObstacle(state);
-                state.particles = updateParticles(state.particles);
-                const isCollision = checkCollisions(state);
+                // ONLY Update Game Logic if Playing
+                if (state.stageStatus === 'playing') {
+                    applyPhysics(state);
+                    if (state.distance < currentStage.courseLength) {
+                        spawnObstacle(state);
+                    }
+                    state.particles = updateParticles(state.particles);
+                    const isCollision = checkCollisions(state);
+
+                    if (isCollision) {
+                        // state is mutated in place
+                    }
+                }
 
                 // Check High Score
                 if (state.score > highScoreRef.current) {
@@ -108,11 +136,6 @@ export const useGameLoop = () => {
                     };
                     metricsRef.current = newMetrics;
                     setGameMetrics(newMetrics);
-                }
-
-                if (isCollision) {
-                    // Optimized: No deep clone needed here as metrics handle UI
-                    // state is mutated in place for the game loop
                 }
             }
 
@@ -158,11 +181,18 @@ export const useGameLoop = () => {
         }
     }, []);
 
+    // Toggle Debug Mode
+    const toggleDebugMode = useCallback(() => {
+        stateRef.current.debugMode = !stateRef.current.debugMode;
+        setRenderTrigger(prev => prev + 1);
+    }, []);
+
     return {
         gameState: stateRef.current,
         gameMetrics,
         onJump,
         restartGame,
+        toggleDebugMode,
         tick: renderTrigger,
         highScore
     };

@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
 import { ScoreDisplay } from '../components/ui/ScoreDisplay';
@@ -13,7 +13,7 @@ const GameCanvas = React.lazy(() =>
 );
 
 export const GameScreen = () => {
-    const { gameState, gameMetrics, onJump, restartGame, tick, highScore } = useGameLoop();
+    const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
@@ -144,6 +144,25 @@ export const GameScreen = () => {
                             </Pressable>
                         </View>
                     )}
+                    {/* DEBUG HUD */}
+                    <View style={{ position: 'absolute', top: 100, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10 }}>
+                        <Text style={{ color: 'white' }}>Status: {gameState.stageStatus}</Text>
+                        <Text style={{ color: 'white' }}>Score: {gameState.score}</Text>
+                        <Text style={{ color: 'white' }}>Metrics Score: {gameMetrics.score}</Text>
+                        <Text style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</Text>
+                        <Text style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</Text>
+                        <Text style={{ color: 'white' }}>Dist: {Math.floor(gameState.distance)}</Text>
+                    </View>
+                    {/* Debug Toggle */}
+                    <View style={{ position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadowColor: 'black', textShadowRadius: 2 }}>DEBUG</Text>
+                        <Switch
+                            value={gameState.debugMode}
+                            onValueChange={toggleDebugMode}
+                            trackColor={{ false: "#767577", true: "#ff00cc" }}
+                            thumbColor={gameState.debugMode ? "#00ffff" : "#f4f3f4"}
+                        />
+                    </View>
                 </View>
             </View>
         </View>
