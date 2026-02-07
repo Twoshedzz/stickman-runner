@@ -89,21 +89,14 @@ export const useGameLoop = () => {
                 if (isComplete && state.stageStatus === 'playing') {
                     console.log(`Stage Complete! (Debug: ${state.debugMode})`);
                     state.stageStatus = 'exhausted';
-
-                    // Transition to Victory after 3 seconds
-                    setTimeout(() => {
-                        console.log("Victory Pose!");
-                        if (stateRef.current) {
-                            stateRef.current.stageStatus = 'victory';
-                        }
-                    }, 3000);
+                    state.showContinue = true;
                 }
 
                 // ONLY Update Game Logic if Playing
                 if (state.stageStatus === 'playing') {
                     applyPhysics(state);
-                    if (state.distance < currentStage.courseLength) {
-                        spawnObstacle(state);
+                    if (state.distance < currentStage.courseLength - 1000) {
+                        spawnObstacle(state, currentStage);
                     }
                     state.particles = updateParticles(state.particles);
                     const isCollision = checkCollisions(state);
@@ -187,11 +180,35 @@ export const useGameLoop = () => {
         setRenderTrigger(prev => prev + 1);
     }, []);
 
+    // Continue to next stage
+    const onContinue = useCallback(() => {
+        const state = stateRef.current;
+        if (!state.showContinue) return;
+
+        state.showContinue = false;
+        state.stageStatus = 'victory';
+
+        // Brief delay before loading next stage for visual polish
+        setTimeout(() => {
+            const nextIndex = STAGES.findIndex(s => s.id === state.stageId) + 1;
+            const nextStage = STAGES[nextIndex];
+
+            if (nextStage) {
+                state.stageId = nextStage.id;
+                state.distance = 0;
+                state.stageStatus = 'playing';
+                state.obstacles = [];
+                resetSpawner();
+            }
+        }, 1000);
+    }, []);
+
     return {
         gameState: stateRef.current,
         gameMetrics,
         onJump,
         restartGame,
+        onContinue,
         toggleDebugMode,
         tick: renderTrigger,
         highScore

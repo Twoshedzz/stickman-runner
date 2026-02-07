@@ -66,6 +66,10 @@ export const COLOR_OBSTACLE_GLOW = "#ffa500"; // Orange/Gold Glow
 export const COLOR_ENERGY = "#00ffff"; // Cyan
 
 // Energy
+// Energy
 export const MAX_ENERGY = 100;
 export const JUMP_ENERGY_COST = 100; // Depletes full bar
 export const ENERGY_REGEN = 0.5;
+
+// Debug
+export const DEBUG_ENABLED = true;

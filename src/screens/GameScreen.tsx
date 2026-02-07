@@ -3,8 +3,9 @@ import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-nativ
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
 import { ScoreDisplay } from '../components/ui/ScoreDisplay';
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
+import { DEBUG_ENABLED, SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
 import { useGameLoop } from '../game/loop/useGameLoop';
+import { STAGES } from '../game/stages';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
 
 // Lazy load GameCanvas to ensure Skia is initialized before import (on Web)
@@ -13,15 +14,16 @@ const GameCanvas = React.lazy(() =>
 );
 
 export const GameScreen = () => {
-    const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode } = useGameLoop();
+    const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode, onContinue } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
     const handleInteraction = useCallback(() => {
         if (gameState.gameOver) return; // Prevent restart on generic tap
-        playMusic();
+        const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
+        playMusic(currentStage.audio?.musicTrack || 'music_city');
         onJump();
-    }, [playMusic, onJump, gameState.gameOver]);
+    }, [playMusic, onJump, gameState.gameOver, gameState.stageId]);
 
     // Watch for Game Over to stop music
     useEffect(() => {
@@ -87,7 +89,10 @@ export const GameScreen = () => {
                         <React.Fragment>
                             <HealthBar health={gameMetrics.health} maxHealth={gameMetrics.maxHealth} />
                             <EnergyBar energy={gameMetrics.energy} />
-                            <ScoreDisplay score={gameMetrics.score} />
+                            <ScoreDisplay
+                                score={gameMetrics.score}
+                                stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
+                            />
                         </React.Fragment>
                     )}
 
@@ -145,24 +150,41 @@ export const GameScreen = () => {
                         </View>
                     )}
                     {/* DEBUG HUD */}
-                    <View style={{ position: 'absolute', top: 100, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10 }}>
-                        <Text style={{ color: 'white' }}>Status: {gameState.stageStatus}</Text>
-                        <Text style={{ color: 'white' }}>Score: {gameState.score}</Text>
-                        <Text style={{ color: 'white' }}>Metrics Score: {gameMetrics.score}</Text>
-                        <Text style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</Text>
-                        <Text style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</Text>
-                        <Text style={{ color: 'white' }}>Dist: {Math.floor(gameState.distance)}</Text>
-                    </View>
+                    {gameState.debugMode && (
+                        <View style={{ position: 'absolute', top: 100, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10 }}>
+                            <Text style={{ color: 'white' }}>Status: {gameState.stageStatus}</Text>
+                            <Text style={{ color: 'white' }}>Score: {gameState.score}</Text>
+                            <Text style={{ color: 'white' }}>Metrics Score: {gameMetrics.score}</Text>
+                            <Text style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</Text>
+                            <Text style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</Text>
+                            <Text style={{ color: 'white' }}>Dist: {Math.floor(gameState.distance)}</Text>
+                        </View>
+                    )}
                     {/* Debug Toggle */}
-                    <View style={{ position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center' }}>
-                        <Text style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadowColor: 'black', textShadowRadius: 2 }}>DEBUG</Text>
-                        <Switch
-                            value={gameState.debugMode}
-                            onValueChange={toggleDebugMode}
-                            trackColor={{ false: "#767577", true: "#ff00cc" }}
-                            thumbColor={gameState.debugMode ? "#00ffff" : "#f4f3f4"}
-                        />
-                    </View>
+                    {DEBUG_ENABLED && (
+                        <View style={{ position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadowColor: 'black', textShadowRadius: 2 }}>DEBUG</Text>
+                            <Switch
+                                value={gameState.debugMode}
+                                onValueChange={toggleDebugMode}
+                                trackColor={{ false: "#767577", true: "#ff00cc" }}
+                                thumbColor={gameState.debugMode ? "#00ffff" : "#f4f3f4"}
+                            />
+                        </View>
+                    )}
+                    {/* Continue Modal */}
+                    {gameState.showContinue && (
+                        <View style={styles.gameOverContainer}>
+                            <Text style={styles.gameOverTitle}>STAGE CLEAR</Text>
+                            <Text style={styles.gameOverScore}>Next Stage Ready</Text>
+                            <Pressable
+                                style={[styles.restartButton, styles.startButton]}
+                                onPress={onContinue}
+                            >
+                                <Text style={[styles.restartButtonText, styles.startButtonText]}>CONTINUE?</Text>
+                            </Pressable>
+                        </View>
+                    )}
                 </View>
             </View>
         </View>

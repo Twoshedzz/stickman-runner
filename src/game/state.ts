@@ -14,7 +14,7 @@ export interface GameState {
         x: number;
         id: number;
         passed?: boolean;
-        type?: 'red' | 'purple' | 'heart' | 'boulder'; // Added boulder
+        type?: 'standard' | 'red' | 'purple' | 'heart' | 'boulder'; // Added standard
         phase?: number; // For oscillation
     }[];
     particles: Particle[];
@@ -30,6 +30,7 @@ export interface GameState {
     stageProgress: number; // 0 (Dusk) -> 1 (Dawn)
     shield: number;
     debugMode: boolean;
+    showContinue: boolean;
 }
 
 export const createInitialState = (): GameState => ({
@@ -54,5 +55,6 @@ export const createInitialState = (): GameState => ({
     stageId: 'stage_1_city',
     stageProgress: 0,
     shield: 0,
-    debugMode: false
+    debugMode: false,
+    showContinue: false
 });

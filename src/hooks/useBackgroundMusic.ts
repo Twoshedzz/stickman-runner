@@ -27,14 +27,26 @@ export const useBackgroundMusic = () => {
         configureAudio();
     }, []);
 
-    const playMusic = useCallback(async () => {
+    const playMusic = useCallback(async (trackKey: string = 'music_city') => {
         try {
             if (loadingRef.current) return;
 
-            // If already loaded, just ensure it's playing and volume is up
+            // Map keys to assets (Future: Add distinct files)
+            const musicMap: Record<string, any> = {
+                'music_city': require('../../assets/music.mp3'),
+                'music_beach': require('../../assets/music.mp3'), // Placeholder
+                'music_mountains': require('../../assets/music.mp3'), // Placeholder
+                'music_victory': require('../../assets/music.mp3'), // Placeholder
+            };
+
+            const source = musicMap[trackKey] || musicMap['music_city'];
+
+            // If already loaded, check if it's the same track
             if (soundRef.current) {
                 const status = await soundRef.current.getStatusAsync();
                 if (status.isLoaded) {
+                    // Logic to swap tracks would go here (unload -> load new)
+                    // For now, since it's the same file, just replay
                     await soundRef.current.setVolumeAsync(1.0);
                     if (!status.isPlaying) {
                         await soundRef.current.replayAsync();
@@ -45,10 +57,10 @@ export const useBackgroundMusic = () => {
             }
 
             loadingRef.current = true;
-            setMusicStatus('Loading...');
+            setMusicStatus(`Loading ${trackKey}...`);
 
             const { sound } = await Audio.Sound.createAsync(
-                require('../../assets/music.mp3'),
+                source,
                 { isLooping: true, volume: 1.0 }
             );
 

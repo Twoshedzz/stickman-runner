@@ -1,56 +1,30 @@
 import { SCREEN_WIDTH } from '../constants';
+import { ObstacleType, StageConfig } from '../stages';
 import { GameState } from '../state';
 
 let nextId = 0;
 
-export const spawnObstacle = (state: GameState) => {
-    // Phased Difficulty (Distance Based)
-    const dist = state.distance;
+export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
+    // Difficulty from Config
+    const { spawnRate, allowedObstacles, allowDoubleSpawns } = currentStage.difficulty;
 
-    let minDist = 600;
-    let maxDist = 800;
-    let spawnChance = 0.05;
-    let availableTypes: ('red' | 'purple' | 'boulder')[] = ['purple'];
-    let allowDouble = false;
-
-    if (dist >= 30000) {
-        // Stage 5: Hardcore
-        minDist = 300;
-        maxDist = 500;
-        spawnChance = 0.15;
-        availableTypes = ['red', 'purple', 'boulder'];
-        allowDouble = true;
-    } else if (dist >= 20000) {
-        // Stage 4: Double Trouble
-        minDist = 350;
-        maxDist = 600;
-        spawnChance = 0.12;
-        availableTypes = ['red', 'purple', 'boulder'];
-        allowDouble = true;
-    } else if (dist >= 12000) {
-        // Stage 3: Boulders
-        minDist = 400;
-        maxDist = 600;
-        spawnChance = 0.10;
-        availableTypes = ['red', 'purple', 'boulder'];
-    } else if (dist >= 5000) {
-        // Stage 2: Large Obstacles (Red/Yellow)
-        minDist = 450;
-        maxDist = 700;
-        spawnChance = 0.08;
-        availableTypes = ['red', 'purple'];
-    }
+    // Convert spawnRate (ms) to distance/frames approx
+    // Faster speed = cover distance faster
+    // Basic logic: Higher speed needs more distance between spawns
+    const speed = currentStage.difficulty.baseSpeed;
+    const minDist = speed * 60 * (spawnRate / 1000) * 0.8; // 80% variances
+    const maxDist = speed * 60 * (spawnRate / 1000) * 1.2;
 
     // Check last obstacle
     const lastObstacle = state.obstacles[state.obstacles.length - 1];
     const lastX = lastObstacle ? lastObstacle.x : -Infinity;
 
-    // If no obstacles yet, spawn one immediately
+    // If no obstacles yet, spawn one immediately (safely)
     if (state.obstacles.length === 0) {
         state.obstacles.push({
             x: SCREEN_WIDTH + 200,
             id: nextId++,
-            type: 'purple', // Safe start
+            type: allowedObstacles[0] || 'purple',
         });
         return;
     }
@@ -58,15 +32,21 @@ export const spawnObstacle = (state: GameState) => {
     // Only spawn if enough distance has passed
     if (lastX < SCREEN_WIDTH - minDist) {
         // Chance to spawn
-        if (Math.random() < spawnChance || (lastX < SCREEN_WIDTH - maxDist)) {
+        // We use a simplified probability or just checking limits
+        // Here we spawn if we pass maxDist OR random chance after minDist
+        const shouldSpawn = (lastX < SCREEN_WIDTH - maxDist) || (Math.random() < 0.05);
 
+        if (shouldSpawn) {
             // Determine Type
-            let type: 'red' | 'purple' | 'heart' | 'boulder' = 'purple';
-            if (Math.random() < 0.1) { // Boosted to 10%
+            let type: ObstacleType = 'purple';
+            if (allowedObstacles.includes('heart') && Math.random() < 0.1) {
                 type = 'heart';
             } else {
-                const randIndex = Math.floor(Math.random() * availableTypes.length);
-                type = availableTypes[randIndex];
+                const available = allowedObstacles.filter(t => t !== 'heart');
+                if (available.length > 0) {
+                    const randIndex = Math.floor(Math.random() * available.length);
+                    type = available[randIndex];
+                }
             }
 
             state.obstacles.push({
@@ -77,22 +57,23 @@ export const spawnObstacle = (state: GameState) => {
             });
 
             // Double Obstacle Logic (Energy Gated)
-            // Increase buffer to 1200 to give player margin for error
-            // 1200px = 300 frames = 150 energy regen
-            if (allowDouble && state.distance - state.lastDoubleObstacleDistance > 1200) {
+            if (allowDoubleSpawns && state.distance - state.lastDoubleObstacleDistance > 1200) {
                 // 20% Chance for a double obstacle
                 if (Math.random() < 0.2) {
-                    // Second obstacle is never a heart or boulder (too complex)
-                    // Just a simple block or purple spike
-                    const secondType = Math.random() < 0.5 ? 'purple' : 'red';
+                    // Second obstacle is simple
+                    // Available simple types: standard, purple, red (exclude boulder/heart)
+                    const simpleTypes = allowedObstacles.filter(t => t === 'standard' || t === 'purple' || t === 'red');
+                    if (simpleTypes.length > 0) {
+                        const secondType = simpleTypes[Math.floor(Math.random() * simpleTypes.length)];
 
-                    state.obstacles.push({
-                        x: SCREEN_WIDTH + 100, // Close gap!
-                        id: nextId++,
-                        type: secondType,
-                    });
+                        state.obstacles.push({
+                            x: SCREEN_WIDTH + 100, // Close gap!
+                            id: nextId++,
+                            type: secondType,
+                        });
 
-                    state.lastDoubleObstacleDistance = state.distance;
+                        state.lastDoubleObstacleDistance = state.distance;
+                    }
                 }
             }
         }
