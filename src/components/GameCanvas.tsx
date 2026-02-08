@@ -4,13 +4,13 @@ import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
     COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
-    GROUND_HEIGHT, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE,
+    GROUND_HEIGHT, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL,
     PLAYER_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
-import { NeonCityBackground } from "./backgrounds/NeonCityBackground";
+import { NeonCityBackground, useNeonCityData, NeonCityLayer } from "./backgrounds/NeonCityBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 
 interface GameCanvasProps {
@@ -111,36 +111,27 @@ const getTheme = (distance: number, stage: StageConfig) => {
 export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
     const { player, obstacles } = gameState;
 
-    // Identify Current Stage
     const currentStage = useMemo(() =>
         STAGES.find(s => s.id === gameState.stageId) || STAGES[0]
         , [gameState.stageId]);
 
     const currentTheme = getTheme(gameState.distance, currentStage);
+    const neonCityData = useNeonCityData(gameState.stageId);
+    const isCity = currentStage.assets.backgroundType === "city";
 
-    // --- Background Selection ---
-    const renderBackground = () => {
+    const renderNonCityBackground = () => {
         switch (currentStage.assets.backgroundType) {
-            case 'city':
-                return <NeonCityBackground gameState={gameState} currentTheme={currentTheme} />;
-            case 'beach':
+            case "beach":
                 return <SynthwaveBeachBackground gameState={gameState} />;
-            /* 
-            case 'mountains':
-                return <DigitalMountainsBackground gameState={gameState} />;
-            case 'city_victory':
-                return <VictoryCityBackground gameState={gameState} />;
-            */
             default:
-                return <NeonCityBackground gameState={gameState} currentTheme={currentTheme} />;
+                return null;
         }
     };
 
     return (
         <View style={styles.container}>
             <Canvas style={{ flex: 1 }}>
-
-                {/* 1. Dynamic Heaven/Sky */}
+                {/* 1. Sky (back) */}
                 <Rect x={0} y={0} width={SCREEN_WIDTH} height={SCREEN_HEIGHT}>
                     <LinearGradient
                         start={vec(0, 0)}
@@ -149,25 +140,31 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     />
                 </Rect>
 
-                {/* 2. Celestials (Sun/Moon) */}
-                {/* Sun - Solid Color per user request */}
+                {/* 2. Sun */}
                 <Circle cx={SCREEN_WIDTH / 2} cy={currentTheme.sunY} r={52} color={currentTheme.sunColor} />
 
-                {/* Moon - Crescent */}
+                {/* 3. Moon - crescent, before buildings so visible; descends per timeline */}
                 {currentTheme.moonOpacity > 0 && (
-                    <Group transform={[{ translateX: SCREEN_WIDTH * 0.8 }, { translateY: currentTheme.moonY }]}>
-                        <Path
-                            path="M 0 -30 A 30 30 0 1 0 0 30 A 25 25 0 1 1 0 -30"
-                            color={`rgba(255, 255, 255, ${currentTheme.moonOpacity})`}
-                            style="fill"
-                        />
+                    <Group transform={[{ translateX: SCREEN_WIDTH * 0.75 }, { translateY: currentTheme.moonY }]}>
+                        <Circle cx={0} cy={0} r={38} color={`rgba(254, 252, 215, ${currentTheme.moonOpacity})`} style="fill" />
+                        <Circle cx={18} cy={0} r={30} color={currentTheme.skyTop} style="fill" />
                     </Group>
                 )}
 
-                {/* 3. Stage-Specific Background */}
-                {renderBackground()}
+                {/* 4. Rear buildings (city only, correct layer order) */}
+                {isCity && neonCityData && (
+                    <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
+                )}
 
-                {/* 4. Ground Line */}
+                {/* 5. Front buildings (city only) */}
+                {isCity && neonCityData && (
+                    <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
+                )}
+
+                {/* 6. Non-city background (beach etc.) */}
+                {!isCity && renderNonCityBackground()}
+
+                {/* 7. Ground Line */}
                 <Rect
                     x={0}
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}
@@ -176,7 +173,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     color={currentStage.theme.groundColor}
                 />
 
-                {/* 5. Victory Arch (If near end) */}
+                {/* 8. Victory Arch (If near end) */}
                 {(currentStage.courseLength - gameState.distance) + PLAYER_X > -200 && (currentStage.courseLength - gameState.distance) + PLAYER_X < SCREEN_WIDTH + 200 && (
                     <Group>
                         {/* Inner Arch */}
@@ -197,7 +194,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     </Group>
                 )}
 
-                {/* 6. Obstacles */}
+                {/* 9. Obstacles */}
                 {obstacles.map(obs => {
                     const isBoulder = obs.type === 'boulder';
                     let color = COLOR_OBSTACLE;
@@ -215,6 +212,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     if (obs.type === 'heart') color = COLOR_HP_DEEP;
 
                     let size = OBSTACLE_SIZE;
+                    if (obs.type === 'small') size = OBSTACLE_SIZE_SMALL;
                     if (obs.type === 'purple') size = OBSTACLE_SIZE_PURPLE;
                     if (obs.type === 'heart') size = 30;
 
@@ -255,7 +253,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     );
                 })}
 
-                {/* 7. Player (Stickman) */}
+                {/* 10. Player (Stickman) */}
                 <Stickman
                     x={PLAYER_X}
                     y={player.y}
@@ -266,7 +264,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     status={gameState.stageStatus}
                 />
 
-                {/* 8. Particles */}
+                {/* 11. Particles */}
                 {gameState.particles.map(p => (
                     <Rect key={p.id} x={p.x} y={p.y} width={p.size} height={p.size} color={p.color} opacity={p.life} />
                 ))}

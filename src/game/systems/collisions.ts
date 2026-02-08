@@ -1,4 +1,4 @@
-import { DAMAGE_BLOCK, DAMAGE_PURPLE, GROUND_HEIGHT, HEART_HEAL, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, PLAYER_SIZE, PLAYER_X, SCREEN_HEIGHT, SCREEN_WIDTH } from '../constants';
+import { DAMAGE_BLOCK, DAMAGE_SMALL, DAMAGE_PURPLE, GROUND_HEIGHT, HEART_HEAL, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL, PLAYER_SIZE, PLAYER_X, SCREEN_HEIGHT, SCREEN_WIDTH } from '../constants';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
@@ -12,9 +12,9 @@ export const checkCollisions = (state: GameState) => {
         const obs = state.obstacles[i];
 
         const isPurple = obs.type === 'purple';
-        // const isBoulder = obs.type === 'boulder'; // Unused
-        const size = isPurple ? OBSTACLE_SIZE_PURPLE : OBSTACLE_SIZE; // Boulders are full size
-        const damage = isPurple ? DAMAGE_PURPLE : DAMAGE_BLOCK; // Boulders deal full damage
+        const isSmall = obs.type === 'small';
+        const size = obs.type === 'heart' ? 30 : (isPurple ? OBSTACLE_SIZE_PURPLE : (isSmall ? OBSTACLE_SIZE_SMALL : OBSTACLE_SIZE));
+        const damage = isPurple ? DAMAGE_PURPLE : (isSmall ? DAMAGE_SMALL : DAMAGE_BLOCK);
 
         const obsX = obs.x;
         const obsY = SCREEN_HEIGHT - GROUND_HEIGHT - size; // Align to ground
@@ -39,8 +39,8 @@ export const checkCollisions = (state: GameState) => {
                     // Spawn Pink Particles -> Fly to Health Bar (Top Left)
                     state.particles = spawnParticles(
                         state.particles,
-                        obs.x + OBSTACLE_SIZE / 2,
-                        obsY + OBSTACLE_SIZE / 2,
+                        obs.x + size / 2,
+                        obsY + size / 2,
                         '#FF1493', // Pink
                         10,
                         4,
@@ -52,8 +52,8 @@ export const checkCollisions = (state: GameState) => {
                     // Spawn Gold Particles -> Fly to Score Display (Top Right)
                     state.particles = spawnParticles(
                         state.particles,
-                        obs.x + OBSTACLE_SIZE / 2,
-                        obsY + OBSTACLE_SIZE / 2,
+                        obs.x + size / 2,
+                        obsY + size / 2,
                         '#FFD700', // Gold
                         10,
                         4,
@@ -76,8 +76,7 @@ export const checkCollisions = (state: GameState) => {
 
             // Explosion scaling
             // More particles, smaller size for pixel explosion look
-            // Boulders count as big obstacles
-            const isBig = !isPurple;
+            const isBig = !isPurple && !isSmall;
             const particleCount = isBig ? 30 : 15;
             state.particles = spawnParticles(
                 state.particles,

@@ -14,7 +14,7 @@ export interface GameState {
         x: number;
         id: number;
         passed?: boolean;
-        type?: 'standard' | 'red' | 'purple' | 'heart' | 'boulder'; // Added standard
+        type?: 'standard' | 'small' | 'red' | 'purple' | 'heart' | 'boulder';
         phase?: number; // For oscillation
     }[];
     particles: Particle[];

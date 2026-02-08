@@ -24,7 +24,7 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
         state.obstacles.push({
             x: SCREEN_WIDTH + 200,
             id: nextId++,
-            type: allowedObstacles[0] || 'purple',
+            type: allowedObstacles[0] || 'standard',
         });
         return;
     }
@@ -38,7 +38,7 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
 
         if (shouldSpawn) {
             // Determine Type
-            let type: ObstacleType = 'purple';
+            let type: ObstacleType = 'standard';
             if (allowedObstacles.includes('heart') && Math.random() < 0.1) {
                 type = 'heart';
             } else {
@@ -62,7 +62,7 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
                 if (Math.random() < 0.2) {
                     // Second obstacle is simple
                     // Available simple types: standard, purple, red (exclude boulder/heart)
-                    const simpleTypes = allowedObstacles.filter(t => t === 'standard' || t === 'purple' || t === 'red');
+                    const simpleTypes = allowedObstacles.filter(t => t === 'standard' || t === 'small' || t === 'purple' || t === 'red');
                     if (simpleTypes.length > 0) {
                         const secondType = simpleTypes[Math.floor(Math.random() * simpleTypes.length)];
 

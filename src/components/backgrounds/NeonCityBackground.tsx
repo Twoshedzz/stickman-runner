@@ -4,51 +4,48 @@ import React from 'react';
 import { COLOR_CITY_BACK, COLOR_CITY_FRONT, GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH } from "../../game/constants";
 import { GameState } from "../../game/state";
 
-// --- City Assets ---
-// --- City Assets ---
 const CITY_WIDTH = SCREEN_WIDTH * 2;
-interface CityData {
-    path: any; // Skia Path
+
+export interface CityData {
+    path: ReturnType<typeof Skia.Path.Make>;
     w: number;
-    windows: { x: number, y: number, w: number, h: number, activationThreshold: number }[];
+    windows: { x: number; y: number; w: number; h: number; activationThreshold: number }[];
 }
 
-const createCityline = (offsetY: number, buildings: number, windowProbability: number): CityData => {
+export const createCityline = (
+    offsetY: number,
+    buildings: number,
+    windowProbability: number
+): CityData => {
     const path = Skia.Path.Make();
     let x = 0;
-    const windows: { x: number, y: number, w: number, h: number, activationThreshold: number }[] = [];
+    const windows: CityData["windows"] = [];
 
     path.moveTo(x, SCREEN_HEIGHT);
     const groundY = SCREEN_HEIGHT - GROUND_HEIGHT - offsetY;
     path.lineTo(x, groundY);
 
-    // Initial flat ground to ensure seam is clean
     x += 10;
     path.lineTo(x, groundY);
 
     let buildingCount = 0;
 
-    while (x < CITY_WIDTH - 60 && buildingCount < buildings) { // Check limits
+    while (x < CITY_WIDTH - 60 && buildingCount < buildings) {
         const width = 40 + Math.random() * 60;
         const height = 30 + Math.random() * 100;
 
-        // Ensure we don't overshoot drastically
         if (x + width > CITY_WIDTH - 10) break;
 
         const buildingX = x;
         const buildingY = groundY - height;
 
-        // Up
         path.lineTo(buildingX, buildingY);
         x += width;
-        // Across
         path.lineTo(x, buildingY);
-        // Down
         path.lineTo(x, groundY);
 
         buildingCount++;
 
-        // Windows
         if (Math.random() < windowProbability && height > 40) {
             const rows = Math.floor(height / 15);
             const cols = Math.floor(width / 12);
@@ -60,19 +57,17 @@ const createCityline = (offsetY: number, buildings: number, windowProbability: n
                             y: buildingY + 5 + (r * 15),
                             w: 6,
                             h: 8,
-                            activationThreshold: Math.random() * 0.8
+                            activationThreshold: Math.random(),
                         });
                     }
                 }
             }
         }
 
-        // Gap between buildings (optional, but good for style)
         x += Math.random() * 10;
         path.lineTo(x, groundY);
     }
 
-    // Connect to end
     path.lineTo(CITY_WIDTH, groundY);
     path.lineTo(CITY_WIDTH, SCREEN_HEIGHT);
     path.close();
@@ -80,66 +75,88 @@ const createCityline = (offsetY: number, buildings: number, windowProbability: n
     return { path, w: CITY_WIDTH, windows };
 };
 
-interface NeonCityProps {
-    gameState: GameState;
-    currentTheme: { nightProgress: number; };
-}
-
-export const NeonCityBackground = ({ gameState, currentTheme }: NeonCityProps) => {
-    const [cityData, setCityData] = React.useState<{ back: CityData, front: CityData } | null>(null);
+/** One-time city data for both layers. Only created when stage is city. */
+export function useNeonCityData(stageId: string): { back: CityData; front: CityData } | null {
+    const [cityData, setCityData] = React.useState<{ back: CityData; front: CityData } | null>(null);
 
     React.useEffect(() => {
-        // Delay generation to ensure Skia is ready and avoid render blocking
-        const back = createCityline(20, 30, 0.4);
+        if (stageId !== "stage_1_city") return;
+        const back = createCityline(20, 30, 0.78);
         const front = createCityline(0, 20, 0.8);
         setCityData({ back, front });
-    }, []);
+    }, [stageId]);
 
-    if (!cityData) return null; // Render nothing until data is generated
+    return cityData;
+}
 
-    const { back: cityDataBack, front: cityDataFront } = cityData;
+interface NeonCityLayerProps {
+    layer: "back" | "front";
+    data: CityData;
+    gameState: GameState;
+    currentTheme: { nightProgress: number };
+}
 
-    // Parallax Offsets
-    const bgOffsetBack = -(gameState.distance * 0.2) % CITY_WIDTH;
-    const bgOffsetFront = -(gameState.distance * 0.5) % CITY_WIDTH;
+/** Renders a single city layer (back or front) for correct draw order. */
+export function NeonCityLayer({ layer, data, gameState, currentTheme }: NeonCityLayerProps) {
+    const bgOffset = layer === "back"
+        ? -(gameState.distance * 0.2) % CITY_WIDTH
+        : -(gameState.distance * 0.5) % CITY_WIDTH;
+
+    const isBack = layer === "back";
+    const pathColor = isBack ? COLOR_CITY_BACK : COLOR_CITY_FRONT;
+    const windowColor = isBack
+        ? "rgba(255, 255, 0, 0.55)"
+        : "rgba(0, 255, 255, 0.4)";
 
     return (
         <>
-            {/* Back Layer (Dark Purple + Dim Windows) */}
-            <Group transform={[{ translateX: bgOffsetBack }]}>
-                <Path path={cityDataBack.path} color={COLOR_CITY_BACK} />
-                {cityDataBack.windows.map((w, i) => (
-                    currentTheme.nightProgress > w.activationThreshold && (
-                        <Rect key={`wb-${i}`} x={w.x} y={w.y} width={w.w} height={w.h} color="rgba(255, 255, 0, 0.2)" />
-                    )
-                ))}
+            <Group transform={[{ translateX: bgOffset }]}>
+                <Path path={data.path} color={pathColor} />
+                {data.windows.map((w, i) =>
+                    currentTheme.nightProgress > w.activationThreshold ? (
+                        <Rect
+                            key={`${layer}-${i}`}
+                            x={w.x}
+                            y={w.y}
+                            width={w.w}
+                            height={w.h}
+                            color={windowColor}
+                        />
+                    ) : null
+                )}
             </Group>
-            <Group transform={[{ translateX: bgOffsetBack + CITY_WIDTH }]}>
-                <Path path={cityDataBack.path} color={COLOR_CITY_BACK} />
-                {cityDataBack.windows.map((w, i) => (
-                    currentTheme.nightProgress > w.activationThreshold && (
-                        <Rect key={`wb-rep-${i}`} x={w.x} y={w.y} width={w.w} height={w.h} color="rgba(255, 255, 0, 0.2)" />
-                    )
-                ))}
+            <Group transform={[{ translateX: bgOffset + CITY_WIDTH }]}>
+                <Path path={data.path} color={pathColor} />
+                {data.windows.map((w, i) =>
+                    currentTheme.nightProgress > w.activationThreshold ? (
+                        <Rect
+                            key={`${layer}-rep-${i}`}
+                            x={w.x}
+                            y={w.y}
+                            width={w.w}
+                            height={w.h}
+                            color={windowColor}
+                        />
+                    ) : null
+                )}
             </Group>
+        </>
+    );
+}
 
-            {/* Front Layer (Black Silhouette + Bright Windows) */}
-            <Group transform={[{ translateX: bgOffsetFront }]}>
-                <Path path={cityDataFront.path} color={COLOR_CITY_FRONT} />
-                {cityDataFront.windows.map((w, i) => (
-                    currentTheme.nightProgress > w.activationThreshold && (
-                        <Rect key={`wf-${i}`} x={w.x} y={w.y} width={w.w} height={w.h} color="rgba(0, 255, 255, 0.4)" />
-                    )
-                ))}
-            </Group>
-            <Group transform={[{ translateX: bgOffsetFront + CITY_WIDTH }]}>
-                <Path path={cityDataFront.path} color={COLOR_CITY_FRONT} />
-                {cityDataFront.windows.map((w, i) => (
-                    currentTheme.nightProgress > w.activationThreshold && (
-                        <Rect key={`wf-rep-${i}`} x={w.x} y={w.y} width={w.w} height={w.h} color="rgba(0, 255, 255, 0.4)" />
-                    )
-                ))}
-            </Group>
+interface NeonCityProps {
+    gameState: GameState;
+    currentTheme: { nightProgress: number };
+}
+
+/** Legacy single-component render (back + front together). Use layers in GameCanvas for correct order. */
+export const NeonCityBackground = ({ gameState, currentTheme }: NeonCityProps) => {
+    const cityData = useNeonCityData("stage_1_city");
+    if (!cityData) return null;
+    return (
+        <>
+            <NeonCityLayer layer="back" data={cityData.back} gameState={gameState} currentTheme={currentTheme} />
+            <NeonCityLayer layer="front" data={cityData.front} gameState={gameState} currentTheme={currentTheme} />
         </>
     );
 };

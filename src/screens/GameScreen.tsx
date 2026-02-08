@@ -25,12 +25,12 @@ export const GameScreen = () => {
         onJump();
     }, [playMusic, onJump, gameState.gameOver, gameState.stageId]);
 
-    // Watch for Game Over to stop music
+    // Watch for Game Over or Stage Complete to stop music (don't repeat once stage is done)
     useEffect(() => {
-        if (gameState.gameOver) {
+        if (gameState.gameOver || gameState.showContinue) {
             stopMusic();
         }
-    }, [gameState.gameOver, stopMusic]);
+    }, [gameState.gameOver, gameState.showContinue, stopMusic]);
 
     // Web Keyboard Support
     useEffect(() => {
@@ -157,7 +157,9 @@ export const GameScreen = () => {
                             <Text style={{ color: 'white' }}>Metrics Score: {gameMetrics.score}</Text>
                             <Text style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</Text>
                             <Text style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</Text>
-                            <Text style={{ color: 'white' }}>Dist: {Math.floor(gameState.distance)}</Text>
+                            <Text style={{ color: 'white', fontWeight: 'bold' }}>Distance: {Math.floor(gameState.distance)}</Text>
+                            <Text style={{ color: 'white' }}>Segment: {Math.min(6, 1 + Math.floor(gameState.distance / 7200))} (30s each)</Text>
+                            <Text style={{ color: 'white', opacity: 0.8 }}>tick: {tick}</Text>
                         </View>
                     )}
                     {/* Debug Toggle */}

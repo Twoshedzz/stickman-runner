@@ -5,9 +5,11 @@ export const GROUND_HEIGHT = 50;
 export const PLAYER_SIZE = 40;
 export const PLAYER_X = 50;
 export const OBSTACLE_SIZE = 40;
+export const OBSTACLE_SIZE_SMALL = 28; // Small yellow block (Neon City)
 export const OBSTACLE_SIZE_PURPLE = 30;
 export const MAX_HEALTH = 10;
 export const DAMAGE_BLOCK = 4;
+export const DAMAGE_SMALL = 2; // Small block (Neon City)
 export const DAMAGE_PURPLE = 2;
 export const HEART_HEAL = 3;
 
