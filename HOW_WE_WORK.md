@@ -41,5 +41,7 @@ Use this section for one-off or ongoing instructions.
 - “If something might break the app, warn me first.”
 - “I test on my phone with Expo Go — assume that unless I say otherwise.”
 - I'm working on the game with my son who chose the format, I occaisionally refer to him as a tester.
+- When making commits please make plain simple messages
+- please mark commits as releases when prompted
 
 ---

@@ -46,10 +46,9 @@ Both have a **free tier** and work well for static sites.
 
 1. Create an account at [vercel.com](https://vercel.com) or [netlify.com](https://netlify.com).
 2. “Import” or “Add new project” and connect your **GitHub** repo (`stickman-runner`).
-3. Set:
-   - **Build command:** `npm run build:web`
-   - **Publish / output directory:** `dist`
-4. Deploy. They’ll give you a URL like `stickman-runner.vercel.app` or `something.netlify.app`.
+3. **Vercel:** This repo has a `vercel.json` that already sets the build command, output folder (`dist`), and SPA routing—no need to change dashboard settings.
+4. **Netlify:** Set build command `npm run build:web` and publish directory `dist`.
+5. Deploy. They’ll give you a URL like `stickman-runner.vercel.app` or `something.netlify.app`.
 
 After that, each time you push to GitHub, they rebuild and update the site. No need to commit the `dist` folder.
 
