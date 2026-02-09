@@ -1,71 +1,66 @@
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { Audio, setAudioModeAsync } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const musicMap: Record<string, number> = {
+    music_city: require('../../assets/neoncity.mp3'),
+    music_beach: require('../../assets/synthwavebeach.mp3'),
+    music_mountains: require('../../assets/neoncity.mp3'),
+    music_victory: require('../../assets/neoncity.mp3'),
+};
+
 export const useBackgroundMusic = () => {
-    // console.log('Initializing useBackgroundMusic hook');
     const [musicStatus, setMusicStatus] = useState<string>('Ready');
     const loadingRef = useRef(false);
-    const soundRef = useRef<Audio.Sound | null>(null);
+    const playerRef = useRef<ReturnType<typeof Audio.createAudioPlayer> | null>(null);
 
-    // Initial Configuration for Mobile Stability
     useEffect(() => {
         const configureAudio = async () => {
             try {
-                await Audio.setAudioModeAsync({
-                    allowsRecordingIOS: false,
-                    staysActiveInBackground: false, // Pause when app backgrounded (good for games)
-                    playsInSilentModeIOS: true, // CRITICAL: Play even if switch is silent
-                    shouldDuckAndroid: true, // Duck other audio (notifications)
-                    interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-                    interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-                    playThroughEarpieceAndroid: false,
+                await setAudioModeAsync({
+                    playsInSilentMode: true,
+                    shouldPlayInBackground: false,
+                    interruptionMode: 'doNotMix',
                 });
             } catch (e) {
                 console.warn('Failed to set audio mode', e);
             }
         };
         configureAudio();
+
+        return () => {
+            if (playerRef.current) {
+                playerRef.current.remove();
+                playerRef.current = null;
+            }
+        };
     }, []);
 
     const playMusic = useCallback(async (trackKey: string = 'music_city') => {
         try {
             if (loadingRef.current) return;
 
-            // Map keys to assets (Stage 1 = Neon City uses neoncity.mp3; others placeholder until added)
-            const musicMap: Record<string, any> = {
-                'music_city': require('../../assets/neoncity.mp3'),
-                'music_beach': require('../../assets/synthwavebeach.mp3'),
-                'music_mountains': require('../../assets/neoncity.mp3'), // Placeholder
-                'music_victory': require('../../assets/neoncity.mp3'), // Placeholder
-            };
+            const source = musicMap[trackKey] ?? musicMap.music_city;
 
-            const source = musicMap[trackKey] || musicMap['music_city'];
-
-            // If already loaded, check if it's the same track
-            if (soundRef.current) {
-                const status = await soundRef.current.getStatusAsync();
-                if (status.isLoaded) {
-                    // Logic to swap tracks would go here (unload -> load new)
-                    // For now, since it's the same file, just replay
-                    await soundRef.current.setVolumeAsync(1.0);
-                    if (!status.isPlaying) {
-                        await soundRef.current.replayAsync();
-                    }
-                    setMusicStatus('Playing');
-                    return;
-                }
+            const player = playerRef.current;
+            if (player?.isLoaded) {
+                player.replace(source);
+                player.loop = true;
+                player.volume = 1;
+                player.play();
+                setMusicStatus('Playing');
+                return;
             }
 
             loadingRef.current = true;
             setMusicStatus(`Loading ${trackKey}...`);
 
-            const { sound } = await Audio.Sound.createAsync(
-                source,
-                { isLooping: true, volume: 1.0 }
-            );
-
-            soundRef.current = sound;
-            await sound.playAsync();
+            const newPlayer = Audio.createAudioPlayer(source, { loop: true });
+            newPlayer.volume = 1;
+            if (playerRef.current) {
+                playerRef.current.remove();
+            }
+            playerRef.current = newPlayer;
+            newPlayer.play();
             setMusicStatus('Playing');
         } catch (error) {
             console.warn('Error playing music:', error);
@@ -76,30 +71,23 @@ export const useBackgroundMusic = () => {
     }, []);
 
     const stopMusic = useCallback(async () => {
-        if (!soundRef.current) return;
+        const player = playerRef.current;
+        if (!player) return;
         try {
             setMusicStatus('Stopping...');
-            // Simple fade out (2 seconds)
             for (let i = 20; i >= 0; i--) {
-                if (!soundRef.current) break;
-                await soundRef.current.setVolumeAsync(i / 20);
-                await new Promise(r => setTimeout(r, 100)); // 20 * 100ms = 2000ms
+                if (!playerRef.current) break;
+                playerRef.current.volume = i / 20;
+                await new Promise(r => setTimeout(r, 100));
             }
-            if (soundRef.current) {
-                await soundRef.current.stopAsync();
+            if (playerRef.current) {
+                playerRef.current.pause();
+                playerRef.current.seekTo(0);
             }
             setMusicStatus('Stopped');
         } catch (error) {
             console.warn('Error stopping music:', error);
         }
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            if (soundRef.current) {
-                soundRef.current.unloadAsync();
-            }
-        };
     }, []);
 
     return { playMusic, stopMusic, musicStatus };

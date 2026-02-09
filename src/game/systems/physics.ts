@@ -2,15 +2,16 @@ import { BASE_SPEED, ENERGY_REGEN, GRAVITY, GROUND_HEIGHT, JUMP_ENERGY_COST, JUM
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
-export const applyPhysics = (state: GameState) => {
+/** deltaTimeSec: seconds since last frame (used so movement stays in sync with real time) */
+export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
+    const scale = Math.max(0.001, deltaTimeSec * 60); // 60 = nominal fps so at 60fps scale=1
 
     // Player Gravity
     player.dy += GRAVITY;
     player.y += player.dy;
 
-    // Update Distance (for parallax)
-    state.distance += BASE_SPEED;
+    // Distance is now driven by time in the game loop (see STAGE_DESIGN.md)
 
     // Ground Collision
     const groundY = SCREEN_HEIGHT - GROUND_HEIGHT - PLAYER_SIZE;
@@ -57,19 +58,14 @@ export const applyPhysics = (state: GameState) => {
         player.isGrounded = false;
     }
 
-    // Move Obstacles
+    // Move Obstacles (scale by deltaTime so movement is in sync with real time)
     obstacles.forEach(obs => {
         let speed = BASE_SPEED;
-
-        // Boulder Oscillation
         if (obs.type === 'boulder') {
-            obs.phase = (obs.phase || 0) + 0.1; // Increment phase
-            // Oscillate speed: Base + (Cos * Amplitude)
-            // This makes it move Left/Right relative to the ground
+            obs.phase = (obs.phase || 0) + 0.1;
             speed += Math.cos(obs.phase) * 3;
         }
-
-        obs.x -= speed;
+        obs.x -= speed * scale;
 
         // Score Logic
         const obsRight = obs.x + OBSTACLE_SIZE;

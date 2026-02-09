@@ -28,6 +28,7 @@ export interface GameState {
     gameStarted: boolean;
     stageId: string;
     stageProgress: number; // 0 (Dusk) -> 1 (Dawn)
+    stageStartTime: number; // Unix seconds when stage started (for time-based progress)
     shield: number;
     debugMode: boolean;
     showContinue: boolean;
@@ -54,6 +55,7 @@ export const createInitialState = (): GameState => ({
     gameStarted: false,
     stageId: 'stage_1_city',
     stageProgress: 0,
+    stageStartTime: 0,
     shield: 0,
     debugMode: false,
     showContinue: false

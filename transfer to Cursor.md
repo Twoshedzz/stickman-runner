@@ -12,7 +12,7 @@ The app is built with:
 - **React Native** — UI and touch
 - **TypeScript**
 - **@shopify/react-native-skia** — 2D canvas rendering (player, obstacles, particles, backgrounds)
-- **expo-av** — background music
+- **expo-audio** — background music (replaced expo-av)
 - **expo-router** — single screen (`app/index.tsx` → `GameScreen`)
 
 There is no “antigravity” library; the runner uses a **custom game loop** with gravity and jump physics implemented in `src/game/systems/physics.ts`.
@@ -135,7 +135,7 @@ Each stage has: **theme** (ground, sky, sun/moon), **assets.backgroundType**, **
 
 ## Audio
 
-- **useBackgroundMusic:** Uses `expo-av`. One track per stage key (`music_city`, `music_beach`, etc.); stage 1 uses `neoncity.mp3`, others placeholder until added. Starts when the player taps to start; stops (with fade) on game over.
+- **useBackgroundMusic:** Uses `expo-audio`. One track per stage key (`music_city`, `music_beach`, etc.); stage 1 uses `neoncity.mp3`, others placeholder until added. Starts when the player taps to start; stops (with fade) on game over.
 
 ---
 

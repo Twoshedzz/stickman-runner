@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
+import { MAX_HEALTH, STAGE_DURATION_SECONDS, TIME_CYCLE_DURATION } from '../constants';
 import { updateParticles } from '../particles';
 import { STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -30,6 +30,7 @@ export const useGameLoop = () => {
     }
     const requestRef = useRef<number | null>(null);
     const frameCountRef = useRef(0);
+    const lastFrameTimeRef = useRef<number>(0);
 
     // UI State Sync (Optimized)
     const [gameMetrics, setGameMetrics] = useState({
@@ -62,31 +63,19 @@ export const useGameLoop = () => {
             if (!state.gameOver && state.gameStarted) {
                 const currentStage = STAGES.find(s => s.id === state.stageId) || STAGES[0];
 
-                // Update Stage Progress (Distance Based)
-                // "Run Until Dawn" Logic
-                // Start: Sunset (Progress 0) -> Corresponds to Cycle 0.25 (Start of Sunset)
-                // End: Dawn (Progress 1) -> Corresponds to Cycle 1.0 (Sunrise)
-
-                // Reset distance relative to stage start? 
-                // For now, let's assume global distance is reset or we track stage distance.
-                // Simple approach: Use state.distance directly if we reset it on stage change.
-                // Let's assume state.distance accumulates. We need a 'stageStartDistance' in state or just calc relative.
-                // For MVP: Let's just use state.distance % duration for looping stages, or assume infinite for now.
-
-                // Let's implement actual progression:
-                // Cycle: 0.25 (Sunset Start) -> 1.0 (Sunrise) = 0.75 range
-
-                state.stageProgress = Math.min(state.distance / currentStage.courseLength, 1);
+                // Time-based stage progress: 3 minutes per stage so audio and visuals stay in sync (see docs/STAGE_DESIGN.md)
+                const nowSec = Date.now() / 1000;
+                if (state.stageStartTime <= 0) state.stageStartTime = nowSec;
+                const elapsedSec = nowSec - state.stageStartTime;
+                state.stageProgress = Math.min(elapsedSec / STAGE_DURATION_SECONDS, 1);
+                state.distance = state.stageProgress * currentStage.courseLength;
 
                 const cycleStart = 0.25;
-                const cycleRange = 0.75; // 0.25 -> 1.0
-
+                const cycleRange = 0.75;
                 const cycleProgress = cycleStart + (state.stageProgress * cycleRange);
                 state.timeOfDay = Math.floor(cycleProgress * TIME_CYCLE_DURATION);
 
-                // Stage Complete Check
-                // Trigger 300px AFTER crossing the line for a victory lap
-                const isComplete = state.distance >= currentStage.courseLength + 300;
+                const isComplete = state.stageProgress >= 1;
 
                 if (isComplete && state.stageStatus === 'playing') {
                     console.log(`Stage Complete! (Debug: ${state.debugMode})`);
@@ -96,7 +85,10 @@ export const useGameLoop = () => {
 
                 // ONLY Update Game Logic if Playing
                 if (state.stageStatus === 'playing') {
-                    applyPhysics(state);
+                    const now = performance.now();
+                    const deltaTimeSec = lastFrameTimeRef.current ? (now - lastFrameTimeRef.current) / 1000 : 1 / 60;
+                    lastFrameTimeRef.current = now;
+                    applyPhysics(state, deltaTimeSec);
                     if (state.distance < currentStage.courseLength - 1000) {
                         spawnObstacle(state, currentStage);
                     }
@@ -152,8 +144,8 @@ export const useGameLoop = () => {
 
     // Dedicated Restart Function
     const restartGame = useCallback(() => {
-        // console.log('Resetting game state');
         stateRef.current = createInitialState();
+        lastFrameTimeRef.current = 0;
         stateRef.current.gameStarted = true;
         resetSpawner();
         // Reset Metrics immediately

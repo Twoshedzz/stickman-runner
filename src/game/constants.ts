@@ -73,5 +73,8 @@ export const MAX_ENERGY = 100;
 export const JUMP_ENERGY_COST = 100; // Depletes full bar
 export const ENERGY_REGEN = 0.5;
 
+// Stage timing: each stage = 3 minutes real time (keeps audio in sync on slow devices)
+export const STAGE_DURATION_SECONDS = 180;
+
 // Debug
 export const DEBUG_ENABLED = true;
