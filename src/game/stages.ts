@@ -1,5 +1,5 @@
 
-export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights';
+export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
 
 export interface VisualEvent {
     type: VisualEventType;
@@ -104,44 +104,54 @@ export const STAGES: StageConfig[] = [
                 trigger: { start: 7200, end: 36000 },
                 values: { startY: 400, endY: 400, startColor: '#ff512f', endColor: '#ff512f' }
             },
-            // --- SEGMENT 2 (7200–14400): City lights start, moon appears at 11000 ---
+            // --- Lights start at 3000 distance, step on in bands (no fade) ---
+            {
+                type: 'night_lights',
+                trigger: { start: 3000, end: 7200 },
+                values: { startOpacity: 0, endOpacity: 0.25 }
+            },
             {
                 type: 'night_lights',
                 trigger: { start: 7200, end: 14400 },
-                values: { startOpacity: 0, endOpacity: 0.5 }
+                values: { startOpacity: 0.25, endOpacity: 0.5 }
             },
             {
                 type: 'celestial_moon',
-                trigger: { start: 11000, end: 14400 },
-                values: { startY: -60, endY: 80, opacity: 1 }
+                trigger: { start: 10000, end: 14400 },
+                values: { startY: -50, endY: 90, opacity: 1 }
             },
-            // --- SEGMENT 3 (14400–21600): Middle of night, 80–90% lights on; moon descending ---
+            // --- SEGMENT 3 (14400–21600): All buildings have lights on; moon descending ---
             {
                 type: 'night_lights',
-                trigger: { start: 14400, end: 21600 },
-                values: { startOpacity: 0.5, endOpacity: 0.85 }
+                trigger: { start: 14400, end: 20000 },
+                values: { startOpacity: 0.5, endOpacity: 1 }
             },
             {
                 type: 'night_lights',
-                trigger: { start: 21600, end: 32000 },
-                values: { opacity: 0.85 }
-            },
-            // At 32000 lights slowly dwindle (people turning them off)
-            {
-                type: 'night_lights',
-                trigger: { start: 32000, end: 36000 },
-                values: { startOpacity: 0.85, endOpacity: 0 }
+                trigger: { start: 20000, end: 999999 },
+                values: { opacity: 1 }
             },
             {
                 type: 'celestial_moon',
                 trigger: { start: 14400, end: 21600 },
-                values: { startY: 80, endY: 320, opacity: 1 }
+                values: { startY: 90, endY: 300, opacity: 1 }
             },
             // --- SEGMENT 4 (21600–28800): Moon below horizon (hidden) ---
             {
                 type: 'celestial_moon',
                 trigger: { start: 21600, end: -1 },
                 values: { startY: 400, endY: 400, opacity: 0 }
+            },
+            // --- SEGMENT 5 (32000–40000): Lights dwindle in reverse order (night_lights_dwindle 0→1), gradual step-down ---
+            {
+                type: 'night_lights_dwindle',
+                trigger: { start: 32000, end: 40000 },
+                values: { startOpacity: 0, endOpacity: 1 }
+            },
+            {
+                type: 'night_lights_dwindle',
+                trigger: { start: 40000, end: 999999 },
+                values: { opacity: 1 }
             },
             // --- SEGMENT 5: Dawn, pink glow emerges very slowly (28000–40000) ---
             {
@@ -152,13 +162,13 @@ export const STAGES: StageConfig[] = [
                     endColor: ['#0f0c29', '#302b63', '#ff69b4']
                 }
             },
-            // --- SEGMENT 6: Pink to lighter pink, slow fade (38000–43200) ---
+            // --- SEGMENT 6: Dawn to light blue sky as sun rises (38000–43200) ---
             {
                 type: 'sky_gradient',
                 trigger: { start: 38000, end: -1 },
                 values: {
                     startColor: ['#0f0c29', '#302b63', '#ff69b4'],
-                    endColor: ['#2c1a4a', '#4a3560', '#ffb6c1']
+                    endColor: ['#00b4db', '#48c6ef', '#88defb']
                 }
             },
             {
@@ -176,8 +186,8 @@ export const STAGES: StageConfig[] = [
                 type: 'sky_gradient',
                 trigger: { start: 43200, end: 999999 },
                 values: {
-                    startColor: ['#2c1a4a', '#4a3560', '#ffb6c1'],
-                    endColor: ['#2c1a4a', '#4a3560', '#ffb6c1']
+                    startColor: ['#00b4db', '#48c6ef', '#88defb'],
+                    endColor: ['#00b4db', '#48c6ef', '#88defb']
                 }
             },
             {

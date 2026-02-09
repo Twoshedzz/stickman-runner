@@ -1,5 +1,5 @@
 
-import { Canvas, Circle, Group, LinearGradient, Path, Rect, vec } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -10,7 +10,7 @@ import {
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
-import { NeonCityBackground, useNeonCityData, NeonCityLayer } from "./backgrounds/NeonCityBackground";
+import { NeonCityLayer, useNeonCityData } from "./backgrounds/NeonCityBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 
 interface GameCanvasProps {
@@ -19,6 +19,16 @@ interface GameCanvasProps {
 }
 
 const PLAYER_X = 50;
+
+/** Ensure Skia always receives a valid color string (avoids JsiSkPaint/savePaint crashes on web). */
+const safeColor = (c: unknown): string =>
+    (typeof c === 'string' && c.length > 0) ? c : '#000000';
+
+/** Ensure opacity is a number in 0–1. */
+const safeOpacity = (o: unknown): number => {
+    const n = Number(o);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 1;
+};
 
 // Helper: Hex Color Interpolation
 const lerpColor = (color1: string, color2: string, factor: number) => {
@@ -38,6 +48,21 @@ const lerpColor = (color1: string, color2: string, factor: number) => {
 };
 
 const getTheme = (distance: number, stage: StageConfig) => {
+    // Stage 1 complete: always use day theme so background never resets to night on Continue screen
+    if (stage.id === 'stage_1_city' && distance >= stage.courseLength) {
+        return {
+            skyTop: '#00b4db',
+            skyMid: '#48c6ef',
+            skyBottom: '#88defb',
+            sunColor: '#FDB813',
+            sunY: 120,
+            moonY: -100,
+            moonOpacity: 0,
+            nightProgress: 0,
+            lightsDwindle: 1,
+        };
+    }
+
     // Default / Fallback from static config
     let skyTop = stage.theme.skyColors[0];
     let skyMid = stage.theme.skyColors[1];
@@ -47,6 +72,7 @@ const getTheme = (distance: number, stage: StageConfig) => {
     let moonY = -100;
     let moonOpacity = 0;
     let nightProgress = 0;
+    let lightsDwindle = 0; // 0 = all on, 1 = all off (uniform turn-off order)
 
     if (stage.timeline) {
         stage.timeline.forEach(event => {
@@ -93,6 +119,13 @@ const getTheme = (distance: number, stage: StageConfig) => {
                             nightProgress = event.values.opacity !== undefined ? event.values.opacity : 0;
                         }
                         break;
+                    case 'night_lights_dwindle':
+                        if (event.values.startOpacity !== undefined && event.values.endOpacity !== undefined) {
+                            lightsDwindle = event.values.startOpacity + (event.values.endOpacity - event.values.startOpacity) * progress;
+                        } else {
+                            lightsDwindle = event.values.opacity !== undefined ? event.values.opacity : 0;
+                        }
+                        break;
                 }
             }
         });
@@ -104,7 +137,8 @@ const getTheme = (distance: number, stage: StageConfig) => {
         sunY,
         moonY,
         moonOpacity,
-        nightProgress
+        nightProgress,
+        lightsDwindle
     };
 };
 
@@ -136,29 +170,52 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     <LinearGradient
                         start={vec(0, 0)}
                         end={vec(0, SCREEN_HEIGHT)}
-                        colors={[currentTheme.skyTop, currentTheme.skyMid, currentTheme.skyBottom]}
+                        colors={[safeColor(currentTheme.skyTop), safeColor(currentTheme.skyMid), safeColor(currentTheme.skyBottom)]}
                     />
                 </Rect>
 
                 {/* 2. Sun */}
-                <Circle cx={SCREEN_WIDTH / 2} cy={currentTheme.sunY} r={52} color={currentTheme.sunColor} />
+                <Circle cx={SCREEN_WIDTH / 2} cy={currentTheme.sunY} r={52} color={safeColor(currentTheme.sunColor)} />
 
-                {/* 3. Moon - crescent, before buildings so visible; descends per timeline */}
-                {currentTheme.moonOpacity > 0 && (
-                    <Group transform={[{ translateX: SCREEN_WIDTH * 0.75 }, { translateY: currentTheme.moonY }]}>
-                        <Circle cx={0} cy={0} r={38} color={`rgba(254, 252, 215, ${currentTheme.moonOpacity})`} style="fill" />
-                        <Circle cx={18} cy={0} r={30} color={currentTheme.skyTop} style="fill" />
-                    </Group>
-                )}
+                {/* 3. Moon - single bright circle so it’s always visible; stage 1 between 5k–25k distance */}
+                {(() => {
+                    const dist = gameState.distance;
+                    const isStage1 = gameState.stageId === 'stage_1_city';
+                    const inMoonRange = isStage1 && dist >= 5000 && dist < 32000;
+                    if (!inMoonRange && currentTheme.moonOpacity <= 0) return null;
+                    const mx = SCREEN_WIDTH * 0.72;
+                    const t = inMoonRange ? (dist - 5000) / 27000 : 0;
+                    // Move down from above screen (-80) to final position (300) over 5k–32k
+                    const my = inMoonRange ? -80 + 380 * Math.min(1, Math.max(0, t)) : currentTheme.moonY;
+                    // Fade in over first 5k of range so moon becomes clearer as night draws in
+                    const moonOpacity = inMoonRange ? Math.min(1, (dist - 5000) / 5000) : currentTheme.moonOpacity;
+                    if (my < -80 || my > SCREEN_HEIGHT + 60) return null;
+                    const rMoon = 48;
+                    const rBite = 40;
+                    const biteOffset = 24;
+                    return (
+                        <Group opacity={safeOpacity(moonOpacity)}>
+                            <Mask
+                                mode="luminance"
+                                mask={
+                                    <Group>
+                                        <Circle cx={mx} cy={my} r={rMoon} color="white" style="fill" />
+                                        <Circle cx={mx + biteOffset} cy={my} r={rBite} color="black" style="fill" />
+                                    </Group>
+                                }
+                            >
+                                <Circle cx={mx} cy={my} r={rMoon} color="#FFFFFF" style="fill" />
+                            </Mask>
+                        </Group>
+                    );
+                })()}
 
-                {/* 4. Rear buildings (city only, correct layer order) */}
+                {/* 4 & 5. City buildings (legacy layer path – sprites disabled to avoid black screen) */}
                 {isCity && neonCityData && (
-                    <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
-                )}
-
-                {/* 5. Front buildings (city only) */}
-                {isCity && neonCityData && (
-                    <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
+                    <>
+                        <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
+                        <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
+                    </>
                 )}
 
                 {/* 6. Non-city background (beach etc.) */}
@@ -170,7 +227,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}
                     width={SCREEN_WIDTH}
                     height={4}
-                    color={currentStage.theme.groundColor}
+                    color={safeColor(currentStage.theme?.groundColor)}
                 />
 
                 {/* 8. Victory Arch (If near end) */}
@@ -189,7 +246,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                             style="stroke"
                             strokeWidth={15}
                             color="#00ffff"
-                            opacity={0.3}
+                            opacity={safeOpacity(0.3)}
                         />
                     </Group>
                 )}
@@ -219,12 +276,12 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     const y = SCREEN_HEIGHT - GROUND_HEIGHT - size;
 
                     if (obs.type === 'heart') {
-                        return <Circle key={obs.id} cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={color} />;
+                        return <Circle key={obs.id} cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />;
                     }
                     if (isBoulder) {
                         return (
                             <Group key={obs.id}>
-                                <Circle cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={color} />
+                                <Circle cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />
                                 <Circle cx={obs.x + size / 2 - 5} cy={y + size / 2 - 5} r={size / 4} color="rgba(0,0,0,0.2)" />
                             </Group>
                         );
@@ -238,8 +295,8 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                                 y={y - 4}
                                 width={size + 8}
                                 height={size + 8}
-                                color={glowColor}
-                                opacity={0.4}
+                                color={safeColor(glowColor)}
+                                opacity={safeOpacity(0.4)}
                             />
                             {/* Inner Core */}
                             <Rect
@@ -247,7 +304,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                                 y={y}
                                 width={size}
                                 height={size}
-                                color={color}
+                                color={safeColor(color)}
                             />
                         </Group>
                     );
@@ -266,7 +323,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
 
                 {/* 11. Particles */}
                 {gameState.particles.map(p => (
-                    <Rect key={p.id} x={p.x} y={p.y} width={p.size} height={p.size} color={p.color} opacity={p.life} />
+                    <Rect key={p.id} x={p.x} y={p.y} width={p.size} height={p.size} color={safeColor(p.color)} opacity={safeOpacity(p.life)} />
                 ))}
 
             </Canvas>

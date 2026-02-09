@@ -13,6 +13,9 @@ export interface Particle {
 
 let particleIdCounter = 0;
 
+/** Cap particle count to avoid lag on mobile. */
+export const MAX_PARTICLES = 40;
+
 export const createParticle = (
     x: number,
     y: number,
@@ -71,7 +74,8 @@ export const updateParticles = (particles: Particle[]): Particle[] => {
                 life: p.life - p.decay,
             };
         })
-        .filter(p => p.life > 0);
+        .filter(p => p.life > 0)
+        .slice(0, MAX_PARTICLES);
 };
 
 export const spawnParticles = (
@@ -103,5 +107,6 @@ export const spawnParticles = (
             target
         ));
     }
-    return [...currentParticles, ...newParticles];
+    const combined = [...currentParticles, ...newParticles];
+    return combined.slice(-MAX_PARTICLES);
 };

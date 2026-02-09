@@ -31,12 +31,12 @@ export const useBackgroundMusic = () => {
         try {
             if (loadingRef.current) return;
 
-            // Map keys to assets (Future: Add distinct files)
+            // Map keys to assets (Stage 1 = Neon City uses neoncity.mp3; others placeholder until added)
             const musicMap: Record<string, any> = {
-                'music_city': require('../../assets/music.mp3'),
-                'music_beach': require('../../assets/music.mp3'), // Placeholder
-                'music_mountains': require('../../assets/music.mp3'), // Placeholder
-                'music_victory': require('../../assets/music.mp3'), // Placeholder
+                'music_city': require('../../assets/neoncity.mp3'),
+                'music_beach': require('../../assets/synthwavebeach.mp3'),
+                'music_mountains': require('../../assets/neoncity.mp3'), // Placeholder
+                'music_victory': require('../../assets/neoncity.mp3'), // Placeholder
             };
 
             const source = musicMap[trackKey] || musicMap['music_city'];

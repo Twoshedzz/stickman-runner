@@ -135,7 +135,7 @@ Each stage has: **theme** (ground, sky, sun/moon), **assets.backgroundType**, **
 
 ## Audio
 
-- **useBackgroundMusic:** Uses `expo-av`. One track per stage key (`music_city`, `music_beach`, etc.); currently all map to the same `music.mp3`. Starts when the player taps to start; stops (with fade) on game over.
+- **useBackgroundMusic:** Uses `expo-av`. One track per stage key (`music_city`, `music_beach`, etc.); stage 1 uses `neoncity.mp3`, others placeholder until added. Starts when the player taps to start; stops (with fade) on game over.
 
 ---
 

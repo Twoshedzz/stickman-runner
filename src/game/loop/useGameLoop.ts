@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { updateParticles } from '../particles';
 import { STAGES } from '../stages';
@@ -28,6 +29,7 @@ export const useGameLoop = () => {
         stateRef.current.debugMode = false;
     }
     const requestRef = useRef<number | null>(null);
+    const frameCountRef = useRef(0);
 
     // UI State Sync (Optimized)
     const [gameMetrics, setGameMetrics] = useState({
@@ -132,8 +134,12 @@ export const useGameLoop = () => {
                 }
             }
 
-            // Force React to re-render for Canvas (60fps)
-            setRenderTrigger(prev => prev + 1);
+            // Force React to re-render for Canvas. On native, throttle to ~30fps to reduce lag.
+            frameCountRef.current = (frameCountRef.current + 1) % 2;
+            const shouldRender = Platform.OS === 'web' || frameCountRef.current === 0;
+            if (shouldRender) {
+                setRenderTrigger(prev => prev + 1);
+            }
 
             requestRef.current = requestAnimationFrame(loop);
         };

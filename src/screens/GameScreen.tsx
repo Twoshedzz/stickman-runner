@@ -19,11 +19,12 @@ export const GameScreen = () => {
     const [showInstructions, setShowInstructions] = React.useState(false);
 
     const handleInteraction = useCallback(() => {
-        if (gameState.gameOver) return; // Prevent restart on generic tap
+        if (gameState.gameOver) return;
+        if (gameState.showContinue) return; // Do not start music or jump when Continue screen is up
         const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
         playMusic(currentStage.audio?.musicTrack || 'music_city');
         onJump();
-    }, [playMusic, onJump, gameState.gameOver, gameState.stageId]);
+    }, [playMusic, onJump, gameState.gameOver, gameState.showContinue, gameState.stageId]);
 
     // Watch for Game Over or Stage Complete to stop music (don't repeat once stage is done)
     useEffect(() => {
@@ -59,8 +60,12 @@ export const GameScreen = () => {
                     </Suspense>
                 </View>
 
-                {/* 2. Input Layer - Transparent Absolute Overlay */}
-                <Pressable style={styles.inputLayer} onPress={handleInteraction} />
+                {/* 2. Input Layer - Transparent; no tap when Continue modal is showing so music doesn’t restart */}
+                <Pressable
+                    style={styles.inputLayer}
+                    onPress={handleInteraction}
+                    pointerEvents={gameState.showContinue ? 'none' : 'auto'}
+                />
 
                 {/* 3. UI Overlay */}
                 <View style={styles.uiLayer} pointerEvents="box-none">

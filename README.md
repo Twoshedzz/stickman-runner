@@ -61,6 +61,12 @@ This project follows a custom game loop architecture, avoiding heavy game engine
     * Scan the QR code with **Expo Go** on your iOS/Android device.
     * Press `w` to run in the web browser (limited performance).
 
+**Can't see the QR code in the terminal?**
+* **Use the URL instead**: In the terminal, Expo prints a URL (e.g. `exp://192.168.x.x:8081`). In Expo Go, choose **"Enter URL manually"** and paste that URL.
+* **Larger QR in browser**: After `npx expo start`, press **`w`** to open the project in your browser; some setups show a clearer QR or connection page there.
+* **Tunnel + manual URL**: Run `npm run start:tunnel` to get a public URL; type that URL into Expo Go if the terminal QR is unreadable.
+* **Terminal**: Enlarge the terminal window and increase font size so the QR isn’t cut off or too small.
+
 ## 🎨 Visual Style
 
 The game features a **Synthwave / Neon** aesthetic with:
