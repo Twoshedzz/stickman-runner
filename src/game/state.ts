@@ -29,6 +29,8 @@ export interface GameState {
     stageId: string;
     stageProgress: number; // 0 (Dusk) -> 1 (Dawn)
     stageStartTime: number; // Unix seconds when stage started (for time-based progress)
+    /** Seconds elapsed in current stage (for difficulty segments). */
+    elapsedSecInStage: number;
     shield: number;
     debugMode: boolean;
     showContinue: boolean;
@@ -56,6 +58,7 @@ export const createInitialState = (): GameState => ({
     stageId: 'stage_1_city',
     stageProgress: 0,
     stageStartTime: 0,
+    elapsedSecInStage: 0,
     shield: 0,
     debugMode: false,
     showContinue: false

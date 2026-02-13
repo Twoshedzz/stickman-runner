@@ -1,4 +1,8 @@
-import { Audio, setAudioModeAsync } from 'expo-audio';
+/**
+ * Native (iOS/Android) implementation using expo-audio.
+ * Web uses useBackgroundMusic.web.ts (HTML5 Audio only).
+ */
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const musicMap: Record<string, number> = {
@@ -11,27 +15,22 @@ const musicMap: Record<string, number> = {
 export const useBackgroundMusic = () => {
     const [musicStatus, setMusicStatus] = useState<string>('Ready');
     const loadingRef = useRef(false);
-    const playerRef = useRef<ReturnType<typeof Audio.createAudioPlayer> | null>(null);
+    const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+    const currentTrackRef = useRef<string | null>(null);
 
     useEffect(() => {
-        const configureAudio = async () => {
-            try {
-                await setAudioModeAsync({
-                    playsInSilentMode: true,
-                    shouldPlayInBackground: false,
-                    interruptionMode: 'doNotMix',
-                });
-            } catch (e) {
-                console.warn('Failed to set audio mode', e);
-            }
-        };
-        configureAudio();
+        setAudioModeAsync({
+            playsInSilentMode: true,
+            shouldPlayInBackground: false,
+            interruptionMode: 'doNotMix',
+        }).catch((e: unknown) => console.warn('Failed to set audio mode', e));
 
         return () => {
             if (playerRef.current) {
                 playerRef.current.remove();
                 playerRef.current = null;
             }
+            currentTrackRef.current = null;
         };
     }, []);
 
@@ -40,26 +39,25 @@ export const useBackgroundMusic = () => {
             if (loadingRef.current) return;
 
             const source = musicMap[trackKey] ?? musicMap.music_city;
-
             const player = playerRef.current;
-            if (player?.isLoaded) {
-                player.replace(source);
-                player.loop = true;
-                player.volume = 1;
+
+            // Same track already playing: do nothing (avoids restart on every jump / duplicate calls)
+            if (player?.isLoaded && currentTrackRef.current === trackKey) {
                 player.play();
-                setMusicStatus('Playing');
                 return;
             }
 
             loadingRef.current = true;
             setMusicStatus(`Loading ${trackKey}...`);
 
-            const newPlayer = Audio.createAudioPlayer(source, { loop: true });
+            const newPlayer = createAudioPlayer(source, {});
+            newPlayer.loop = true;
             newPlayer.volume = 1;
             if (playerRef.current) {
                 playerRef.current.remove();
             }
             playerRef.current = newPlayer;
+            currentTrackRef.current = trackKey;
             newPlayer.play();
             setMusicStatus('Playing');
         } catch (error) {
@@ -78,12 +76,13 @@ export const useBackgroundMusic = () => {
             for (let i = 20; i >= 0; i--) {
                 if (!playerRef.current) break;
                 playerRef.current.volume = i / 20;
-                await new Promise(r => setTimeout(r, 100));
+                await new Promise((r) => setTimeout(r, 100));
             }
             if (playerRef.current) {
                 playerRef.current.pause();
                 playerRef.current.seekTo(0);
             }
+            currentTrackRef.current = null;
             setMusicStatus('Stopped');
         } catch (error) {
             console.warn('Error stopping music:', error);

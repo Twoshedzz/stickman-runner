@@ -67,6 +67,7 @@ export const useGameLoop = () => {
                 const nowSec = Date.now() / 1000;
                 if (state.stageStartTime <= 0) state.stageStartTime = nowSec;
                 const elapsedSec = nowSec - state.stageStartTime;
+                state.elapsedSecInStage = elapsedSec;
                 state.stageProgress = Math.min(elapsedSec / STAGE_DURATION_SECONDS, 1);
                 state.distance = state.stageProgress * currentStage.courseLength;
 

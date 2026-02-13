@@ -18,37 +18,60 @@ export const GameScreen = () => {
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
-    const handleInteraction = useCallback(() => {
-        if (gameState.gameOver) return;
-        if (gameState.showContinue) return; // Do not start music or jump when Continue screen is up
-        const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
-        playMusic(currentStage.audio?.musicTrack || 'music_city');
-        onJump();
-    }, [playMusic, onJump, gameState.gameOver, gameState.showContinue, gameState.stageId]);
+    // Start music only when game transitions to started (never from tap/key — avoids restart on every jump)
+    const musicStartedForRunRef = React.useRef(false);
+    useEffect(() => {
+        if (gameState.gameStarted && !musicStartedForRunRef.current) {
+            musicStartedForRunRef.current = true;
+            const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
+            playMusic(currentStage.audio?.musicTrack || 'music_city');
+        }
+    }, [gameState.gameStarted, gameState.stageId, playMusic]);
 
-    // Watch for Game Over or Stage Complete to stop music (don't repeat once stage is done)
+    // Stop music on game over / continue; reset so Play Again can start music again
     useEffect(() => {
         if (gameState.gameOver || gameState.showContinue) {
+            musicStartedForRunRef.current = false;
             stopMusic();
         }
     }, [gameState.gameOver, gameState.showContinue, stopMusic]);
 
-    // Web Keyboard Support
+    const handleInteraction = useCallback(() => {
+        if (gameState.gameOver) return;
+        if (gameState.showContinue) return;
+        onJump();
+    }, [onJump, gameState.gameOver, gameState.showContinue]);
+
+    // Web Keyboard: capture phase so we handle Space/Up before React (no synthetic click on Pressable)
+    const gameStateRef = React.useRef(gameState);
+    gameStateRef.current = gameState;
+    const onJumpRef = React.useRef(onJump);
+    const playMusicRef = React.useRef(playMusic);
+    const restartGameRef = React.useRef(restartGame);
+    onJumpRef.current = onJump;
+    playMusicRef.current = playMusic;
+    restartGameRef.current = restartGame;
     useEffect(() => {
         if (Platform.OS === 'web') {
             const handleKeyDown = (e: KeyboardEvent) => {
-                if (!gameState.gameOver && (e.code === 'Space' || e.code === 'ArrowUp')) {
-                    handleInteraction();
+                const state = gameStateRef.current;
+                if (e.code === 'Space' || e.code === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    if (state.gameOver) return;
+                    if (state.showContinue) return;
+                    onJumpRef.current();
                 }
-                if (gameState.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
-                    restartGame();
-                    playMusic();
+                if (state.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+                    restartGameRef.current();
+                    playMusicRef.current();
                 }
             };
-            window.addEventListener('keydown', handleKeyDown);
-            return () => window.removeEventListener('keydown', handleKeyDown);
+            window.addEventListener('keydown', handleKeyDown, true);
+            return () => window.removeEventListener('keydown', handleKeyDown, true);
         }
-    }, [handleInteraction, gameState.gameOver, restartGame, playMusic]);
+    }, []);
 
     return (
         <View style={styles.container}>

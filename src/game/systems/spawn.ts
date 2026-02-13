@@ -1,17 +1,18 @@
 import { SCREEN_WIDTH } from '../constants';
-import { ObstacleType, StageConfig } from '../stages';
+import { getDifficultyAtDistance, ObstacleType, StageConfig } from '../stages';
 import { GameState } from '../state';
 
 let nextId = 0;
 
 export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
-    // Difficulty from Config
-    const { spawnRate, allowedObstacles, allowDoubleSpawns } = currentStage.difficulty;
+    // Difficulty from 30s segments, keyed by distance so it matches scroll progression
+    const difficulty = getDifficultyAtDistance(currentStage, state.distance);
+    const { spawnRate, allowedObstacles, allowDoubleSpawns } = difficulty;
 
     // Convert spawnRate (ms) to distance/frames approx
     // Faster speed = cover distance faster
     // Basic logic: Higher speed needs more distance between spawns
-    const speed = currentStage.difficulty.baseSpeed;
+    const speed = difficulty.baseSpeed;
     const minDist = speed * 60 * (spawnRate / 1000) * 0.8; // 80% variances
     const maxDist = speed * 60 * (spawnRate / 1000) * 1.2;
 
@@ -56,15 +57,21 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
                 phase: type === 'boulder' ? Math.random() * Math.PI : undefined,
             });
 
-            // Double Obstacle Logic (Energy Gated)
+            // Double Obstacle Logic (Energy Gated; cooldown ~4s at baseSpeed 5 so energy can replenish)
             if (allowDoubleSpawns && state.distance - state.lastDoubleObstacleDistance > 1200) {
                 // 20% Chance for a double obstacle
                 if (Math.random() < 0.2) {
-                    // Second obstacle is simple
-                    // Available simple types: standard, purple, red (exclude boulder/heart)
-                    const simpleTypes = allowedObstacles.filter(t => t === 'standard' || t === 'small' || t === 'purple' || t === 'red');
-                    if (simpleTypes.length > 0) {
-                        const secondType = simpleTypes[Math.floor(Math.random() * simpleTypes.length)];
+                    // Second obstacle: at most one heart per double; hearts rare in doubles
+                    const simpleTypes = allowedObstacles.filter(t =>
+                        t === 'standard' || t === 'small' || t === 'purple' || t === 'red' || t === 'heart'
+                    );
+                    // If first is heart, second must not be heart. Otherwise allow heart rarely (15%) so at most 1 heart per double.
+                    const allowHeartInSecond = type !== 'heart' && (Math.random() < 0.15);
+                    const secondPool = allowHeartInSecond
+                        ? simpleTypes
+                        : simpleTypes.filter(t => t !== 'heart');
+                    if (secondPool.length > 0) {
+                        const secondType = secondPool[Math.floor(Math.random() * secondPool.length)];
 
                         state.obstacles.push({
                             x: SCREEN_WIDTH + 100, // Close gap!

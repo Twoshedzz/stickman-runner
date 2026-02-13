@@ -1,20 +1,37 @@
 /**
- * Start loading CanvasKit WASM as soon as the app runs (web only).
- * Patching canvaskit-wasm reads globalThis.__SKIA_WASM_BINARY__ / __SKIA_WASM_PROMISE__
- * so any CanvasKit init (including from other chunks/worklets) uses this binary.
+ * Load CanvasKit WASM and initialize it once on the main thread (web only).
+ * This runs before any worklet can load the CanvasKit chunk, so the module is
+ * cached and global.CanvasKit is set — avoiding "both async and sync fetching failed"
+ * when worklets trigger dynamic imports.
  */
 const CANVASKIT_VERSION = '0.40.0';
 const WASM_URL = `https://unpkg.com/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full/canvaskit.wasm`;
 
-const promise = fetch(WASM_URL, { credentials: 'omit' })
+const g = globalThis as unknown as {
+  __SKIA_WASM_BINARY__?: Uint8Array;
+  __SKIA_WASM_PROMISE__?: Promise<Uint8Array>;
+  __SKIA_CANVASKIT_READY__?: Promise<unknown>;
+};
+
+const wasmPromise = fetch(WASM_URL, { credentials: 'omit' })
   .then((r) => {
     if (!r.ok) throw new Error(`WASM fetch failed: ${r.status}`);
     return r.arrayBuffer();
   })
   .then((ab) => {
     const bin = new Uint8Array(ab);
-    (globalThis as unknown as { __SKIA_WASM_BINARY__?: Uint8Array }).__SKIA_WASM_BINARY__ = bin;
+    g.__SKIA_WASM_BINARY__ = bin;
     return bin;
   });
 
-(globalThis as unknown as { __SKIA_WASM_PROMISE__?: Promise<Uint8Array> }).__SKIA_WASM_PROMISE__ = promise;
+g.__SKIA_WASM_PROMISE__ = wasmPromise;
+
+// Initialize CanvasKit on the main thread so the module is cached and never loaded in a worklet context.
+const canvaskitReady = wasmPromise.then(async (bin) => {
+  const init = (await import('canvaskit-wasm/bin/full/canvaskit')).default;
+  const CanvasKit = await init({ wasmBinary: bin });
+  (globalThis as unknown as { CanvasKit?: unknown }).CanvasKit = CanvasKit;
+  return CanvasKit;
+});
+
+g.__SKIA_CANVASKIT_READY__ = canvaskitReady;

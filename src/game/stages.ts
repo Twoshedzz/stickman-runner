@@ -1,3 +1,4 @@
+import { STAGE_DURATION_SECONDS } from './constants';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
 
@@ -20,6 +21,27 @@ export interface VisualEvent {
 
 export type ObstacleType = 'standard' | 'small' | 'red' | 'purple' | 'boulder' | 'heart';
 
+/** Overrides for difficulty during a time segment. Only set fields you want to override. */
+export interface DifficultySegment {
+    /** Start of segment in seconds from stage start (inclusive). */
+    startSec: number;
+    /** End of segment in seconds from stage start (exclusive). Use a large number for "to end". */
+    endSec: number;
+    /** Spawn interval in ms (higher = fewer obstacles). Overrides stage default. */
+    spawnRate?: number;
+    /** Allow double obstacles in this segment. */
+    allowDoubleSpawns?: boolean;
+    /** Obstacle types allowed in this segment. */
+    allowedObstacles?: ObstacleType[];
+}
+
+export interface StageDifficulty {
+    baseSpeed: number;
+    spawnRate: number; // Interval in ms (approx)
+    allowedObstacles: ObstacleType[];
+    allowDoubleSpawns: boolean;
+}
+
 export interface StageConfig {
     id: string;
     name: string;
@@ -36,14 +58,41 @@ export interface StageConfig {
     audio: {
         musicTrack: string; // Key for the music mapping
     };
-    difficulty: {
-        baseSpeed: number;
-        spawnRate: number; // Interval in ms (approx)
-        allowedObstacles: ObstacleType[];
-        allowDoubleSpawns: boolean;
-    };
+    difficulty: StageDifficulty;
+    /** Optional 30s (or custom) segments to ramp difficulty. First matching segment wins. */
+    difficultySegments?: DifficultySegment[];
     courseLength: number; // Distance required to clear stage
     timeline?: VisualEvent[]; // Optional ordered list of visual changes
+}
+
+/**
+ * Returns the effective difficulty at a given time in the stage.
+ * If difficultySegments is set, the first segment containing elapsedSec is used to override
+ * the stage's default difficulty. Safe to call with no segments (returns stage.difficulty).
+ */
+export function getDifficultyAtTime(stage: StageConfig, elapsedSec: number): StageDifficulty {
+    const base = stage.difficulty;
+    const segments = stage.difficultySegments;
+    if (!segments?.length) return base;
+
+    const segment = segments.find(s => elapsedSec >= s.startSec && elapsedSec < s.endSec);
+    if (!segment) return base;
+
+    return {
+        baseSpeed: base.baseSpeed,
+        spawnRate: segment.spawnRate ?? base.spawnRate,
+        allowDoubleSpawns: segment.allowDoubleSpawns ?? base.allowDoubleSpawns,
+        allowedObstacles: segment.allowedObstacles ?? base.allowedObstacles,
+    };
+}
+
+/**
+ * Returns difficulty for the current segment using distance so it matches 30-second
+ * scroll progression. Progress = (distance / courseLength) * STAGE_DURATION_SECONDS.
+ */
+export function getDifficultyAtDistance(stage: StageConfig, distance: number): StageDifficulty {
+    const progressSec = (distance / stage.courseLength) * STAGE_DURATION_SECONDS;
+    return getDifficultyAtTime(stage, progressSec);
 }
 
 export const STAGES: StageConfig[] = [
@@ -69,6 +118,15 @@ export const STAGES: StageConfig[] = [
             allowedObstacles: ['standard', 'small', 'boulder', 'heart'],
             allowDoubleSpawns: true
         },
+        // 30-second segments: difficulty follows scroll (distance). courseLength 43200 => 7200 per 30s.
+        difficultySegments: [
+            { startSec: 0, endSec: 30, spawnRate: 2000, allowDoubleSpawns: false, allowedObstacles: ['small', 'heart'] },
+            { startSec: 30, endSec: 60, spawnRate: 1800, allowDoubleSpawns: false, allowedObstacles: ['standard', 'small', 'heart'] },
+            { startSec: 60, endSec: 90, spawnRate: 1600, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'heart'] },
+            { startSec: 90, endSec: 120, spawnRate: 1500, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'heart'] },
+            { startSec: 120, endSec: 150, spawnRate: 1400, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'boulder', 'heart'] },
+            { startSec: 150, endSec: 9999, spawnRate: 1200, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'boulder', 'heart'] },
+        ],
         courseLength: 43200, // 3 minutes at 60fps (Speed 4)
         // SECTIONS (7200 per 30s):
         // 1. 0–7200     : Sun in sky yellow→orange, moves down; sky dark at top by 7200

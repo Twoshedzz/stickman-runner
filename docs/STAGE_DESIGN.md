@@ -47,3 +47,17 @@ All of these are **keyed to stage progress** (0 → 1 over 3 minutes). Progress 
   Stage complete when `stageProgress >= 1`.
 - **Distance / scrolling:** Can be derived from `stageProgress` (e.g. `distance = stageProgress * courseLength`) so visuals match the 3-minute run.
 - **Obstacles / events:** Spawn and trigger from `stageProgress` (or from a distance that is itself derived from progress) so they stay aligned with the music and sky.
+
+---
+
+## Difficulty segments (30-second ramping)
+
+Stages can define **difficulty segments** so the run starts easier and gets harder over time. Each segment is a time window (seconds from stage start) with optional overrides:
+
+- **`spawnRate`** (ms) – Higher = fewer obstacles (easier). Lower = more frequent (harder). Base value is in `stage.difficulty.spawnRate`.
+- **`allowDoubleSpawns`** – Turn doubles off for the first 30–60s, then on.
+- **`allowedObstacles`** – Restrict or expand types per segment (e.g. no boulders at the start).
+
+**Where to edit:** `src/game/stages.ts` → the stage’s `difficultySegments` array. Segments are checked in order; the first one that contains the current `elapsedSecInStage` wins. Use `endSec: 9999` for “to end of stage”.
+
+**Example (Neon City):** 0–30s easy (spawnRate 2200, no doubles), then 30s steps ramping to 1100 ms and doubles allowed from 60s onward.

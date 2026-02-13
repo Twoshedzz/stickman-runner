@@ -48,27 +48,47 @@ class SkiaErrorBoundary extends React.Component<
     }
 }
 
+type SkiaPreloadGlobal = {
+    __SKIA_WASM_PROMISE__?: Promise<Uint8Array>;
+    __SKIA_CANVASKIT_READY__?: Promise<unknown>;
+};
+
 export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
-    const [wasmBinary, setWasmBinary] = React.useState<ArrayBuffer | null>(null);
+    const [canvaskitReady, setCanvaskitReady] = React.useState(false);
     const [loadError, setLoadError] = React.useState(false);
 
+    // Wait for preload to fetch WASM and init CanvasKit on the main thread so the module
+    // is cached before any worklet can load it (avoids "both async and sync fetching failed").
     React.useEffect(() => {
         let cancelled = false;
-        fetch(WASM_URL, { credentials: 'omit' })
-            .then((r) => {
-                if (!r.ok) throw new Error(`WASM fetch failed: ${r.status}`);
-                return r.arrayBuffer();
-            })
-            .then((buf) => {
-                if (!cancelled) setWasmBinary(buf);
-            })
+        const ready = typeof globalThis !== 'undefined' && (globalThis as SkiaPreloadGlobal).__SKIA_CANVASKIT_READY__;
+        if (!ready) {
+            // Preload not run (e.g. SSR); fetch and init ourselves
+            fetch(WASM_URL, { credentials: 'omit' })
+                .then((r) => {
+                    if (!r.ok) throw new Error(`WASM fetch failed: ${r.status}`);
+                    return r.arrayBuffer();
+                })
+                .then((ab) => import('canvaskit-wasm/bin/full/canvaskit').then((m) => m.default({ wasmBinary: new Uint8Array(ab) })))
+                .then((ck) => {
+                    if (!cancelled) {
+                        (globalThis as unknown as { CanvasKit?: unknown }).CanvasKit = ck;
+                        setCanvaskitReady(true);
+                    }
+                })
+                .catch((err) => {
+                    if (!cancelled) setLoadError(true);
+                    console.warn('Skia WASM fetch/init failed:', err);
+                });
+            return () => { cancelled = true; };
+        }
+        ready
+            .then(() => { if (!cancelled) setCanvaskitReady(true); })
             .catch((err) => {
                 if (!cancelled) setLoadError(true);
-                console.warn('Skia WASM preload failed:', err);
+                console.warn('Skia CanvasKit preload failed:', err);
             });
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, []);
 
     if (typeof window === 'undefined') {
@@ -79,24 +99,17 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
         return <SkiaFallback />;
     }
 
-    if (wasmBinary === null) {
+    if (!canvaskitReady) {
         return <LoadingFallback />;
     }
 
     try {
-        // @ts-ignore - CanvasKit accepts wasmBinary at runtime
+        // global.CanvasKit already set by preload; WithSkiaWeb/LoadSkiaWeb will use it
         const { WithSkiaWeb } = require('@shopify/react-native-skia/lib/module/web');
-        const opts = React.useMemo(
-            () => ({
-                locateFile: getWasmUrl,
-                wasmBinary: new Uint8Array(wasmBinary),
-            }),
-            [wasmBinary]
-        );
         return (
             <SkiaErrorBoundary>
                 <WithSkiaWeb
-                    opts={opts}
+                    opts={{ locateFile: getWasmUrl }}
                     getComponent={() => Promise.resolve({ default: () => <>{children}</> })}
                     fallback={<LoadingFallback />}
                 />
