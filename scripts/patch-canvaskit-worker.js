@@ -46,4 +46,27 @@ if (content.includes('return qb(d,a,b)}));});}function sb(a){') && !content.incl
   changed = true;
 }
 
+// ob() sync path: (1) globalThis/window binary, (2) sync XHR unpkg (often CORS-blocked), (3) sync XHR same-origin
+// Expo/Skia copies canvaskit.wasm to web/static/js/canvaskit.wasm - same-origin works in workers.
+const obWithSyncXhr = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);if(a==ib){try{var xhr=new XMLHttpRequest();xhr.open("GET",ib,false);xhr.responseType="arraybuffer";xhr.send(null);if(xhr.status===200&&xhr.response){Ia=new Uint8Array(xhr.response);return new Uint8Array(Ia);}}catch(e){}var sameOrigin=(typeof location!=="undefined"&&location.origin?location.origin:"")+"/static/js/canvaskit.wasm";try{var xhr2=new XMLHttpRequest();xhr2.open("GET",sameOrigin,false);xhr2.responseType="arraybuffer";xhr2.send(null);if(xhr2.status===200&&xhr2.response){Ia=new Uint8Array(xhr2.response);return new Uint8Array(Ia);}}catch(e){}}throw"both async and sync fetching of the wasm failed";}';
+const obOriginal = 'function ob(a){if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);throw"both async and sync fetching of the wasm failed";}';
+const obGlobalOnly = 'function ob(a){if(a==ib&&typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__){Ia=globalThis.__SKIA_WASM_BINARY__;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);throw"both async and sync fetching of the wasm failed";}';
+const obWithWindow = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);throw"both async and sync fetching of the wasm failed";}';
+const obWithSyncXhrUnpkgOnly = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);if(a==ib&&ib.indexOf("http")===0){try{var xhr=new XMLHttpRequest();xhr.open("GET",ib,false);xhr.responseType="arraybuffer";xhr.send(null);if(xhr.status===200&&xhr.response){Ia=new Uint8Array(xhr.response);return new Uint8Array(Ia);}}catch(e){}}throw"both async and sync fetching of the wasm failed";}';
+if (content.includes('xhr2.open("GET",sameOrigin,false)')) {
+  // Already have same-origin fallback
+} else if (content.includes(obWithSyncXhrUnpkgOnly)) {
+  content = content.replace(obWithSyncXhrUnpkgOnly, obWithSyncXhr);
+  changed = true;
+} else if (content.includes(obWithWindow)) {
+  content = content.replace(obWithWindow, obWithSyncXhr);
+  changed = true;
+} else if (content.includes(obGlobalOnly)) {
+  content = content.replace(obGlobalOnly, obWithSyncXhr);
+  changed = true;
+} else if (content.includes(obOriginal)) {
+  content = content.replace(obOriginal, obWithSyncXhr);
+  changed = true;
+}
+
 if (changed) fs.writeFileSync(file, content, 'utf8');

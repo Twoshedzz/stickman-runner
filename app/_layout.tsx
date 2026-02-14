@@ -5,17 +5,19 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { SkiaWrapper } from '../src/components/SkiaWrapper';
+import { WasmGate } from '../src/components/WasmGate';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-
-
-
+// On web, WasmGate waits for __SKIA_WASM_BINARY__ before rendering so no worklet/chunk
+// can run before the main thread has the binary (avoids CanvasKit Aborted at ~segment 5).
 export default function RootLayout() {
   return (
-    <SkiaWrapper>
-      <RootLayoutContent />
-    </SkiaWrapper>
+    <WasmGate>
+      <SkiaWrapper>
+        <RootLayoutContent />
+      </SkiaWrapper>
+    </WasmGate>
   );
 }
 

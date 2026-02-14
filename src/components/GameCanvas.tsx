@@ -12,6 +12,7 @@ import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { NeonCityLayer, useNeonCityData } from "./backgrounds/NeonCityBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
+import { GridFloor } from "./GridFloor";
 
 interface GameCanvasProps {
     gameState: GameState;
@@ -220,6 +221,9 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
 
                 {/* 6. Non-city background (beach etc.) */}
                 {!isCity && renderNonCityBackground()}
+
+                {/* 6b. Grid floor (below pink line; perspective, moves only when running) */}
+                <GridFloor gameState={gameState} tick={tick} />
 
                 {/* 7. Ground Line */}
                 <Rect

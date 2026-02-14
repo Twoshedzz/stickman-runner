@@ -36,11 +36,23 @@ class SkiaErrorBoundary extends React.Component<
             e.preventDefault?.();
         }
     };
+    _errorHandler = (event: ErrorEvent) => {
+        const msg = event.message ?? String(event.error ?? '');
+        if (msg.includes('Aborted') || msg.includes('wasm')) {
+            this.setState({ hasError: true });
+            event.preventDefault?.();
+            return true;
+        }
+        return false;
+    };
+    _boundErrorHandler = (e: ErrorEvent) => this._errorHandler(e);
     componentDidMount() {
         window.addEventListener('unhandledrejection', this._rejectionHandler);
+        window.addEventListener('error', this._boundErrorHandler);
     }
     componentWillUnmount() {
         window.removeEventListener('unhandledrejection', this._rejectionHandler);
+        window.removeEventListener('error', this._boundErrorHandler);
     }
     render() {
         if (this.state.hasError) return <SkiaFallback />;
