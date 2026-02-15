@@ -1,4 +1,4 @@
-import { BASE_SPEED, ENERGY_REGEN, GRAVITY, GROUND_HEIGHT, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, OBSTACLE_SIZE, PLAYER_SIZE, PLAYER_X, SCREEN_HEIGHT } from '../constants';
+import { BASE_SPEED, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, OBSTACLE_SIZE, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
@@ -13,8 +13,8 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
 
     // Distance is now driven by time in the game loop (see STAGE_DESIGN.md)
 
-    // Ground Collision
-    const groundY = SCREEN_HEIGHT - GROUND_HEIGHT - PLAYER_SIZE;
+    // Ground Collision (runner stands on grid, below pink line)
+    const groundY = RUNNER_GROUND_Y - PLAYER_SIZE;
     if (player.y >= groundY) {
         // Landing Event
         if (!player.isGrounded) {
@@ -22,7 +22,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
             state.particles = spawnParticles(
                 state.particles,
                 PLAYER_X + PLAYER_SIZE / 2,
-                groundY + PLAYER_SIZE,
+                RUNNER_GROUND_Y,
                 'white',
                 20,
                 4,
@@ -45,7 +45,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
             state.particles = spawnParticles(
                 state.particles,
                 PLAYER_X,
-                groundY + PLAYER_SIZE,
+                RUNNER_GROUND_Y,
                 'rgba(255,255,255,0.6)',
                 3,
                 1,

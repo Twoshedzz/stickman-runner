@@ -109,6 +109,7 @@ export const useBackgroundMusic = () => {
                 webAudioRef.current.currentTime = 0;
             }
             currentTrackRef.current = null;
+            webAudioRef.current = null; // so next playMusic() creates a fresh Audio (fixes Play Again not starting)
             setMusicStatus('Stopped');
         } catch (error) {
             console.warn('Error stopping music:', error);

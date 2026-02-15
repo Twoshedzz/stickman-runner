@@ -2,6 +2,10 @@ export const SCREEN_WIDTH = 600; // Logical width, will scale
 export const SCREEN_HEIGHT = 350; // Logical height
 
 export const GROUND_HEIGHT = 50;
+/** Pixels below the pink ground line that the runner stands on (so they appear on the grid). */
+export const RUNNER_Y_OFFSET = 18;
+/** Y of the running surface (feet level); pink line is at SCREEN_HEIGHT - GROUND_HEIGHT. */
+export const RUNNER_GROUND_Y = SCREEN_HEIGHT - GROUND_HEIGHT + RUNNER_Y_OFFSET;
 export const PLAYER_SIZE = 40;
 export const PLAYER_X = 50;
 export const OBSTACLE_SIZE = 40;

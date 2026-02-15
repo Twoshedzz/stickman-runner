@@ -1,4 +1,5 @@
-import { DAMAGE_BLOCK, DAMAGE_SMALL, DAMAGE_PURPLE, GROUND_HEIGHT, HEART_HEAL, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL, PLAYER_SIZE, PLAYER_X, SCREEN_HEIGHT, SCREEN_WIDTH } from '../constants';
+import { Platform } from 'react-native';
+import { DAMAGE_BLOCK, DAMAGE_SMALL, DAMAGE_PURPLE, HEART_HEAL, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../constants';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
@@ -17,7 +18,7 @@ export const checkCollisions = (state: GameState) => {
         const damage = isPurple ? DAMAGE_PURPLE : (isSmall ? DAMAGE_SMALL : DAMAGE_BLOCK);
 
         const obsX = obs.x;
-        const obsY = SCREEN_HEIGHT - GROUND_HEIGHT - size; // Align to ground
+        const obsY = RUNNER_GROUND_Y - size; // Align to runner ground (on grid)
         const obsR = obsX + size;
         const obsB = obsY + size;
 
@@ -74,10 +75,9 @@ export const checkCollisions = (state: GameState) => {
                 console.log("Debug Mode: Damage Negated");
             }
 
-            // Explosion scaling
-            // More particles, smaller size for pixel explosion look
+            // Explosion scaling; fewer particles on web to reduce CanvasKit load (avoids Aborted).
             const isBig = !isPurple && !isSmall;
-            const particleCount = isBig ? 30 : 15;
+            const particleCount = Platform.OS === 'web' ? (isBig ? 12 : 6) : (isBig ? 30 : 15);
             state.particles = spawnParticles(
                 state.particles,
                 obs.x + size / 2,

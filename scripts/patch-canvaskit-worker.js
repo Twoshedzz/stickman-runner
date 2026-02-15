@@ -46,15 +46,29 @@ if (content.includes('return qb(d,a,b)}));});}function sb(a){') && !content.incl
   changed = true;
 }
 
-// ob() sync path: (1) globalThis/window binary, (2) sync XHR unpkg (often CORS-blocked), (3) sync XHR same-origin
-// Expo/Skia copies canvaskit.wasm to web/static/js/canvaskit.wasm - same-origin works in workers.
-const obWithSyncXhr = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);if(a==ib){try{var xhr=new XMLHttpRequest();xhr.open("GET",ib,false);xhr.responseType="arraybuffer";xhr.send(null);if(xhr.status===200&&xhr.response){Ia=new Uint8Array(xhr.response);return new Uint8Array(Ia);}}catch(e){}var sameOrigin=(typeof location!=="undefined"&&location.origin?location.origin:"")+"/static/js/canvaskit.wasm";try{var xhr2=new XMLHttpRequest();xhr2.open("GET",sameOrigin,false);xhr2.responseType="arraybuffer";xhr2.send(null);if(xhr2.status===200&&xhr2.response){Ia=new Uint8Array(xhr2.response);return new Uint8Array(Ia);}}catch(e){}}throw"both async and sync fetching of the wasm failed";}';
+// ob() sync path: (1) globalThis/window binary, (2) sync XHR to ib (unpkg), (3) sync XHR same-origin (multiple paths)
+// Multiple same-origin paths help when segment 5 or worker loads before preload completes.
+const obWithSyncXhr = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);if(a==ib){try{var xhr=new XMLHttpRequest();xhr.open("GET",ib,false);xhr.responseType="arraybuffer";xhr.send(null);if((xhr.status===200||xhr.status===0)&&xhr.response){Ia=new Uint8Array(xhr.response);return new Uint8Array(Ia);}}catch(e){}var origin=typeof location!=="undefined"&&location.origin?location.origin:"";var paths=["/static/js/canvaskit.wasm","/canvaskit.wasm","/static/canvaskit.wasm"];for(var i=0;i<paths.length;i++){try{var xhr2=new XMLHttpRequest();xhr2.open("GET",origin+paths[i],false);xhr2.responseType="arraybuffer";xhr2.send(null);if((xhr2.status===200||xhr2.status===0)&&xhr2.response){Ia=new Uint8Array(xhr2.response);return new Uint8Array(Ia);}}catch(e){}}}throw"both async and sync fetching of the wasm failed";}';
 const obOriginal = 'function ob(a){if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);throw"both async and sync fetching of the wasm failed";}';
 const obGlobalOnly = 'function ob(a){if(a==ib&&typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__){Ia=globalThis.__SKIA_WASM_BINARY__;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);throw"both async and sync fetching of the wasm failed";}';
 const obWithWindow = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);throw"both async and sync fetching of the wasm failed";}';
 const obWithSyncXhrUnpkgOnly = 'function ob(a){var bin=typeof globalThis!=="undefined"&&globalThis.__SKIA_WASM_BINARY__?globalThis.__SKIA_WASM_BINARY__:(typeof window!=="undefined"&&window.__SKIA_WASM_BINARY__?window.__SKIA_WASM_BINARY__:null);if(a==ib&&bin){Ia=bin;return new Uint8Array(Ia);}if(a==ib&&Ia)return new Uint8Array(Ia);if(Da)return Da(a);if(a==ib&&ib.indexOf("http")===0){try{var xhr=new XMLHttpRequest();xhr.open("GET",ib,false);xhr.responseType="arraybuffer";xhr.send(null);if(xhr.status===200&&xhr.response){Ia=new Uint8Array(xhr.response);return new Uint8Array(Ia);}}catch(e){}}throw"both async and sync fetching of the wasm failed";}';
-if (content.includes('xhr2.open("GET",sameOrigin,false)')) {
-  // Already have same-origin fallback
+// Upgrade single same-origin path to multiple paths (so segment 5 / different bases work)
+const obSingleSameOrigin = 'var sameOrigin=(typeof location!=="undefined"&&location.origin?location.origin:"")+"/static/js/canvaskit.wasm";try{var xhr2=new XMLHttpRequest();xhr2.open("GET",sameOrigin,false);xhr2.responseType="arraybuffer";xhr2.send(null);if(xhr2.status===200&&xhr2.response){Ia=new Uint8Array(xhr2.response);return new Uint8Array(Ia);}}catch(e){}}';
+const obMultiSameOrigin = 'var origin=typeof location!=="undefined"&&location.origin?location.origin:"";var paths=["/static/js/canvaskit.wasm","/canvaskit.wasm","/static/canvaskit.wasm"];for(var i=0;i<paths.length;i++){try{var xhr2=new XMLHttpRequest();xhr2.open("GET",origin+paths[i],false);xhr2.responseType="arraybuffer";xhr2.send(null);if((xhr2.status===200||xhr2.status===0)&&xhr2.response){Ia=new Uint8Array(xhr2.response);return new Uint8Array(Ia);}}catch(e){}}}';
+if (content.includes(obSingleSameOrigin) && !content.includes('paths.length')) {
+  content = content.replace(obSingleSameOrigin, obMultiSameOrigin);
+  changed = true;
+}
+// Also accept status 0 on first XHR (ib) for local/cors edge cases
+if (content.includes('if(xhr.status===200&&xhr.response){Ia=new Uint8Array(xhr.response)') && !content.includes('xhr.status===0')) {
+  content = content.replace('if(xhr.status===200&&xhr.response){Ia=new Uint8Array(xhr.response)', 'if((xhr.status===200||xhr.status===0)&&xhr.response){Ia=new Uint8Array(xhr.response)');
+  changed = true;
+}
+if (content.includes('xhr2.open("GET",sameOrigin,false)') && !content.includes('paths.length')) {
+  // Old single-path form still present (replace didn't run above?), try line-based replace
+} else if (content.includes('xhr2.open("GET",sameOrigin,false)')) {
+  // Already have multi-path or other same-origin fallback
 } else if (content.includes(obWithSyncXhrUnpkgOnly)) {
   content = content.replace(obWithSyncXhrUnpkgOnly, obWithSyncXhr);
   changed = true;

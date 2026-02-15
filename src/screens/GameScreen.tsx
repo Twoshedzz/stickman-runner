@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
 import { ScoreDisplay } from '../components/ui/ScoreDisplay';
@@ -13,20 +13,40 @@ const GameCanvas = React.lazy(() =>
     import('../components/GameCanvas').then(module => ({ default: module.GameCanvas }))
 );
 
+const LOGICAL_WIDTH = SCREEN_WIDTH;   // 600 – game logic (spawn, player, focus) stays in this width
+const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
+
+/** Web: fixed size for preview/feedback; no filling the browser. */
+const WEB_VIEWPORT = { width: 600, height: 350 };
+
 export const GameScreen = () => {
+    const windowDim = useWindowDimensions();
+    const isWeb = Platform.OS === 'web';
+    const viewportWidth = isWeb ? WEB_VIEWPORT.width : windowDim.width;
+    const viewportHeight = isWeb ? WEB_VIEWPORT.height : windowDim.height;
+
     const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode, onContinue } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
-    // Start music only when game transitions to started (never from tap/key — avoids restart on every jump)
+    // View width: on mobile when viewport is wide, draw wider so obstacles have longer run-in; focus stays left 600.
+    const viewWidth = isWeb ? LOGICAL_WIDTH : Math.max(LOGICAL_WIDTH, LOGICAL_HEIGHT * (viewportWidth / viewportHeight));
+    const viewHeight = LOGICAL_HEIGHT;
+
+    // Single uniform scale → no stretch (aspect ratio preserved). Scale to fill viewport.
+    const scale = Math.max(viewportWidth / viewWidth, viewportHeight / viewHeight);
+    const translateX = viewportWidth / 2 - viewWidth / 2;
+    const translateY = viewportHeight / 2 - viewHeight / 2;
+
+    // Start music only when playing (not on game over) so we don't start then immediately fade on death
     const musicStartedForRunRef = React.useRef(false);
     useEffect(() => {
-        if (gameState.gameStarted && !musicStartedForRunRef.current) {
+        if (gameState.gameStarted && !gameState.gameOver && !musicStartedForRunRef.current) {
             musicStartedForRunRef.current = true;
             const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
             playMusic(currentStage.audio?.musicTrack || 'music_city');
         }
-    }, [gameState.gameStarted, gameState.stageId, playMusic]);
+    }, [gameState.gameStarted, gameState.gameOver, gameState.stageId, playMusic]);
 
     // Stop music on game over / continue; reset so Play Again can start music again
     useEffect(() => {
@@ -64,8 +84,9 @@ export const GameScreen = () => {
                     onJumpRef.current();
                 }
                 if (state.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+                    const stage = STAGES.find(s => s.id === state.stageId) || STAGES[0];
+                    playMusicRef.current(stage.audio?.musicTrack || 'music_city');
                     restartGameRef.current();
-                    playMusicRef.current();
                 }
             };
             window.addEventListener('keydown', handleKeyDown, true);
@@ -74,12 +95,26 @@ export const GameScreen = () => {
     }, []);
 
     return (
-        <View style={styles.container}>
-            <View style={[styles.gameContainer, { width: SCREEN_WIDTH, height: SCREEN_HEIGHT }]}>
+        <View style={[styles.container, isWeb && styles.containerWeb]}>
+            <View
+                style={[
+                    styles.scaledGameWrapper,
+                    {
+                        width: viewWidth,
+                        height: viewHeight,
+                        transform: isWeb ? undefined : [
+                            { translateX },
+                            { translateY },
+                            { scale },
+                        ],
+                    },
+                ]}
+            >
+                <View style={[styles.gameContainer, { width: viewWidth, height: viewHeight }]}>
                 {/* 1. Rendering Layer */}
                 <View style={styles.renderLayer}>
                     <Suspense fallback={<View style={{ flex: 1, backgroundColor: '#87CEEB' }} />}>
-                        <GameCanvas gameState={gameState} tick={tick} />
+                        <GameCanvas gameState={gameState} tick={tick} viewWidth={viewWidth} />
                     </Suspense>
                 </View>
 
@@ -134,7 +169,8 @@ export const GameScreen = () => {
                             <Pressable
                                 style={styles.restartButton}
                                 onPress={() => {
-                                    playMusic();
+                                    const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
+                                    playMusic(currentStage.audio?.musicTrack || 'music_city');
                                     restartGame();
                                 }}
                             >
@@ -216,6 +252,7 @@ export const GameScreen = () => {
                         </View>
                     )}
                 </View>
+                </View>
             </View>
         </View>
     );
@@ -225,8 +262,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#222',
+        overflow: 'hidden',
+    },
+    containerWeb: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    scaledGameWrapper: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
     },
     gameContainer: {
         backgroundColor: '#fff',

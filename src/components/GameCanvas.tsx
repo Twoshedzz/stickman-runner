@@ -1,22 +1,24 @@
 
 import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
 import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import {
     COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
     GROUND_HEIGHT, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL,
-    PLAYER_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH
+    PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
-import { NeonCityLayer, useNeonCityData } from "./backgrounds/NeonCityBackground";
+import { NeonCityLayer, NeonCitySprites, useNeonCityData } from "./backgrounds/NeonCityBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 import { GridFloor } from "./GridFloor";
 
 interface GameCanvasProps {
     gameState: GameState;
     tick?: number;
+    /** Drawn width (default SCREEN_WIDTH). When > 600 on mobile, shows longer obstacle run-in; focus stays left 600. */
+    viewWidth?: number;
 }
 
 const PLAYER_X = 50;
@@ -132,6 +134,12 @@ const getTheme = (distance: number, stage: StageConfig) => {
         });
     }
 
+    // Prevent city lights (and any dependent opacity) from flickering to full off on mobile when
+    // distance is in a band where lights should be on (avoids brief 0 from timing/boundary glitches).
+    if (stage.id === 'stage_1_city' && distance >= 3000 && distance < stage.courseLength) {
+        nightProgress = Math.max(nightProgress, 0.02);
+    }
+
     return {
         skyTop, skyMid, skyBottom,
         sunColor,
@@ -143,14 +151,18 @@ const getTheme = (distance: number, stage: StageConfig) => {
     };
 };
 
-export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
+export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCanvasProps) => {
     const { player, obstacles } = gameState;
+    const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
 
     const currentStage = useMemo(() =>
         STAGES.find(s => s.id === gameState.stageId) || STAGES[0]
         , [gameState.stageId]);
 
-    const currentTheme = getTheme(gameState.distance, currentStage);
+    const currentTheme = useMemo(
+        () => getTheme(gameState.distance, currentStage),
+        [gameState.distance, currentStage]
+    );
     const neonCityData = useNeonCityData(gameState.stageId);
     const isCity = currentStage.assets.backgroundType === "city";
 
@@ -164,10 +176,10 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { width: viewWidth }]}>
             <Canvas style={{ flex: 1 }}>
                 {/* 1. Sky (back) */}
-                <Rect x={0} y={0} width={SCREEN_WIDTH} height={SCREEN_HEIGHT}>
+                <Rect x={0} y={0} width={viewWidth} height={SCREEN_HEIGHT}>
                     <LinearGradient
                         start={vec(0, 0)}
                         end={vec(0, SCREEN_HEIGHT)}
@@ -176,7 +188,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                 </Rect>
 
                 {/* 2. Sun */}
-                <Circle cx={SCREEN_WIDTH / 2} cy={currentTheme.sunY} r={52} color={safeColor(currentTheme.sunColor)} />
+                <Circle cx={viewWidth / 2} cy={currentTheme.sunY} r={52} color={safeColor(currentTheme.sunColor)} />
 
                 {/* 3. Moon - single bright circle so it’s always visible; stage 1 between 5k–25k distance */}
                 {(() => {
@@ -184,7 +196,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     const isStage1 = gameState.stageId === 'stage_1_city';
                     const inMoonRange = isStage1 && dist >= 5000 && dist < 32000;
                     if (!inMoonRange && currentTheme.moonOpacity <= 0) return null;
-                    const mx = SCREEN_WIDTH * 0.72;
+                    const mx = viewWidth * 0.72;
                     const t = inMoonRange ? (dist - 5000) / 27000 : 0;
                     // Move down from above screen (-80) to final position (300) over 5k–32k
                     const my = inMoonRange ? -80 + 380 * Math.min(1, Math.max(0, t)) : currentTheme.moonY;
@@ -211,31 +223,35 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     );
                 })()}
 
-                {/* 4 & 5. City buildings (legacy layer path – sprites disabled to avoid black screen) */}
+                {/* 4 & 5. City: on web use texture-based sprites (fewer draw calls, avoids CanvasKit Aborted under load). */}
                 {isCity && neonCityData && (
-                    <>
-                        <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
-                        <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
-                    </>
+                    Platform.OS === 'web' ? (
+                        <NeonCitySprites data={neonCityData} gameState={gameState} currentTheme={currentTheme} />
+                    ) : (
+                        <>
+                            <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
+                            <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
+                        </>
+                    )
                 )}
 
                 {/* 6. Non-city background (beach etc.) */}
                 {!isCity && renderNonCityBackground()}
 
                 {/* 6b. Grid floor (below pink line; perspective, moves only when running) */}
-                <GridFloor gameState={gameState} tick={tick} />
+                <GridFloor gameState={gameState} courseLength={currentStage.courseLength} tick={tick} viewWidth={viewWidth} />
 
-                {/* 7. Ground Line */}
+                {/* 7. Ground Line (thin pink line at top of grid) */}
                 <Rect
                     x={0}
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}
-                    width={SCREEN_WIDTH}
-                    height={4}
+                    width={viewWidth}
+                    height={2}
                     color={safeColor(currentStage.theme?.groundColor)}
                 />
 
                 {/* 8. Victory Arch (If near end) */}
-                {(currentStage.courseLength - gameState.distance) + PLAYER_X > -200 && (currentStage.courseLength - gameState.distance) + PLAYER_X < SCREEN_WIDTH + 200 && (
+                {(currentStage.courseLength - gameState.distance) + PLAYER_X > -200 && (currentStage.courseLength - gameState.distance) + PLAYER_X < viewWidth + 200 && (
                     <Group>
                         {/* Inner Arch */}
                         <Path
@@ -277,7 +293,7 @@ export const GameCanvas = ({ gameState, tick }: GameCanvasProps) => {
                     if (obs.type === 'purple') size = OBSTACLE_SIZE_PURPLE;
                     if (obs.type === 'heart') size = 30;
 
-                    const y = SCREEN_HEIGHT - GROUND_HEIGHT - size;
+                    const y = RUNNER_GROUND_Y - size;
 
                     if (obs.type === 'heart') {
                         return <Circle key={obs.id} cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />;

@@ -1,4 +1,4 @@
-import { GROUND_HEIGHT, MAX_HEALTH, PLAYER_SIZE, SCREEN_HEIGHT } from './constants';
+import { MAX_HEALTH, PLAYER_SIZE, RUNNER_GROUND_Y } from './constants';
 import { Particle } from './particles';
 
 export interface GameState {
@@ -38,7 +38,7 @@ export interface GameState {
 
 export const createInitialState = (): GameState => ({
     player: {
-        y: SCREEN_HEIGHT - GROUND_HEIGHT - PLAYER_SIZE,
+        y: RUNNER_GROUND_Y - PLAYER_SIZE,
         dy: 0,
         isGrounded: true,
         jumpCount: 0,

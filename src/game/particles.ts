@@ -13,8 +13,12 @@ export interface Particle {
 
 let particleIdCounter = 0;
 
-/** Cap particle count to avoid lag on mobile. */
-export const MAX_PARTICLES = 40;
+/** Cap particle count to avoid lag. Lower on web to reduce CanvasKit load (avoids Aborted under collision). */
+const MAX_PARTICLES_NATIVE = 40;
+const MAX_PARTICLES_WEB = 22;
+export const MAX_PARTICLES = typeof globalThis !== 'undefined' && (globalThis as unknown as { window?: unknown }).window !== undefined
+    ? MAX_PARTICLES_WEB
+    : MAX_PARTICLES_NATIVE;
 
 export const createParticle = (
     x: number,
