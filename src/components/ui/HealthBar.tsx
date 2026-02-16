@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { RNText } from '../RNText';
 
 import { COLOR_HP_DEEP } from '../../game/constants';
 
@@ -22,7 +23,7 @@ function HealthBarComponent({ health, maxHealth }: HealthBarProps) {
                     ]}
                 />
             </View>
-            <Text style={styles.healthText}>HP</Text>
+            <RNText style={styles.healthText}>HP</RNText>
         </View>
     );
 }

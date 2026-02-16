@@ -11,7 +11,7 @@
     "web": "expo start --web",
     "build:web": "expo export --platform web",
     "lint": "expo lint",
-    "postinstall": "(patch-package 2>/dev/null || (patch -p1 -N -i patches/canvaskit-wasm+0.40.0.patch 2>/dev/null; true)) && (node scripts/patch-canvaskit-worker.js 2>/dev/null; true) && (node node_modules/@shopify/react-native-skia/scripts/setup-canvaskit.js || true)"
+    "postinstall": "(patch-package 2>/dev/null || (patch -p1 -N -i patches/expo+54.0.33.patch 2>/dev/null; patch -p1 -N -i patches/canvaskit-wasm+0.40.0.patch 2>/dev/null; true)) && (node scripts/patch-canvaskit-worker.js 2>/dev/null; true) && (node node_modules/@shopify/react-native-skia/scripts/setup-canvaskit.js || true)"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

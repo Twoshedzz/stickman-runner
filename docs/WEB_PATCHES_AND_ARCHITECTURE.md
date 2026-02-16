@@ -12,11 +12,11 @@ When the app loads a **code-split chunk** (e.g. a lazy-loaded module), Expo fetc
 - **Wait for Skia WASM before eval**  
   We don’t run `eval(body)` until `__SKIA_WASM_PROMISE__` has resolved. So when the chunk contains CanvasKit/Skia code, the WASM binary is already in memory. That avoids one specific failure: the chunk runs, tries to use the WASM binary, it isn’t there yet, and CanvasKit aborts.
 
-- **Retry once on "Aborted"**  
-  If `eval(body)` throws an error whose message contains `"Aborted"`, we **retry once** on the next `requestAnimationFrame`, then either resolve or rethrow. We do **not** swallow the error: if the retry also fails, the app still crashes.
+- **Retry up to twice on "Aborted"**  
+  If `eval(body)` throws an error whose message contains `"Aborted"`, we retry on the next `requestAnimationFrame`, up to **two retries** (three attempts total). If all fail, we rethrow so the app can show an error. This helps when CanvasKit aborts under load (e.g. mid-game during collisions/particles); sometimes the next frame succeeds.
 
 **So:**  
-We are **not** “telling the app to keep running no matter what.” We are (a) fixing a **race** (eval before WASM is ready) and (b) adding a **single retry** to see if the failure was timing-related. If the underlying cause is not timing, the retry will usually fail too, which matches what you’re seeing (80–90% of web tests still failing).
+We are **not** “telling the app to keep running no matter what.” We are (a) fixing a **race** (eval before WASM is ready) and (b) adding **retries** to see if the failure was timing-related. If CanvasKit is in a bad state, retries may still fail and you’ll see “Aborted(). Build with -sASSERTIONS for more info.” in the console—that’s expected on web under load; primary platform is phone.
 
 ---
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { RNText } from '../RNText';
 
 import { COLOR_ENERGY, MAX_ENERGY } from '../../game/constants';
 
@@ -21,7 +22,7 @@ function EnergyBarComponent({ energy }: EnergyBarProps) {
                     ]}
                 />
             </View>
-            <Text style={styles.text}>ENERGY</Text>
+            <RNText style={styles.text}>ENERGY</RNText>
         </View>
     );
 }

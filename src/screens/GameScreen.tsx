@@ -1,5 +1,6 @@
 import React, { Suspense, useCallback, useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
+import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
 import { ScoreDisplay } from '../components/ui/ScoreDisplay';
@@ -120,29 +121,28 @@ export const GameScreen = () => {
 
                 {/* 2. Input Layer - Transparent; no tap when Continue modal is showing so music doesn’t restart */}
                 <Pressable
-                    style={styles.inputLayer}
+                    style={[styles.inputLayer, { pointerEvents: gameState.showContinue ? 'none' : 'auto' }]}
                     onPress={handleInteraction}
-                    pointerEvents={gameState.showContinue ? 'none' : 'auto'}
                 />
 
                 {/* 3. UI Overlay */}
-                <View style={styles.uiLayer} pointerEvents="box-none">
+                <View style={[styles.uiLayer, { pointerEvents: 'box-none' }]}>
                     {/* Start Screen */}
                     {!gameState.gameStarted && !gameState.gameOver && !showInstructions && (
                         <View style={styles.startScreenContainer}>
-                            <Text style={styles.titleText}>STICKMAN</Text>
-                            <Text style={styles.titleSubText}>RUNNER</Text>
+                            <RNText style={styles.titleText}>STICKMAN</RNText>
+                            <RNText style={styles.titleSubText}>RUNNER</RNText>
                             <Pressable
                                 style={[styles.restartButton, styles.startButton]}
                                 onPress={handleInteraction}
                             >
-                                <Text style={[styles.restartButtonText, styles.startButtonText]}>START GAME</Text>
+                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>START GAME</RNText>
                             </Pressable>
                             <Pressable
                                 style={[styles.instructionsButton]}
                                 onPress={() => setShowInstructions(true)}
                             >
-                                <Text style={styles.instructionsButtonText}>HOW TO PLAY</Text>
+                                <RNText style={styles.instructionsButtonText}>HOW TO PLAY</RNText>
                             </Pressable>
                         </View>
                     )}
@@ -162,9 +162,9 @@ export const GameScreen = () => {
                     {/* Game Over Modal */}
                     {gameState.gameOver && !showInstructions && (
                         <View style={styles.gameOverContainer}>
-                            <Text style={styles.gameOverTitle}>GAME OVER</Text>
-                            <Text style={styles.gameOverScore}>Final Score: {gameState.score}</Text>
-                            <Text style={styles.highScoreText}>Best: {highScore}</Text>
+                            <RNText style={styles.gameOverTitle}>GAME OVER</RNText>
+                            <RNText style={styles.gameOverScore}>Final Score: {gameState.score}</RNText>
+                            <RNText style={styles.highScoreText}>Best: {highScore}</RNText>
 
                             <Pressable
                                 style={styles.restartButton}
@@ -174,13 +174,13 @@ export const GameScreen = () => {
                                     restartGame();
                                 }}
                             >
-                                <Text style={styles.restartButtonText}>PLAY AGAIN</Text>
+                                <RNText style={styles.restartButtonText}>PLAY AGAIN</RNText>
                             </Pressable>
                             <Pressable
                                 style={[styles.instructionsButton, { marginTop: 15 }]}
                                 onPress={() => setShowInstructions(true)}
                             >
-                                <Text style={styles.instructionsButtonText}>HOW TO PLAY</Text>
+                                <RNText style={styles.instructionsButtonText}>HOW TO PLAY</RNText>
                             </Pressable>
                         </View>
                     )}
@@ -188,48 +188,48 @@ export const GameScreen = () => {
                     {/* Instructions Modal */}
                     {showInstructions && (
                         <View style={styles.instructionsContainer}>
-                            <Text style={styles.instructionsTitle}>HOW TO PLAY</Text>
+                            <RNText style={styles.instructionsTitle}>HOW TO PLAY</RNText>
 
                             <View style={styles.instructionRow}>
                                 <View style={[styles.instructionDot, { backgroundColor: '#ffff00' }]} />
-                                <Text style={styles.instructionText}>AVOID YELLOW OBSTACLES ⚠️</Text>
+                                <RNText style={styles.instructionText}>AVOID YELLOW OBSTACLES ⚠️</RNText>
                             </View>
 
                             <View style={styles.instructionRow}>
                                 <View style={[styles.instructionDot, { backgroundColor: '#FF1493' }]} />
-                                <Text style={styles.instructionText}>PINK HEARTS = HEALTH ❤️</Text>
+                                <RNText style={styles.instructionText}>PINK HEARTS = HEALTH ❤️</RNText>
                             </View>
 
                             <View style={styles.instructionRow}>
                                 <View style={[styles.instructionDot, { backgroundColor: '#00ffff' }]} />
-                                <Text style={styles.instructionText}>DOUBLE JUMP USES ENERGY ⚡</Text>
+                                <RNText style={styles.instructionText}>DOUBLE JUMP USES ENERGY ⚡</RNText>
                             </View>
 
                             <Pressable
                                 style={styles.closeButton}
                                 onPress={() => setShowInstructions(false)}
                             >
-                                <Text style={styles.closeButtonText}>GOT IT</Text>
+                                <RNText style={styles.closeButtonText}>GOT IT</RNText>
                             </Pressable>
                         </View>
                     )}
                     {/* DEBUG HUD */}
                     {gameState.debugMode && (
                         <View style={{ position: 'absolute', top: 100, left: 20, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10 }}>
-                            <Text style={{ color: 'white' }}>Status: {gameState.stageStatus}</Text>
-                            <Text style={{ color: 'white' }}>Score: {gameState.score}</Text>
-                            <Text style={{ color: 'white' }}>Metrics Score: {gameMetrics.score}</Text>
-                            <Text style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</Text>
-                            <Text style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</Text>
-                            <Text style={{ color: 'white', fontWeight: 'bold' }}>Distance: {Math.floor(gameState.distance)}</Text>
-                            <Text style={{ color: 'white' }}>Segment: {Math.min(6, 1 + Math.floor(gameState.distance / 7200))} (30s each)</Text>
-                            <Text style={{ color: 'white', opacity: 0.8 }}>tick: {tick}</Text>
+                            <RNText style={{ color: 'white' }}>Status: {gameState.stageStatus}</RNText>
+                            <RNText style={{ color: 'white' }}>Score: {gameState.score}</RNText>
+                            <RNText style={{ color: 'white' }}>Metrics Score: {gameMetrics.score}</RNText>
+                            <RNText style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</RNText>
+                            <RNText style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</RNText>
+                            <RNText style={{ color: 'white', fontWeight: 'bold' }}>Distance: {Math.floor(gameState.distance)}</RNText>
+                            <RNText style={{ color: 'white' }}>Segment: {Math.min(6, 1 + Math.floor(gameState.distance / 7200))} (30s each)</RNText>
+                            <RNText style={{ color: 'white', opacity: 0.8 }}>tick: {tick}</RNText>
                         </View>
                     )}
                     {/* Debug Toggle */}
                     {DEBUG_ENABLED && (
                         <View style={{ position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center' }}>
-                            <Text style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadowColor: 'black', textShadowRadius: 2 }}>DEBUG</Text>
+                            <RNText style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadow: '0 0 2px black' }}>DEBUG</RNText>
                             <Switch
                                 value={gameState.debugMode}
                                 onValueChange={toggleDebugMode}
@@ -241,13 +241,13 @@ export const GameScreen = () => {
                     {/* Continue Modal */}
                     {gameState.showContinue && (
                         <View style={styles.gameOverContainer}>
-                            <Text style={styles.gameOverTitle}>STAGE CLEAR</Text>
-                            <Text style={styles.gameOverScore}>Next Stage Ready</Text>
+                            <RNText style={styles.gameOverTitle}>STAGE CLEAR</RNText>
+                            <RNText style={styles.gameOverScore}>Next Stage Ready</RNText>
                             <Pressable
                                 style={[styles.restartButton, styles.startButton]}
                                 onPress={onContinue}
                             >
-                                <Text style={[styles.restartButtonText, styles.startButtonText]}>CONTINUE?</Text>
+                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>CONTINUE?</RNText>
                             </Pressable>
                         </View>
                     )}

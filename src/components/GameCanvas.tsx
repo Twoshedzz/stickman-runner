@@ -1,7 +1,7 @@
 
 import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
     COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
     GROUND_HEIGHT, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL,
@@ -10,7 +10,7 @@ import {
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
-import { NeonCityLayer, NeonCitySprites, useNeonCityData } from "./backgrounds/NeonCityBackground";
+import { NeonCityLayer, useNeonCityData } from "./backgrounds/NeonCityBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 import { GridFloor } from "./GridFloor";
 
@@ -223,16 +223,12 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
                     );
                 })()}
 
-                {/* 4 & 5. City: on web use texture-based sprites (fewer draw calls, avoids CanvasKit Aborted under load). */}
+                {/* 4 & 5. City: use layer path on all platforms (NeonCitySprites on web caused black screen – see docs/DEBUGGING_WEB_BLACK_SCREEN.md). */}
                 {isCity && neonCityData && (
-                    Platform.OS === 'web' ? (
-                        <NeonCitySprites data={neonCityData} gameState={gameState} currentTheme={currentTheme} />
-                    ) : (
-                        <>
-                            <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
-                            <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
-                        </>
-                    )
+                    <>
+                        <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
+                        <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
+                    </>
                 )}
 
                 {/* 6. Non-city background (beach etc.) */}

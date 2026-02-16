@@ -2,7 +2,7 @@ diff --git a/node_modules/expo/src/async-require/fetchThenEvalJs.ts b/node_modul
 index 0000000..1111111 100644
 --- a/node_modules/expo/src/async-require/fetchThenEvalJs.ts
 +++ b/node_modules/expo/src/async-require/fetchThenEvalJs.ts
-@@ -24,7 +24,35 @@ export function fetchThenEvalAsync(url: string): Promise<void> {
+@@ -24,7 +24,36 @@ export function fetchThenEvalAsync(url: string): Promise<void> {
      }
  
      if (status === 200) {
@@ -15,22 +15,18 @@ index 0000000..1111111 100644
 +        // eslint-disable-next-line no-eval
 +        return eval(body);
 +      };
-+      // Retry once on next frame if eval throws Aborted (e.g. CanvasKit under load during collision/particles).
-+      const doEvalWithRetry = (): Promise<void> => {
++      // Retry up to two times on next frame(s) if eval throws Aborted (e.g. CanvasKit under load during collision/particles).
++      const doEvalWithRetry = (attempt = 0): Promise<void> => {
++        const maxRetries = 2;
 +        try {
 +          doEval();
 +          return Promise.resolve();
 +        } catch (e: any) {
 +          const msg = e?.message ?? String(e);
-+          if (msg.includes('Aborted')) {
++          if (msg.includes('Aborted') && attempt < maxRetries) {
 +            return new Promise((resolve, reject) => {
 +              requestAnimationFrame(() => {
-+                try {
-+                  doEval();
-+                  resolve();
-+                } catch (e2) {
-+                  reject(e2);
-+                }
++                doEvalWithRetry(attempt + 1).then(resolve).catch(reject);
 +              });
 +            });
 +          }
@@ -42,3 +38,4 @@ index 0000000..1111111 100644
 +      }
 +      return doEvalWithRetry();
      } else {
+       // Format Metro errors if possible.

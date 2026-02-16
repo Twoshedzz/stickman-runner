@@ -1,11 +1,12 @@
 import '../src/skiaWasmPreload';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { RNText } from '../src/components/RNText';
 import { WasmGate } from '../src/components/WasmGate';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -52,7 +53,7 @@ export default function RootLayout() {
 function MinimalLoading() {
   return (
     <View style={styles.minimalLoading}>
-      <Text style={styles.minimalLoadingText}>Loading…</Text>
+      <RNText style={styles.minimalLoadingText}>Loading…</RNText>
     </View>
   );
 }

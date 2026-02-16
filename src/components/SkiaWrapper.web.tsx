@@ -14,7 +14,7 @@ function SkiaFallback() {
     return (
         <div style={{ padding: 24, color: '#fff', background: '#111', minHeight: '100vh', fontFamily: 'system-ui' }}>
             <p style={{ marginBottom: 8 }}>Skia failed to load (CanvasKit WASM).</p>
-            <p style={{ opacity: 0.8, fontSize: 14 }}>Use Expo Go on a device for the best experience, or refresh the page.</p>
+            <p style={{ opacity: 0.8, fontSize: 14 }}>Use <strong>Expo Go</strong> on a device to play the full game. On web you can still test the UI and controls (game area will show a placeholder).</p>
         </div>
     );
 }

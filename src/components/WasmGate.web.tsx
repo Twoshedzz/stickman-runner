@@ -7,6 +7,7 @@ import React from 'react';
 
 const SKIA_BINARY = '__SKIA_WASM_BINARY__';
 const SKIA_PROMISE = '__SKIA_WASM_PROMISE__';
+const LOAD_TIMEOUT_MS = 15000;
 
 type GlobalWithSkia = typeof globalThis & {
   [SKIA_BINARY]?: Uint8Array;
@@ -24,9 +25,11 @@ function useWasmBinaryReady(): boolean {
     const p = g[SKIA_PROMISE];
     if (p) {
       p.then(() => setReady(true)).catch(() => setReady(false));
-      return;
+    } else {
+      setReady(false);
     }
-    setReady(false);
+    const t = setTimeout(() => setReady(true), LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
   }, []);
   return ready;
 }

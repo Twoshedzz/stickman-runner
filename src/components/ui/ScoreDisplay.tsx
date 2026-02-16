@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { RNText } from '../RNText';
 
 interface ScoreDisplayProps {
     score: number;
@@ -10,10 +11,10 @@ export const ScoreDisplay = React.memo(({ score, stageNumber }: ScoreDisplayProp
     return (
         <View style={styles.scoreContainer}>
             {stageNumber !== undefined && (
-                <Text style={styles.stageLabel}>STAGE {stageNumber}</Text>
+                <RNText style={styles.stageLabel}>STAGE {stageNumber}</RNText>
             )}
-            <Text style={styles.scoreLabel}>SCORE</Text>
-            <Text style={styles.scoreValue}>{score}</Text>
+            <RNText style={styles.scoreLabel}>SCORE</RNText>
+            <RNText style={styles.scoreValue}>{score}</RNText>
         </View>
     );
 }, (prevProps, nextProps) => {
