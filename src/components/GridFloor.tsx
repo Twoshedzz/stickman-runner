@@ -5,8 +5,6 @@ import { GameState } from "../game/state";
 
 const GROUND_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 const GRID_HEIGHT = GROUND_HEIGHT;
-/** Vanishing point at center of focus (600); grid can extend to viewWidth. */
-const VANISH_X = SCREEN_WIDTH / 2;
 const VANISH_Y = GROUND_Y - 120;
 
 const CELL_WIDTH = 56; // spacing at bottom (~30% fewer lines = bigger squares), loops smoothly
@@ -30,6 +28,7 @@ interface GridFloorProps {
  */
 export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWidthProp }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
+    const vanishX = viewWidth / 2;
     const isMoving =
         gameState.gameStarted &&
         !gameState.gameOver &&
@@ -60,18 +59,17 @@ export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWi
             lines.push(`M 0 ${y} L ${viewWidth} ${y}`);
         }
 
-        // ---- Vertical lines: fixed angle toward vanishing point, scroll by shifting bottom x ----
-        // Each line goes from (xBottom, SCREEN_HEIGHT) to (xTop, GROUND_Y) where top is on the ray to (VANISH_X, VANISH_Y).
-        // xTop = VANISH_X + (xBottom - VANISH_X) * tTop. Scroll: xBottom = baseX - scrollOffset.
-        const halfSpan = viewWidth * 0.6;
-        let baseX = Math.floor((VANISH_X - halfSpan) / CELL_WIDTH) * CELL_WIDTH;
+        // ---- Vertical lines: toward vanishX (screen center), extend off-screen to avoid pop-in on wide mobiles ----
+        const halfSpan = viewWidth * 1.4;
+        const margin = 120;
+        let baseX = Math.floor((vanishX - halfSpan) / CELL_WIDTH) * CELL_WIDTH;
         const linesOut: string[] = [];
-        while (baseX <= VANISH_X + halfSpan + CELL_WIDTH) {
+        while (baseX <= vanishX + halfSpan + CELL_WIDTH) {
             const xBottom = baseX - scrollOffset;
-            const xTop = VANISH_X + (xBottom - VANISH_X) * tTop;
+            const xTop = vanishX + (xBottom - vanishX) * tTop;
             const y1 = GROUND_Y;
             const y2 = SCREEN_HEIGHT;
-            if (xBottom > -80 && xBottom < viewWidth + 80) {
+            if (xBottom > -margin && xBottom < viewWidth + margin) {
                 linesOut.push(`M ${xTop} ${y1} L ${xBottom} ${y2}`);
             }
             baseX += CELL_WIDTH;
@@ -79,7 +77,7 @@ export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWi
         lines.push(...linesOut);
 
         return { lines, gridColor };
-    }, [scrollOffset, tick, viewWidth]);
+    }, [scrollOffset, tick, viewWidth, vanishX]);
 
     return (
         <Group>

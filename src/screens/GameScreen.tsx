@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
@@ -29,6 +29,10 @@ export const GameScreen = () => {
     const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode, onContinue } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
+
+    // Loading overlay: hide black block until building strip (and other assets) are ready.
+    const [assetsReady, setAssetsReady] = useState(false);
+    const onAssetsReady = useCallback(() => setAssetsReady(true), []);
 
     // View width: on mobile when viewport is wide, draw wider so obstacles have longer run-in; focus stays left 600.
     const viewWidth = isWeb ? LOGICAL_WIDTH : Math.max(LOGICAL_WIDTH, LOGICAL_HEIGHT * (viewportWidth / viewportHeight));
@@ -115,7 +119,7 @@ export const GameScreen = () => {
                 {/* 1. Rendering Layer */}
                 <View style={styles.renderLayer}>
                     <Suspense fallback={<View style={{ flex: 1, backgroundColor: '#87CEEB' }} />}>
-                        <GameCanvas gameState={gameState} tick={tick} viewWidth={viewWidth} />
+                        <GameCanvas gameState={gameState} tick={tick} viewWidth={viewWidth} onAssetsReady={onAssetsReady} />
                     </Suspense>
                 </View>
 
@@ -127,8 +131,14 @@ export const GameScreen = () => {
 
                 {/* 3. UI Overlay */}
                 <View style={[styles.uiLayer, { pointerEvents: 'box-none' }]}>
-                    {/* Start Screen */}
-                    {!gameState.gameStarted && !gameState.gameOver && !showInstructions && (
+                    {/* Loading: hide black block until assets ready */}
+                    {!assetsReady && (
+                        <View style={styles.countdownOverlay}>
+                            <RNText style={styles.countdownText}>Get ready...</RNText>
+                        </View>
+                    )}
+                    {/* Start Screen - only after assets loaded so scene is fully drawn */}
+                    {assetsReady && !gameState.gameStarted && !gameState.gameOver && !showInstructions && (
                         <View style={styles.startScreenContainer}>
                             <RNText style={styles.titleText}>STICKMAN</RNText>
                             <RNText style={styles.titleSubText}>RUNNER</RNText>
@@ -274,7 +284,7 @@ const styles = StyleSheet.create({
         top: 0,
     },
     gameContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: '#000',
         overflow: 'hidden',
         borderWidth: 2,
         borderColor: '#444',
@@ -282,6 +292,7 @@ const styles = StyleSheet.create({
     renderLayer: {
         ...StyleSheet.absoluteFillObject,
         zIndex: 1,
+        backgroundColor: '#000',
     },
     inputLayer: {
         ...StyleSheet.absoluteFillObject,
@@ -294,6 +305,19 @@ const styles = StyleSheet.create({
         zIndex: 20,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    countdownOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(15, 12, 41, 0.92)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 5,
+    },
+    countdownText: {
+        fontSize: 28,
+        color: '#00ffff',
+        fontWeight: 'bold',
+        letterSpacing: 4,
     },
     gameOverContainer: {
         backgroundColor: 'rgba(15, 12, 41, 0.95)', // Deep Purple

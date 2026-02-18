@@ -1,6 +1,6 @@
 
 import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
     COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
@@ -10,7 +10,7 @@ import {
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
-import { NeonCityLayer, useNeonCityData } from "./backgrounds/NeonCityBackground";
+import { CityStripBackground } from "./backgrounds/CityStripBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 import { GridFloor } from "./GridFloor";
 
@@ -19,9 +19,13 @@ interface GameCanvasProps {
     tick?: number;
     /** Drawn width (default SCREEN_WIDTH). When > 600 on mobile, shows longer obstacle run-in; focus stays left 600. */
     viewWidth?: number;
+    /** Called when stage background assets are ready (e.g. city strip images). Used for loading + countdown before start. */
+    onAssetsReady?: () => void;
 }
 
 const PLAYER_X = 50;
+/** Visual only: draw runner 5px higher so feet align with obstacle bottom. Physics/collision unchanged. */
+const RUNNER_VISUAL_Y_OFFSET = -5;
 
 /** Ensure Skia always receives a valid color string (avoids JsiSkPaint/savePaint crashes on web). */
 const safeColor = (c: unknown): string =>
@@ -151,9 +155,10 @@ const getTheme = (distance: number, stage: StageConfig) => {
     };
 };
 
-export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCanvasProps) => {
+export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssetsReady }: GameCanvasProps) => {
     const { player, obstacles } = gameState;
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
+    const gameOffsetX = (viewWidth - SCREEN_WIDTH) / 2;
 
     const currentStage = useMemo(() =>
         STAGES.find(s => s.id === gameState.stageId) || STAGES[0]
@@ -163,8 +168,12 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
         () => getTheme(gameState.distance, currentStage),
         [gameState.distance, currentStage]
     );
-    const neonCityData = useNeonCityData(gameState.stageId);
     const isCity = currentStage.assets.backgroundType === "city";
+
+    // Non-city stages (e.g. beach) don't have async strip assets; signal ready immediately so countdown isn't blocked.
+    useEffect(() => {
+        if (onAssetsReady && !isCity) onAssetsReady();
+    }, [onAssetsReady, isCity]);
 
     const renderNonCityBackground = () => {
         switch (currentStage.assets.backgroundType) {
@@ -190,7 +199,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
                 {/* 2. Sun */}
                 <Circle cx={viewWidth / 2} cy={currentTheme.sunY} r={52} color={safeColor(currentTheme.sunColor)} />
 
-                {/* 3. Moon - single bright circle so it’s always visible; stage 1 between 5k–25k distance */}
+                {/* 3. Moon - single bright circle so it’s always visible; stage 1 between 5k–32k distance */}
                 {(() => {
                     const dist = gameState.distance;
                     const isStage1 = gameState.stageId === 'stage_1_city';
@@ -202,42 +211,30 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
                     const my = inMoonRange ? -80 + 380 * Math.min(1, Math.max(0, t)) : currentTheme.moonY;
                     // Fade in over first 5k of range so moon becomes clearer as night draws in
                     const moonOpacity = inMoonRange ? Math.min(1, (dist - 5000) / 5000) : currentTheme.moonOpacity;
+                    // Skip drawing when effectively invisible (avoids unnecessary Mask/Circle work)
+                    if (moonOpacity <= 0.01) return null;
                     if (my < -80 || my > SCREEN_HEIGHT + 60) return null;
                     const rMoon = 48;
                     const rBite = 40;
                     const biteOffset = 24;
+                    // No Group opacity: on mobile Group opacity can leak and make city/assets transparent. Use Circle opacity instead.
                     return (
-                        <Group opacity={safeOpacity(moonOpacity)}>
-                            <Mask
-                                mode="luminance"
-                                mask={
-                                    <Group>
-                                        <Circle cx={mx} cy={my} r={rMoon} color="white" style="fill" />
-                                        <Circle cx={mx + biteOffset} cy={my} r={rBite} color="black" style="fill" />
-                                    </Group>
-                                }
-                            >
-                                <Circle cx={mx} cy={my} r={rMoon} color="#FFFFFF" style="fill" />
-                            </Mask>
-                        </Group>
+                        <Mask
+                            mode="luminance"
+                            mask={
+                                <Group>
+                                    <Circle cx={mx} cy={my} r={rMoon} color="white" style="fill" />
+                                    <Circle cx={mx + biteOffset} cy={my} r={rBite} color="black" style="fill" />
+                                </Group>
+                            }
+                        >
+                            <Circle cx={mx} cy={my} r={rMoon} color="#FFFFFF" style="fill" opacity={safeOpacity(moonOpacity)} />
+                        </Mask>
                     );
                 })()}
 
-                {/* 4 & 5. City: use layer path on all platforms (NeonCitySprites on web caused black screen – see docs/DEBUGGING_WEB_BLACK_SCREEN.md). */}
-                {isCity && neonCityData && (
-                    <>
-                        <NeonCityLayer layer="back" data={neonCityData.back} gameState={gameState} currentTheme={currentTheme} />
-                        <NeonCityLayer layer="front" data={neonCityData.front} gameState={gameState} currentTheme={currentTheme} />
-                    </>
-                )}
-
-                {/* 6. Non-city background (beach etc.) */}
-                {!isCity && renderNonCityBackground()}
-
-                {/* 6b. Grid floor (below pink line; perspective, moves only when running) */}
+                {/* 4. Grid and ground line first; then city on top so buildings are never clipped by the line. */}
                 <GridFloor gameState={gameState} courseLength={currentStage.courseLength} tick={tick} viewWidth={viewWidth} />
-
-                {/* 7. Ground Line (thin pink line at top of grid) */}
                 <Rect
                     x={0}
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}
@@ -246,26 +243,34 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
                     color={safeColor(currentStage.theme?.groundColor)}
                 />
 
-                {/* 8. Victory Arch (If near end) */}
-                {(currentStage.courseLength - gameState.distance) + PLAYER_X > -200 && (currentStage.courseLength - gameState.distance) + PLAYER_X < viewWidth + 200 && (
-                    <Group>
-                        {/* Inner Arch */}
-                        <Path
-                            path={`M ${(currentStage.courseLength - gameState.distance) + PLAYER_X - 40} ${SCREEN_HEIGHT - GROUND_HEIGHT} L ${(currentStage.courseLength - gameState.distance) + PLAYER_X - 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 70} C ${(currentStage.courseLength - gameState.distance) + PLAYER_X - 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 100} ${(currentStage.courseLength - gameState.distance) + PLAYER_X + 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 100} ${(currentStage.courseLength - gameState.distance) + PLAYER_X + 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 70} L ${(currentStage.courseLength - gameState.distance) + PLAYER_X + 40} ${SCREEN_HEIGHT - GROUND_HEIGHT}`}
-                            style="stroke"
-                            strokeWidth={5}
-                            color="#00ffff"
-                        />
-                        {/* Glow */}
-                        <Path
-                            path={`M ${(currentStage.courseLength - gameState.distance) + PLAYER_X - 40} ${SCREEN_HEIGHT - GROUND_HEIGHT} L ${(currentStage.courseLength - gameState.distance) + PLAYER_X - 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 70} C ${(currentStage.courseLength - gameState.distance) + PLAYER_X - 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 100} ${(currentStage.courseLength - gameState.distance) + PLAYER_X + 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 100} ${(currentStage.courseLength - gameState.distance) + PLAYER_X + 40} ${SCREEN_HEIGHT - GROUND_HEIGHT - 70} L ${(currentStage.courseLength - gameState.distance) + PLAYER_X + 40} ${SCREEN_HEIGHT - GROUND_HEIGHT}`}
-                            style="stroke"
-                            strokeWidth={15}
-                            color="#00ffff"
-                            opacity={safeOpacity(0.3)}
-                        />
-                    </Group>
-                )}
+                {/* 5 & 6. City / non-city: drawn after grid + ground line so buildings render on top (no clip; city content is already above grid). */}
+                {isCity && <CityStripBackground gameState={gameState} currentTheme={currentTheme} onAssetsReady={onAssetsReady} />}
+                {!isCity && renderNonCityBackground()}
+
+                {/* 8. Victory Arch (If near end) - 600 zone centered via gameOffsetX */}
+                {(() => {
+                    const archLeft = (currentStage.courseLength - gameState.distance) + PLAYER_X - 40;
+                    const archRight = (currentStage.courseLength - gameState.distance) + PLAYER_X + 40;
+                    const gY = SCREEN_HEIGHT - GROUND_HEIGHT;
+                    if (archLeft <= -200 || archRight >= SCREEN_WIDTH + 200) return null;
+                    return (
+                        <Group>
+                            <Path
+                                path={`M ${archLeft + gameOffsetX} ${gY} L ${archLeft + gameOffsetX} ${gY - 70} C ${archLeft + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 70} L ${archRight + gameOffsetX} ${gY}`}
+                                style="stroke"
+                                strokeWidth={5}
+                                color="#00ffff"
+                            />
+                            <Path
+                                path={`M ${archLeft + gameOffsetX} ${gY} L ${archLeft + gameOffsetX} ${gY - 70} C ${archLeft + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 70} L ${archRight + gameOffsetX} ${gY}`}
+                                style="stroke"
+                                strokeWidth={15}
+                                color="#00ffff"
+                                opacity={safeOpacity(0.3)}
+                            />
+                        </Group>
+                    );
+                })()}
 
                 {/* 9. Obstacles */}
                 {obstacles.map(obs => {
@@ -290,33 +295,32 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
                     if (obs.type === 'heart') size = 30;
 
                     const y = RUNNER_GROUND_Y - size;
+                    const drawX = obs.x + gameOffsetX;
 
                     if (obs.type === 'heart') {
-                        return <Circle key={obs.id} cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />;
+                        return <Circle key={obs.id} cx={drawX + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />;
                     }
                     if (isBoulder) {
                         return (
                             <Group key={obs.id}>
-                                <Circle cx={obs.x + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />
-                                <Circle cx={obs.x + size / 2 - 5} cy={y + size / 2 - 5} r={size / 4} color="rgba(0,0,0,0.2)" />
+                                <Circle cx={drawX + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />
+                                <Circle cx={drawX + size / 2 - 5} cy={y + size / 2 - 5} r={size / 4} color="rgba(0,0,0,0.2)" />
                             </Group>
                         );
                     }
 
                     return (
                         <Group key={obs.id}>
-                            {/* Outer Glow */}
                             <Rect
-                                x={obs.x - 4}
+                                x={drawX - 4}
                                 y={y - 4}
                                 width={size + 8}
                                 height={size + 8}
                                 color={safeColor(glowColor)}
                                 opacity={safeOpacity(0.4)}
                             />
-                            {/* Inner Core */}
                             <Rect
-                                x={obs.x}
+                                x={drawX}
                                 y={y}
                                 width={size}
                                 height={size}
@@ -326,20 +330,20 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp }: GameCa
                     );
                 })}
 
-                {/* 10. Player (Stickman) */}
+                {/* 10. Player (Stickman) - left of 600 zone; visual y -5 so feet align with obstacles */}
                 <Stickman
-                    x={PLAYER_X}
-                    y={player.y}
+                    x={PLAYER_X + gameOffsetX}
+                    y={player.y + RUNNER_VISUAL_Y_OFFSET}
                     size={PLAYER_SIZE}
-                    tick={tick || 0}
+                    animationTimeSec={gameState.elapsedSecInStage ?? 0}
                     isGrounded={player.isGrounded}
                     isRunning={gameState.gameStarted && !gameState.gameOver}
                     status={gameState.stageStatus}
                 />
 
-                {/* 11. Particles */}
+                {/* 11. Particles (600 zone centered) */}
                 {gameState.particles.map(p => (
-                    <Rect key={p.id} x={p.x} y={p.y} width={p.size} height={p.size} color={safeColor(p.color)} opacity={safeOpacity(p.life)} />
+                    <Rect key={p.id} x={p.x + gameOffsetX} y={p.y} width={p.size} height={p.size} color={safeColor(p.color)} opacity={safeOpacity(p.life)} />
                 ))}
 
             </Canvas>

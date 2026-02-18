@@ -5,7 +5,8 @@ import { EXHAUSTED_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "..
 interface StickmanProps {
     x: number;
     y: number;
-    tick: number;
+    /** Used for run cycle; pass real-time seconds (e.g. elapsedSecInStage) so animation speed is independent of frame rate. */
+    animationTimeSec: number;
     isGrounded: boolean;
     isRunning: boolean;
     size: number;
@@ -26,7 +27,7 @@ const FULL_CYCLE: Pose[] = [
     ...RUN_POSES.map(getMirroredPose)
 ];
 
-export const Stickman = ({ x, y, tick, isGrounded, isRunning, size, status = 'playing' }: StickmanProps) => {
+export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, size, status = 'playing' }: StickmanProps) => {
     // Synthwave Stickman: White with Neon Glow
     const color = "white";
     const strokeWidth = 5; // Thicker for pictogram style
@@ -50,8 +51,8 @@ export const Stickman = ({ x, y, tick, isGrounded, isRunning, size, status = 'pl
         if (!isGrounded) return JUMP_POSE;
         if (!isRunning) return STAND_POSE;
 
-        const cycleSpeed = 0.3; // Controls run speed (Slower)
-        const frameIndex = (tick * cycleSpeed) % FULL_CYCLE.length;
+        const cycleSpeed = 18; // Run cycle units per real second (so animation speed is independent of frame rate)
+        const frameIndex = (animationTimeSec * cycleSpeed) % FULL_CYCLE.length;
         const currentFrame = Math.floor(frameIndex);
         const nextFrame = (currentFrame + 1) % FULL_CYCLE.length;
         const progress = frameIndex - currentFrame;
@@ -70,7 +71,7 @@ export const Stickman = ({ x, y, tick, isGrounded, isRunning, size, status = 'pl
             lArm: interpolateLimb(p1.lArm, p2.lArm),
             rArm: interpolateLimb(p1.rArm, p2.rArm),
         };
-    }, [tick, isGrounded, isRunning, status]);
+    }, [animationTimeSec, isGrounded, isRunning, status]);
 
     if (!pose) {
         return null;

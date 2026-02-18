@@ -5,11 +5,11 @@ import { GameState } from '../state';
 /** deltaTimeSec: seconds since last frame (used so movement stays in sync with real time) */
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
-    const scale = Math.max(0.001, deltaTimeSec * 60); // 60 = nominal fps so at 60fps scale=1
+    const scale = Math.max(0.001, Math.min(2, deltaTimeSec * 60)); // 60 = nominal fps; cap so one slow frame doesn't overshoot
 
-    // Player Gravity
-    player.dy += GRAVITY;
-    player.y += player.dy;
+    // Player vertical physics: scale by time so jump duration and height are the same at any frame rate
+    player.dy += GRAVITY * scale;
+    player.y += player.dy * scale;
 
     // Distance is now driven by time in the game loop (see STAGE_DESIGN.md)
 
