@@ -1,80 +1,99 @@
 # Stickman Runner
 
-A retro-synthwave style endless runner game built with **React Native**, **Expo**, and **Shopify Skia**.
+A landscape **endless / staged runner** with a retro neon synthwave look. Built with **Expo**, **React Native**, and **Shopify Skia** — a small custom game loop, not a heavy engine.
 
-## 🎮 How to Play
+Made as a learning and collaboration project (adult + child): readable code, playable milestones, phone-first via Expo Go, with web as a secondary preview.
 
-* **Tap / Space / Up Arrow**: Jump
-* **Double Tap (in air)**: Double Jump (Costs Energy ⚡)
-* **Goal**: Run as far as possible!
+## How to play
 
-### Rules
+- **Tap / Space / Up**: Jump  
+- **Double tap (in air)**: Double jump (uses energy)  
+- **Goal**: Survive the stage, collect hearts, reach dawn  
 
-* ⚠️ **Avoid Yellow Obstacles**: Hitting them causes damage or game over.
-* ⚡ **Manage Energy**: Energy regenerates over time. Double jumping consumes it.
-* ❤️ **Collect Hearts**: Pink hearts restore health.
+**Rules**
 
-## 🏗️ Project Structure
+- Avoid yellow (and other) obstacles — hits cost health  
+- Energy regenerates on the ground; double jump spends it  
+- Pink hearts restore health  
 
-This project follows a custom game loop architecture, avoiding heavy game engines for learning purposes.
+Stage 1 (Neon City) is the current stable playable stage: ~3 minutes of real time, night → dawn, parallax city strips, grid floor, health/energy UI.
+
+## Tech stack
+
+| Layer | Choice |
+|--------|--------|
+| App shell | Expo + expo-router |
+| UI / native | React Native + TypeScript |
+| Game draw | `@shopify/react-native-skia` |
+| Music | expo-audio (stage tracks) |
+| Platforms | iOS / Android (primary), web (preview) |
+
+## Project structure
 
 ```
 /src
   /game
-    /constants.ts      # Physics, Dimensions, Colors, Difficulty settings
+    constants.ts       # Physics, sizes, colours, stage duration
+    state.ts           # Game state shape
+    stages.ts          # Stage configs (themes, difficulty, timeline)
+    particles.ts
+    animations.ts
     /loop
-      useGameLoop.ts   # Main Game Loop (update logic, tick handling)
+      useGameLoop.ts   # requestAnimationFrame update loop
     /systems
-      physics.ts       # Gravity, Jump logic, Movement
-      collisions.ts    # AABB Collision detection (Player vs Obstacles)
-      renderer.ts      # Rendering helpers
+      physics.ts       # Gravity, jump, obstacle motion (delta-time)
+      collisions.ts    # AABB player vs obstacles / hearts
+      spawn.ts         # Obstacle spawning from stage difficulty
   /components
-    GameCanvas.tsx     # Main rendering component (Skia Canvas)
+    GameCanvas.tsx     # Skia canvas composition
+    Stickman.tsx
+    GridFloor.tsx
+    /backgrounds       # City strips, neon city, beach, …
+    /ui                # Health, energy, score
   /screens
-    GameScreen.tsx     # Main Entry Point, UI Overlay, Input Handling
-/app
-  index.tsx            # Expo Router Entry Point
-  _layout.tsx          # Root Layout
+    GameScreen.tsx     # Input, overlays, “Get ready”
+  /hooks
+    useBackgroundMusic.ts (+ .web)
+/app                   # Expo Router entry
+/assets/city           # Front/back city strip PNGs
+/docs                  # Plans, stage design, architecture
 ```
 
-## 🛠️ Tech Stack
+**Idea:** game logic updates a ref of state each frame; Skia (and light React UI) render that state. Logic stays out of JSX.
 
-* **Framework**: [Expo](https://expo.dev) + [React Native](https://reactnative.dev)
-* **Rendering**: [@shopify/react-native-skia](https://shopify.github.io/react-native-skia/) (High performance 2D graphics)
-* **Language**: TypeScript
+## Running locally
 
-## 🚀 Running the Project
+```bash
+npm install
+npm start                 # Expo dev server (LAN)
+# or
+npm run start:tunnel      # Easier for phone when LAN QR fails
+```
 
-1. **Install Dependencies**:
+- **Phone:** Expo Go → scan QR, or enter the `exp://…` URL manually  
+- **Web:** press `w` in the Expo terminal (or `npm run web`)  
+- **Static web export:** `npm run build:web` → see [DEPLOY_WEB.md](./DEPLOY_WEB.md)
 
-    ```bash
-    npm install
-    ```
+Orientation is **landscape**. Primary testing target is a real phone.
 
-2. **Start the Server**:
+## Docs
 
-    ```bash
-    npx expo start
-    ```
+| Doc | What it’s for |
+|-----|----------------|
+| [docs/PROJECT_BRIEF.md](./docs/PROJECT_BRIEF.md) | Why the project exists, how it evolved, what’s next |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Architectural decisions and trade-offs |
+| [docs/STAGE_DESIGN.md](./docs/STAGE_DESIGN.md) | 3-minute stages, time-based progress, music sync |
+| [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) | Stages 2–4, installable builds, polish backlog |
+| [docs/STAGE1_REVIEW.md](./docs/STAGE1_REVIEW.md) | Stage 1 as stable base |
+| [project.md](./project.md) | Original goals and principles |
+| [HOW_WE_WORK.md](./HOW_WE_WORK.md) | Collaboration preferences for contributors / AI |
 
-3. **Run on Device**:
-    * Scan the QR code with **Expo Go** on your iOS/Android device.
-    * Press `w` to run in the web browser (limited performance).
+## Status
 
-**Can't see the QR code in the terminal?**
-* **Use the URL instead**: In the terminal, Expo prints a URL (e.g. `exp://192.168.x.x:8081`). In Expo Go, choose **"Enter URL manually"** and paste that URL.
-* **Larger QR in browser**: After `npx expo start`, press **`w`** to open the project in your browser; some setups show a clearer QR or connection page there.
-* **Tunnel + manual URL**: Run `npm run start:tunnel` to get a public URL; type that URL into Expo Go if the terminal QR is unreadable.
-* **Terminal**: Enlarge the terminal window and increase font size so the QR isn’t cut off or too small.
+- **Stage 1 (Neon City)** — playable and tagged as a working baseline (`stage-one-working` on `main` when present)  
+- **Stages 2–4** — configs/scaffolding exist; full art, music, and unique obstacles still planned  
+- **Web** — useful for sharing; Skia/CanvasKit can be fragile under load — see architecture doc  
 
-## 🎨 Visual Style
+## Credits
 
-The game features a **Synthwave / Neon** aesthetic with:
-
-* Bloom/Glow effects (simulated via opacity layers for performance)
-* Parallax scrolling background (City, Sun, Sky)
-* Dynamic lighting particles
-
-## 📝 Credits
-
-Built as a collaborative learning project to explore game development logic from scratch without a black-box engine.
+Built to learn game loops, physics, and shipping a small cross-platform app without a black-box engine.
