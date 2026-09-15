@@ -1,6 +1,6 @@
 # Stage 1 review and stable platform checklist
 
-Full code review of how stage 1 works, what was fixed, and how to keep mechanics easy to tweak while staying efficient. Use this as the stable base for stages 2–4.
+How stage 1 works end-to-end, and how to keep mechanics easy to tweak while staying efficient. Use this as the stable base for stages 2–4. For the bug fixes and performance work that got it here, see [HISTORY.md](./HISTORY.md).
 
 ---
 
@@ -44,13 +44,7 @@ Full code review of how stage 1 works, what was fixed, and how to keep mechanics
 
 ---
 
-## 2. Bugs fixed in this review
-
-- **Continue to next stage:** `stageStartTime` was not reset when moving to the next stage, so `elapsedSecInStage` kept increasing and the new stage could hit “exhausted” immediately. **Fixed:** set `state.stageStartTime = Date.now() / 1000` when applying the next stage in `onContinue`.
-
----
-
-## 3. Design choices (no bugs, good to know)
+## 2. Design choices (no bugs, good to know)
 
 - **Single source for scroll speed:** Obstacle movement and grid scroll use **`BASE_SPEED`** (and time) from `constants.ts`. Stage `difficulty.baseSpeed` is used **only for spawn spacing** (min/max distance between obstacles). So one place to tweak “how fast the world moves” is `BASE_SPEED`; stage `baseSpeed` only tunes “how often obstacles appear” relative to that.  
   - To make per-stage speeds later: pass effective speed (e.g. from stage) into `applyPhysics` and into `GridFloor`’s scroll formula.
@@ -61,27 +55,17 @@ Full code review of how stage 1 works, what was fixed, and how to keep mechanics
 
 ---
 
-## 4. Performance changes made
-
-- **Smoother animation:** Removed the native-only throttle that limited updates to ~30fps. The loop now triggers a React re-render every frame (same as web) so animation doesn’t slow. If a specific device struggles, a configurable throttle can be re-added (e.g. via a constant).
-
-- **Theme computation:** `currentTheme` in `GameCanvas` is now computed with `useMemo(() => getTheme(gameState.distance, currentStage), [gameState.distance, currentStage])` so we don’t re-run the full timeline walk every render when distance hasn’t changed meaningfully (e.g. when only `tick` changed). This keeps one place to tweak visuals (timeline + `getTheme`) while avoiding unnecessary work.
-
-- **Particles:** Already capped at `MAX_PARTICLES = 40` and sliced in `updateParticles`; no change.
-
-- **UI metrics:** Already throttled by only calling `setGameMetrics` when score/health/energy/maxHealth actually change; no change.
-
----
-
-## 5. Further performance options (without changing “one place to tweak”)
+## 3. Further performance options (without changing “one place to tweak”)
 
 - **City lights:** `NeonCityLayer` draws many small `Rect`s per window every frame (path + per-window visibility). `NeonCityBackground.tsx` also has a texture-based `NeonCitySprites` that uses pre-baked textures per lights step. Switching stage 1 to `NeonCitySprites` (or using it when available) would reduce per-frame draw calls while keeping the same `currentTheme.nightProgress` / `lightsDwindle` contract. Mechanics and tweaking stay in timeline + theme.
 
 - **Grid:** `GridFloor` already memoizes `scrollOffset` and line content by `[isMoving, distance, courseLength, tick]`; no change needed unless you add more dynamic grid features.
 
+For the bugs and performance work already done to reach this stable base, see [HISTORY.md](./HISTORY.md).
+
 ---
 
-## 6. Stable platform checklist for stages 2–4
+## 4. Stable platform checklist for stages 2–4
 
 When adding or tuning stages 2–4, keep this contract so behaviour stays consistent and predictable:
 
@@ -102,7 +86,7 @@ When adding or tuning stages 2–4, keep this contract so behaviour stays consis
 
 ---
 
-## 7. File reference
+## 5. File reference
 
 | Area | Files |
 |------|--------|

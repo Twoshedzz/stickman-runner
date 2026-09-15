@@ -34,4 +34,4 @@ For 10 variants per state, name files:
 - `front_some_00.png` … `front_some_09.png`
 - `front_all_00.png` … `front_all_09.png`
 
-See `docs/CITY_LIGHTS_PREGEN_DESIGN.md` for generation and runtime logic.
+See "City lights: from per-frame drawing to pre-generated strips" in `docs/HISTORY.md` for the generation and runtime logic behind this.

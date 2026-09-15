@@ -28,9 +28,9 @@
 | Area | Decision | Where it’s documented |
 |------|----------|----------------------|
 | **Stage progress** | Time-based (3 min per stage), not distance or frame count. `distance` is derived from time so visuals and audio stay in sync. | `STAGE_DESIGN.md`, `STAGE1_REVIEW.md` |
-| **Game logic** | All coordinates and logic use a fixed **600×350** “logical” size (`SCREEN_WIDTH` / `SCREEN_HEIGHT` in `src/game/constants.ts`). Physics, spawn, collisions never use raw viewport pixels. | `STAGE1_REVIEW.md`, `MOBILE_VIEWPORT_PLAN.md` |
-| **Mobile viewport** | On mobile, the game **fills the screen** with a single uniform scale (no stretching). When the device is wide, the **drawn** width can be &gt; 600 so obstacles have a longer run-in; the **focus** (player, HUD) stays in the left 600. | `MOBILE_VIEWPORT_PLAN.md` |
-| **Web viewport** | Web uses a **fixed 600×350** viewport; the game does **not** fill the browser. It’s a small preview window. | `MOBILE_VIEWPORT_PLAN.md` |
+| **Game logic** | All coordinates and logic use a fixed **600×350** “logical” size (`SCREEN_WIDTH` / `SCREEN_HEIGHT` in `src/game/constants.ts`). Physics, spawn, collisions never use raw viewport pixels. | `STAGE1_REVIEW.md`, `ARCHITECTURE.md` §11 |
+| **Mobile viewport** | On mobile, the game **fills the screen** with a single uniform scale (no stretching). When the device is wide, the **drawn** width can be &gt; 600 so obstacles have a longer run-in; the **focus** (player, HUD) stays in the left 600. | `ARCHITECTURE.md` §11, `HISTORY.md` |
+| **Web viewport** | Web uses a **fixed 600×350** viewport; the game does **not** fill the browser. It’s a small preview window. | `ARCHITECTURE.md` §11, `HISTORY.md` |
 | **Web stability** | Web uses **Skia/CanvasKit (WASM)** for drawing. This setup is **inherently fragile** on web (code splitting + heavy rendering + WASM). We have patches and mitigations (texture-based city on web, fewer particles, one retry on “Aborted”), but **option C** is current: web is “preview only”; full experience is on mobile. A proper fix would be a **web-only renderer without Skia** (e.g. Canvas 2D). | `WEB_PATCHES_AND_ARCHITECTURE.md` |
 | **Where to tweak** | **Mechanics:** `src/game/constants.ts` (global) and `src/game/stages.ts` (per-stage). **Visuals:** `getTheme()` in `GameCanvas.tsx` and each stage’s `timeline` in `stages.ts`. | `STAGE1_REVIEW.md` |
 
@@ -40,9 +40,9 @@
 
 - **`PROJECT_PLAN.md`** – **Single project and implementation plan:** stages 2–4 (beach, mountain, final lap with crowd), what happens after stage 4, making the app installable, UI uplift, stickman animations. Use it to prioritise work and stay consistent.
 - **`STAGE_DESIGN.md`** – Why stages are 3 minutes, time-based progress, and how audio/visuals stay in sync.
-- **`STAGE1_REVIEW.md`** – How stage 1 works end-to-end (loop → physics → spawn → collisions → theme → render), what was fixed, performance notes, and the **checklist for stages 2–4**.
-- **`MOBILE_VIEWPORT_PLAN.md`** – How we fill the mobile screen without stretching, and how web stays a fixed size.
+- **`STAGE1_REVIEW.md`** – How stage 1 works end-to-end (loop → physics → spawn → collisions → theme → render), and the **checklist for stages 2–4**.
 - **`WEB_PATCHES_AND_ARCHITECTURE.md`** – What the Expo and CanvasKit patches do, why web is fragile, and options (web without Skia vs mitigation vs accept preview-only).
+- **`HISTORY.md`** – The full record: debugging sessions (e.g. the web black-screen fix), and plans (viewport, layout tweaks, city-strip pre-generation) that have since been implemented. Read this if you need to know *why* something is built the way it is, not just how it works today.
 - **`CURSOR_AGENTS_AND_CHATS.md`** – Plain-language note on Cursor chat names and when to use one vs multiple agents/chats.
 
 ---

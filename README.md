@@ -85,6 +85,7 @@ Orientation is **landscape**. Primary testing target is a real phone.
 | [docs/STAGE_DESIGN.md](./docs/STAGE_DESIGN.md) | 3-minute stages, time-based progress, music sync |
 | [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) | Stages 2–4, installable builds, polish backlog |
 | [docs/STAGE1_REVIEW.md](./docs/STAGE1_REVIEW.md) | Stage 1 as stable base |
+| [docs/HISTORY.md](./docs/HISTORY.md) | Project history: debugging sessions and completed plans |
 | [project.md](./project.md) | Original goals and principles |
 | [HOW_WE_WORK.md](./HOW_WE_WORK.md) | Collaboration preferences for contributors / AI |
 

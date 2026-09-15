@@ -118,6 +118,17 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 - Simplifies collision and camera (fixed player X).  
 - Energy/health give depth without adding movement axes.
 
+## 11. Viewport scaling: fixed web preview, centered action zone on mobile
+
+**Decision:** Game logic always works in a fixed **600×350 logical space** (`SCREEN_WIDTH`/`SCREEN_HEIGHT`). On **web**, the canvas is a fixed 600×350 preview window, centered in the browser. On **mobile**, the drawn canvas can be wider than 600 (`viewWidth = max(600, 350 × deviceAspect)`) so wide phones see more world, but the 600px action band (player, obstacles) stays centered via a `gameOffsetX` draw offset — spawn, physics, and collisions never change. The grid's vanishing point (`vanishX`) is screen-center, not a fixed logical point, so perspective lines don't visibly "appear" at the edge on wide screens.
+
+**Why**
+
+- Keeps one set of gameplay math (spawn distances, collision boxes) regardless of device width — only the *drawing* offsets by `gameOffsetX`.
+- Web stays a small, predictable preview window rather than stretching to fill arbitrary browser sizes.
+
+**Trade-off:** Any new draw code (obstacles, particles, arch) must remember to add `gameOffsetX`; anything using raw logical X will drift off-center on wide phones.
+
 ## Deliberate non-goals (for now)
 
 - Multiplayer, backend, monetisation  
@@ -137,6 +148,7 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 | Draw composition | `src/components/GameCanvas.tsx` |
 | City strips | `src/components/backgrounds/CityStripBackground.tsx` |
 | Overlays / input | `src/screens/GameScreen.tsx` |
+| Viewport / centering | `src/screens/GameScreen.tsx` (`viewWidth`), `src/components/GameCanvas.tsx` (`gameOffsetX`), `src/components/GridFloor.tsx` (`vanishX`) |
 
 ## Related docs
 
@@ -144,4 +156,5 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 - [STAGE_DESIGN.md](./STAGE_DESIGN.md) — stage timing rules  
 - [STAGE1_REVIEW.md](./STAGE1_REVIEW.md) — Stage 1 implementation notes  
 - [WEB_PATCHES_AND_ARCHITECTURE.md](./WEB_PATCHES_AND_ARCHITECTURE.md) — web/Skia patches in depth  
+- [HISTORY.md](./HISTORY.md) — the full story: debugging sessions, completed plans, design detours  
 - [project.md](../project.md) — original principles  
