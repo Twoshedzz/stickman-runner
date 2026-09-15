@@ -239,7 +239,7 @@ export const GameScreen = () => {
                     {/* Debug Toggle */}
                     {DEBUG_ENABLED && (
                         <View style={{ position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center' }}>
-                            <RNText style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadow: '0 0 2px black' }}>DEBUG</RNText>
+                            <RNText style={{ color: 'white', fontWeight: 'bold', marginRight: 10, textShadowColor: 'black', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 2 }}>DEBUG</RNText>
                             <Switch
                                 value={gameState.debugMode}
                                 onValueChange={toggleDebugMode}

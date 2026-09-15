@@ -81,7 +81,10 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
                     if (!r.ok) throw new Error(`WASM fetch failed: ${r.status}`);
                     return r.arrayBuffer();
                 })
-                .then((ab) => import('canvaskit-wasm/bin/full/canvaskit').then((m) => m.default({ wasmBinary: new Uint8Array(ab) })))
+                .then((ab) => import('canvaskit-wasm/bin/full/canvaskit').then((m) => {
+                    // wasmBinary is a real Emscripten init option not declared in this package's types (see skiaWasmPreload.web.ts).
+                    return m.default({ wasmBinary: new Uint8Array(ab) } as Parameters<typeof m.default>[0] & { wasmBinary: Uint8Array });
+                }))
                 .then((ck) => {
                     if (!cancelled) {
                         (globalThis as unknown as { CanvasKit?: unknown }).CanvasKit = ck;

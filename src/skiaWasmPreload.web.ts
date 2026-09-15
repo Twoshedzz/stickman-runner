@@ -64,7 +64,9 @@ g.__SKIA_WASM_PROMISE__ = wasmPromise;
 // (Loading it here before the binary was set caused the chunk to run and throw "Aborted()" in segment 4/5.)
 const canvaskitReady = wasmPromise.then(async (bin) => {
   const { default: init } = await import('canvaskit-wasm/bin/full/canvaskit');
-  const CanvasKit = await init({ wasmBinary: bin });
+  // wasmBinary is a real Emscripten init option (skips re-fetching the .wasm file) that this
+  // package's bundled types don't declare — only `locateFile` is typed.
+  const CanvasKit = await init({ wasmBinary: bin } as Parameters<typeof init>[0] & { wasmBinary: Uint8Array });
   (globalThis as unknown as { CanvasKit?: unknown }).CanvasKit = CanvasKit;
   return CanvasKit;
 });
