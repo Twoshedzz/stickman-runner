@@ -1,7 +1,7 @@
 /**
  * City background using pre-generated strip images (no/some/all lights).
  * Replaces per-frame Path + many Rects with a few Image draws for performance.
- * See docs/CITY_LIGHTS_PREGEN_DESIGN.md.
+ * See "City lights: from per-frame drawing to pre-generated strips" in docs/HISTORY.md.
  *
  * Strip queuing: strip type changes are queued by game distance so new strips
  * only appear as they scroll on from the right—no visible flip on screen.

@@ -187,6 +187,15 @@ Options to choose from (or mix):
 
 ---
 
+## 8. Viewport polish (optional)
+
+Left over from the original mobile viewport plan (the implemented parts are in `ARCHITECTURE.md` §11 and `HISTORY.md`). Not started.
+
+- **Safe area:** Use safe-area insets so the game view stays inside the phone’s safe area (e.g. doesn’t sit under a notch or camera cut-out).
+- **Smaller web preview:** If the web preview should be smaller (e.g. at most 500px wide), scale the 600×350 view down to fit and keep it centered.
+
+---
+
 ## Summary table
 
 | Area | Status | Next steps |
@@ -200,6 +209,7 @@ Options to choose from (or mix):
 | **Installable app** | Likely not set up | Configure EAS Build; add build/submit steps to docs; produce at least one preview build per platform |
 | **UI uplift** | Good enough for now | List concrete tweaks for bars, messages, instructions; implement and tick off |
 | **Stickman animations** | Basic run/jump | Decide poses (landing, hit, victory, idle); add states and draw/animate in Stickman component |
+| **Viewport polish** | Optional, not started | Safe-area insets on phones; optional smaller web preview (§8) |
 
 ---
 

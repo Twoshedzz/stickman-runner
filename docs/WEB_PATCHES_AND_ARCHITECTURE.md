@@ -32,6 +32,44 @@ This patch is about **when and how** the WASM binary is supplied to CanvasKit, s
 
 ---
 
+## Keeping the patches applied
+
+The patches change code inside `node_modules`, which gets replaced whenever packages are reinstalled. So the changes are stored as files in `patches/` and re-applied automatically.
+
+**When they’re applied:** every `npm install` runs the `postinstall` script in `package.json`, which:
+
+1. Runs `patch-package` to apply both files in `patches/`.
+2. Runs `scripts/patch-canvaskit-worker.js`, which makes further CanvasKit changes (a fallback download address for the `.wasm` file, cross-origin loading fixes, and extra loading fallbacks).
+3. Copies `canvaskit.wasm` into `web/static/js/`.
+
+A good run shows a tick for each patch:
+
+```
+canvaskit-wasm@0.40.0 ✔
+expo@54.0.33 ✔
+```
+
+**To re-apply by hand:** run `npm run postinstall`.
+
+**If you see an error instead of the ticks:**
+
+- **“could not be parsed”** – the patch file itself is broken, usually from being edited by hand. Don’t hand-edit patch files; regenerate them (below).
+- **“Failed to apply patch”** – usually Expo or CanvasKit was upgraded, so the code the patch expects has changed. The patch needs redoing for the new version (the version is in the file name).
+- The `postinstall` script has a fallback that hides errors, so always look for the ticks rather than assuming it worked.
+- Without the patches, web may still load but will hit `Aborted()` errors more often. The phone app (Expo Go) doesn’t use these patches.
+
+**To regenerate a patch:**
+
+1. Get a clean, unpatched copy of the package: delete its folder from `node_modules` (e.g. `node_modules/canvaskit-wasm`), then run `npm install --ignore-scripts`. This reinstalls it without applying any patches.
+2. To keep the current patch as a starting point, apply just that one with `git apply --recount patches/<file>.patch`. Then make your changes inside `node_modules`.
+3. Delete any `.orig` or `.rej` files next to the changed file. These are backups left by the system `patch` command, and they would otherwise end up inside the patch.
+4. Run `npx patch-package <package-name>` (e.g. `npx patch-package canvaskit-wasm`).
+5. Run `npm run postinstall` and check for the ticks.
+
+For CanvasKit, regenerate *before* `scripts/patch-canvaskit-worker.js` has run on the clean copy (step 1 makes sure of this); otherwise the worker script’s changes get baked into the patch.
+
+---
+
 ## Is there a deeper root cause? Yes.
 
 The patches address **specific failure modes** (binary not ready, one-off timing). They do **not** fix the underlying architectural tension.

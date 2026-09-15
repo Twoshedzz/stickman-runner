@@ -65,6 +65,8 @@ A "strip queue" keyed by distance ensures a strip type never changes for tiles a
 
 **Fix applied:** Use `NeonCityLayer` (not `NeonCitySprites`) on web; keep the texture path off the web code path entirely. Mobile was unaffected either way. This was later superseded architecturally by the pre-generated city strips (above), which replaced both per-frame drawing and textures with simple image draws.
 
+**If you want textures on web again:** first check whether `useTexture` returns a valid texture on web (not `null` or empty). If you try it, add a fallback that draws `NeonCityLayer` whenever the texture isn't ready, so a texture failure can never leave the screen black.
+
 **Related, ongoing (not a one-time bug):** Web can still throw a mid-game `Aborted()` error from CanvasKit under heavy load (collisions, particles, lazy-loaded chunks touching Skia at a bad moment). Two patches mitigate this — see [WEB_PATCHES_AND_ARCHITECTURE.md](./WEB_PATCHES_AND_ARCHITECTURE.md) for what they do and why the underlying tension (Skia-on-web + code splitting) isn't something a patch can fully remove. The project's stance is that **phone (Expo Go) is the source of truth; web is a best-effort preview** — see decision §6 in `ARCHITECTURE.md`.
 
 ---
