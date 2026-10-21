@@ -4,13 +4,7 @@
  */
 import { Asset } from 'expo-asset';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-const musicMap: Record<string, number> = {
-    music_city: require('../../assets/neoncity.mp3'),
-    music_beach: require('../../assets/synthwavebeach.mp3'),
-    music_mountains: require('../../assets/neoncity.mp3'),
-    music_victory: require('../../assets/neoncity.mp3'),
-};
+import { DEFAULT_TRACK, MUSIC_TRACKS } from './musicTracks';
 
 export const useBackgroundMusic = () => {
     const [musicStatus, setMusicStatus] = useState<string>('Ready');
@@ -31,11 +25,11 @@ export const useBackgroundMusic = () => {
         };
     }, []);
 
-    const playMusic = useCallback(async (trackKey: string = 'music_city') => {
+    const playMusic = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
         try {
             if (loadingRef.current) return;
 
-            const source = musicMap[trackKey] ?? musicMap.music_city;
+            const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
             const prev = webAudioRef.current;
             const prevTrack = prev ? (prev as HTMLAudioElement & { __trackKey?: string }).__trackKey : null;
 
