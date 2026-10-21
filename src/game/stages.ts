@@ -349,10 +349,12 @@ export const STAGES: StageConfig[] = [
         name: 'VICTORY LAP',
         description: 'The final sprint to glory.',
         theme: {
-            groundColor: '#ffd700', // Gold
-            skyColors: ['#4b6cb7', '#182848', '#FFD700'], // Royal Blue & Gold
-            sunColor: '#ffffff',
+            // Sampled from assets/concepts/stage 4 - victory lap.png
+            groundColor: '#ff2fb9', // Magenta horizon line
+            skyColors: ['#01114a', '#0f1661', '#261b7c'], // Deep navy up to purple
+            sunColor: '#fec734',
             moonColor: '#ffffff',
+            gridColor: 'rgba(255, 47, 185, 0.55)',
             obstacleColors: {
                 block: '#ffd700', blockGlow: '#ffe98a',
                 red: '#ff2fb9', redGlow: '#ff7ad9',

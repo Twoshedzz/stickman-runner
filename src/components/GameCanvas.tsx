@@ -14,6 +14,7 @@ import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
 import { MidnightMountainsBackground } from "./backgrounds/MidnightMountainsBackground";
 import { SunsetBeachBackground } from "./backgrounds/SunsetBeachBackground";
+import { VictoryDawnBackground } from "./backgrounds/VictoryDawnBackground";
 import { GridFloor } from "./GridFloor";
 
 interface GameCanvasProps {
@@ -266,6 +267,9 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 )}
                 {currentStage.assets.backgroundType === "mountains" && (
                     <MidnightMountainsBackground distance={gameState.distance} viewWidth={viewWidth} />
+                )}
+                {currentStage.assets.backgroundType === "city_victory" && (
+                    <VictoryDawnBackground distance={gameState.distance} viewWidth={viewWidth} />
                 )}
 
                 {/* 8. Victory Arch (If near end) - 600 zone centered via gameOffsetX */}
