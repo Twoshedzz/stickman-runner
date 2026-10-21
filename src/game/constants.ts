@@ -25,7 +25,7 @@ export const HEART_SIZE = 30;
  */
 export const OVERHEAD_BOTTOM_OFFSET = 26;
 export const OVERHEAD_TOP_OFFSET = 170;
-export const OVERHEAD_WIDTH = 50;
+export const OVERHEAD_WIDTH = 28;
 
 export const MAX_HEALTH = 10;
 export const DAMAGE_BLOCK = 4;
