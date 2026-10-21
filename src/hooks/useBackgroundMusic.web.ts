@@ -11,6 +11,8 @@ export const useBackgroundMusic = () => {
     const loadingRef = useRef(false);
     const webAudioRef = useRef<HTMLAudioElement | null>(null);
     const currentTrackRef = useRef<string | null>(null);
+    /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
+    const playGenerationRef = useRef(0);
 
     useEffect(() => {
         return () => {
@@ -29,12 +31,16 @@ export const useBackgroundMusic = () => {
         try {
             if (loadingRef.current) return;
 
+            // Tell any in-flight fade-out to leave the audio alone from here on.
+            playGenerationRef.current += 1;
+
             const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
             const prev = webAudioRef.current;
             const prevTrack = prev ? (prev as HTMLAudioElement & { __trackKey?: string }).__trackKey : null;
 
             // Same track already playing: do nothing (avoids restart on every jump / duplicate calls)
             if (prev && prevTrack === trackKey) {
+                prev.volume = 1; // a fade may have left it part-way down
                 prev.play().catch(() => {});
                 return;
             }
@@ -91,17 +97,20 @@ export const useBackgroundMusic = () => {
     const stopMusic = useCallback(async () => {
         const audio = webAudioRef.current;
         if (!audio) return;
+        // The fade takes ~2 seconds. If a new run starts in that time, this fade must not
+        // touch the new audio, or the rest of that run plays in silence.
+        const generation = playGenerationRef.current;
+        const overtaken = () => playGenerationRef.current !== generation || webAudioRef.current !== audio;
         try {
             setMusicStatus('Stopping...');
             for (let i = 20; i >= 0; i--) {
-                if (!webAudioRef.current) break;
-                webAudioRef.current.volume = i / 20;
+                if (overtaken()) return;
+                audio.volume = i / 20;
                 await new Promise((r) => setTimeout(r, 100));
             }
-            if (webAudioRef.current) {
-                webAudioRef.current.pause();
-                webAudioRef.current.currentTime = 0;
-            }
+            if (overtaken()) return;
+            audio.pause();
+            audio.currentTime = 0;
             currentTrackRef.current = null;
             webAudioRef.current = null; // so next playMusic() creates a fresh Audio (fixes Play Again not starting)
             setMusicStatus('Stopped');

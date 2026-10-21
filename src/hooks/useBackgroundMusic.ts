@@ -11,6 +11,8 @@ export const useBackgroundMusic = () => {
     const loadingRef = useRef(false);
     const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
     const currentTrackRef = useRef<string | null>(null);
+    /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
+    const playGenerationRef = useRef(0);
 
     useEffect(() => {
         setAudioModeAsync({
@@ -32,11 +34,15 @@ export const useBackgroundMusic = () => {
         try {
             if (loadingRef.current) return;
 
+            // Tell any in-flight fade-out to leave the audio alone from here on.
+            playGenerationRef.current += 1;
+
             const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
             const player = playerRef.current;
 
             // Same track already playing: do nothing (avoids restart on every jump / duplicate calls)
             if (player?.isLoaded && currentTrackRef.current === trackKey) {
+                player.volume = 1; // a fade may have left it part-way down
                 player.play();
                 return;
             }
@@ -65,17 +71,20 @@ export const useBackgroundMusic = () => {
     const stopMusic = useCallback(async () => {
         const player = playerRef.current;
         if (!player) return;
+        // The fade takes ~2 seconds. If a new run starts in that time, this fade must not
+        // touch the new audio, or the rest of that run plays in silence.
+        const generation = playGenerationRef.current;
+        const overtaken = () => playGenerationRef.current !== generation || playerRef.current !== player;
         try {
             setMusicStatus('Stopping...');
             for (let i = 20; i >= 0; i--) {
-                if (!playerRef.current) break;
-                playerRef.current.volume = i / 20;
+                if (overtaken()) return;
+                player.volume = i / 20;
                 await new Promise((r) => setTimeout(r, 100));
             }
-            if (playerRef.current) {
-                playerRef.current.pause();
-                playerRef.current.seekTo(0);
-            }
+            if (overtaken()) return;
+            player.pause();
+            player.seekTo(0);
             currentTrackRef.current = null;
             setMusicStatus('Stopped');
         } catch (error) {
