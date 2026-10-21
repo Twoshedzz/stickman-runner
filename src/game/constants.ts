@@ -80,5 +80,13 @@ export const ENERGY_REGEN = 0.5;
 // Stage timing: each stage = 3 minutes real time (keeps audio in sync on slow devices)
 export const STAGE_DURATION_SECONDS = 180;
 
+/**
+ * Distance units in one stage. This is the number of pixels the world travels in a stage
+ * (BASE_SPEED x 60fps x duration), which is what keeps 1 distance unit = 1 pixel.
+ * The victory arch and the grid scroll both rely on that, so don't hand-pick a different
+ * number per stage: an arch that drifts against the ground is the symptom.
+ */
+export const COURSE_LENGTH = BASE_SPEED * 60 * STAGE_DURATION_SECONDS;
+
 // Debug
 export const DEBUG_ENABLED = true;

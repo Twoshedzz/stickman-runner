@@ -1,4 +1,4 @@
-import { STAGE_DURATION_SECONDS } from './constants';
+import { COURSE_LENGTH, STAGE_DURATION_SECONDS } from './constants';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
 
@@ -127,7 +127,7 @@ export const STAGES: StageConfig[] = [
             { startSec: 120, endSec: 150, spawnRate: 1400, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'boulder', 'heart'] },
             { startSec: 150, endSec: 9999, spawnRate: 1200, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'boulder', 'heart'] },
         ],
-        courseLength: 43200, // 3 minutes at 60fps (Speed 4)
+        courseLength: COURSE_LENGTH,
         // SECTIONS (7200 per 30s):
         // 1. 0–7200     : Sun in sky yellow→orange, moves down; sky dark at top by 7200
         // 2. 7200–14400 : Few city lights come on; at 11000 moon appears from top
@@ -277,7 +277,7 @@ export const STAGES: StageConfig[] = [
             allowedObstacles: ['purple', 'red'],
             allowDoubleSpawns: false
         },
-        courseLength: 43200 // 3 minutes at 60fps (Speed 4)
+        courseLength: COURSE_LENGTH
     },
     {
         id: 'stage_3_landscape',
@@ -301,7 +301,7 @@ export const STAGES: StageConfig[] = [
             allowedObstacles: ['purple', 'red', 'boulder'],
             allowDoubleSpawns: true
         },
-        courseLength: 40000
+        courseLength: COURSE_LENGTH
     },
     {
         id: 'stage_4_victory',
@@ -325,6 +325,6 @@ export const STAGES: StageConfig[] = [
             allowedObstacles: ['purple', 'red'],
             allowDoubleSpawns: false
         },
-        courseLength: 50000
+        courseLength: COURSE_LENGTH
     }
 ];
