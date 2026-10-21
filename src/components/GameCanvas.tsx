@@ -13,7 +13,7 @@ import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
 import { MidnightMountainsBackground } from "./backgrounds/MidnightMountainsBackground";
-import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
+import { SunsetBeachBackground } from "./backgrounds/SunsetBeachBackground";
 import { GridFloor } from "./GridFloor";
 
 interface GameCanvasProps {
@@ -262,7 +262,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 {/* Scenery is written inline rather than returned from a helper: with the React
                     Compiler on, a helper's result gets cached and the background stops scrolling. */}
                 {currentStage.assets.backgroundType === "beach" && (
-                    <SynthwaveBeachBackground gameState={gameState} />
+                    <SunsetBeachBackground distance={gameState.distance} viewWidth={viewWidth} />
                 )}
                 {currentStage.assets.backgroundType === "mountains" && (
                     <MidnightMountainsBackground distance={gameState.distance} viewWidth={viewWidth} />

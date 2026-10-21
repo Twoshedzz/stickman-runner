@@ -285,10 +285,12 @@ export const STAGES: StageConfig[] = [
         name: 'SYNTHWAVE BEACH',
         description: 'Dodge obstacles on the retro coast.',
         theme: {
-            groundColor: '#4b1248', // Dark Purple/Brown beach sand
-            skyColors: ['#6a3093', '#ff00cc', '#fdbb2d'], // Reference: Purple -> Pink -> Golden
-            sunColor: '#ffffff', // Bright white sun
-            moonColor: '#ffffff',
+            // Sampled from assets/concepts/stage 2 - sunset beach.png
+            groundColor: '#ffb347', // Warm neon horizon line
+            skyColors: ['#6f59ad', '#b2609c', '#ee7174'], // Purple high, coral at the water
+            sunColor: '#fd943f',
+            moonColor: '#ffd79a',
+            gridColor: 'rgba(255, 179, 71, 0.55)',
             obstacleColors: {
                 block: '#ffb347', blockGlow: '#ffd79a',
                 red: '#ff4f81', redGlow: '#ff85a8',
