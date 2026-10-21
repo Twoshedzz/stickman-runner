@@ -1,5 +1,6 @@
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
@@ -26,7 +27,7 @@ export const GameScreen = () => {
     const viewportWidth = isWeb ? WEB_VIEWPORT.width : windowDim.width;
     const viewportHeight = isWeb ? WEB_VIEWPORT.height : windowDim.height;
 
-    const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
+    const { gameState, gameMetrics, onJump, onDuck, restartGame, tick, highScore, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
@@ -61,6 +62,19 @@ export const GameScreen = () => {
         }
     }, [gameState.gameOver, gameState.showContinue, stopMusic]);
 
+    // Swipe down to duck. Tap still jumps, so nothing about the old input changes.
+    const duckGesture = useMemo(
+        () => Gesture.Pan()
+            .runOnJS(true)
+            .minDistance(12)
+            .onEnd((e) => {
+                const fastEnough = e.velocityY > 350;
+                const mostlyDownward = Math.abs(e.velocityY) > Math.abs(e.velocityX);
+                if (fastEnough && mostlyDownward) onDuck();
+            }),
+        [onDuck]
+    );
+
     const handleInteraction = useCallback(() => {
         if (gameState.gameOver) return;
         if (gameState.showContinue) return;
@@ -71,9 +85,11 @@ export const GameScreen = () => {
     const gameStateRef = React.useRef(gameState);
     gameStateRef.current = gameState;
     const onJumpRef = React.useRef(onJump);
+    const onDuckRef = React.useRef(onDuck);
     const playMusicRef = React.useRef(playMusic);
     const restartGameRef = React.useRef(restartGame);
     onJumpRef.current = onJump;
+    onDuckRef.current = onDuck;
     playMusicRef.current = playMusic;
     restartGameRef.current = restartGame;
     useEffect(() => {
@@ -87,6 +103,11 @@ export const GameScreen = () => {
                     if (state.gameOver) return;
                     if (state.showContinue) return;
                     onJumpRef.current();
+                }
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                    e.preventDefault();
+                    if (state.gameOver || state.showContinue) return;
+                    onDuckRef.current();
                 }
                 if (state.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
                     const stage = STAGES.find(s => s.id === state.stageId) || STAGES[0];
@@ -124,10 +145,11 @@ export const GameScreen = () => {
                 </View>
 
                 {/* 2. Input Layer - Transparent; no tap when Continue modal is showing so music doesn’t restart */}
-                <Pressable
-                    style={[styles.inputLayer, { pointerEvents: gameState.showContinue ? 'none' : 'auto' }]}
-                    onPress={handleInteraction}
-                />
+                <GestureDetector gesture={duckGesture}>
+                    <View style={[styles.inputLayer, { pointerEvents: gameState.showContinue ? 'none' : 'auto' }]}>
+                        <Pressable style={StyleSheet.absoluteFill} onPress={handleInteraction} />
+                    </View>
+                </GestureDetector>
 
                 {/* 3. UI Overlay */}
                 <View style={[styles.uiLayer, { pointerEvents: 'box-none' }]}>
@@ -213,6 +235,11 @@ export const GameScreen = () => {
                             <View style={styles.instructionRow}>
                                 <View style={[styles.instructionDot, { backgroundColor: '#00ffff' }]} />
                                 <RNText style={styles.instructionText}>DOUBLE JUMP USES ENERGY ⚡</RNText>
+                            </View>
+
+                            <View style={styles.instructionRow}>
+                                <View style={[styles.instructionDot, { backgroundColor: '#7df5ff' }]} />
+                                <RNText style={styles.instructionText}>SWIPE DOWN TO DUCK ⬇️</RNText>
                             </View>
 
                             <Pressable

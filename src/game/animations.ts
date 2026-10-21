@@ -82,6 +82,16 @@ export const STAND_POSE: Pose = {
     lArm: { upper: -0.85, lower: 1.6 }
 };
 
+export const DUCK_POSE: Pose = {
+    // Crouched under a bar: thighs up, shins folded back beneath, arms low and forward
+    // for balance. Feet stay on the ground; it's the head that drops.
+    rLeg: { upper: 1.5, lower: -2.2 },
+    lLeg: { upper: 1.2, lower: -2.4 },
+
+    rArm: { upper: 1.3, lower: 0.5 },
+    lArm: { upper: 1.0, lower: 0.7 }
+};
+
 export const EXHAUSTED_POSE: Pose = {
     // Exhausted: Hands on knees
     // Legs: Bent somewhat

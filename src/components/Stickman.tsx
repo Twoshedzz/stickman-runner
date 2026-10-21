@@ -1,6 +1,6 @@
 import { Circle, Group, Line } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
-import { EXHAUSTED_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
+import { DUCK_POSE, EXHAUSTED_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
 
 interface StickmanProps {
     x: number;
@@ -9,6 +9,8 @@ interface StickmanProps {
     animationTimeSec: number;
     isGrounded: boolean;
     isRunning: boolean;
+    /** Crouching under an overhead bar. */
+    isDucking?: boolean;
     size: number;
     status?: 'playing' | 'exhausted' | 'victory';
 }
@@ -27,7 +29,7 @@ const FULL_CYCLE: Pose[] = [
     ...RUN_POSES.map(getMirroredPose)
 ];
 
-export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, size, status = 'playing' }: StickmanProps) => {
+export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDucking = false, size, status = 'playing' }: StickmanProps) => {
     // Synthwave Stickman: White with Neon Glow
     const color = "white";
     const strokeWidth = 5; // Thicker for pictogram style
@@ -48,6 +50,7 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, size, 
         if (status === 'exhausted') return EXHAUSTED_POSE;
         if (status === 'victory') return STAND_POSE;
 
+        if (isDucking) return DUCK_POSE;
         if (!isGrounded) return JUMP_POSE;
         if (!isRunning) return STAND_POSE;
 
@@ -71,7 +74,7 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, size, 
             lArm: interpolateLimb(p1.lArm, p2.lArm),
             rArm: interpolateLimb(p1.rArm, p2.rArm),
         };
-    }, [animationTimeSec, isGrounded, isRunning, status]);
+    }, [animationTimeSec, isGrounded, isRunning, isDucking, status]);
 
     if (!pose) {
         return null;
@@ -92,13 +95,17 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, size, 
     const exhaustedBendY = status === 'exhausted' ? 12 * scale : 0;
     const exhaustedBendX = status === 'exhausted' ? 8 * scale : 0;
 
+    // Ducking drops the head and tucks the hips slightly; the feet don't move.
+    const duckNeckDrop = isDucking ? 14 * scale : 0;
+    const duckHipDrop = isDucking ? 2 * scale : 0;
+
     const neck = {
         x: anchorX + leanOffset + exhaustedBendX,
-        y: anchorY + headRadius + exhaustedBendY
+        y: anchorY + headRadius + exhaustedBendY + duckNeckDrop
     };
 
     // Hip stays roughly same place, maybe slightly lower in squat
-    const hip = { x: anchorX, y: anchorY + headRadius + bodyLength + (status === 'exhausted' ? 4 * scale : 0) };
+    const hip = { x: anchorX, y: anchorY + headRadius + bodyLength + (status === 'exhausted' ? 4 * scale : 0) + duckHipDrop };
 
     // Shoulders
     const shoulders = {

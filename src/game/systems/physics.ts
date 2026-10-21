@@ -1,4 +1,4 @@
-import { BASE_SPEED, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, OBSTACLE_SIZE, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { BASE_SPEED, DUCK_DURATION_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, OBSTACLE_SIZE, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { frameScale } from '../frame';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
@@ -7,6 +7,15 @@ import { GameState } from '../state';
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
     const scale = frameScale(deltaTimeSec);
+
+    // Ducking runs down in real seconds, and is cancelled the moment the runner leaves the ground.
+    if (player.isDucking) {
+        player.duckTimer -= deltaTimeSec;
+        if (player.duckTimer <= 0 || !player.isGrounded) {
+            player.isDucking = false;
+            player.duckTimer = 0;
+        }
+    }
 
     // Player vertical physics: scale by time so jump duration and height are the same at any frame rate
     player.dy += GRAVITY * scale;
@@ -83,11 +92,21 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     state.obstacles = obstacles.filter(obs => obs.x + OBSTACLE_SIZE > 0);
 };
 
+/** Duck under an overhead bar. Grounded only, and free: it must not compete with the double jump. */
+export const startDuck = (state: GameState) => {
+    const { player } = state;
+    if (!player.isGrounded) return;
+    player.isDucking = true;
+    player.duckTimer = DUCK_DURATION_SEC;
+};
+
 export const jump = (state: GameState) => {
     const { isGrounded, jumpCount } = state.player;
 
     // 1. Grounded Jump (Always allowed, no energy cost)
     if (isGrounded) {
+        state.player.isDucking = false; // can't be crouched and airborne at once
+        state.player.duckTimer = 0;
         state.player.dy = JUMP_FORCE;
         state.player.isGrounded = false;
         state.player.jumpCount = 1;

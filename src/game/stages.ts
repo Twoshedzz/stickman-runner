@@ -19,7 +19,7 @@ export interface VisualEvent {
     };
 }
 
-export type ObstacleType = 'standard' | 'small' | 'red' | 'purple' | 'boulder' | 'heart';
+export type ObstacleType = 'standard' | 'small' | 'red' | 'purple' | 'boulder' | 'heart' | 'overhead';
 
 /** Overrides for difficulty during a time segment. Only set fields you want to override. */
 export interface DifficultySegment {
@@ -53,6 +53,21 @@ export interface StageConfig {
         moonColor: string;
         /** Optional neon colour for the grid lines. Colour only; the grid's shape never changes. */
         gridColor?: string;
+        /**
+         * Hazard colours for this stage. The shapes are deliberately abstract, so colour is
+         * what ties them to the scenery. Pickups are deliberately NOT here: hearts stay pink
+         * on every stage so "this one helps you" always reads the same.
+         */
+        obstacleColors?: {
+            block: string;      // standard, small and boulder
+            blockGlow: string;
+            red: string;
+            redGlow: string;
+            purple: string;
+            purpleGlow: string;
+            overhead: string;   // the bar you duck under
+            overheadGlow: string;
+        };
     };
     assets: {
         backgroundType: 'city' | 'beach' | 'mountains' | 'city_victory';
@@ -106,7 +121,13 @@ export const STAGES: StageConfig[] = [
             groundColor: '#ff00cc', // Neon Pink
             skyColors: ['#0f0c29', '#302b63', '#24243e'], // Deep Purple/Blue
             sunColor: '#FDB813', // Yellow
-            moonColor: '#FEFCD7'
+            moonColor: '#FEFCD7',
+            obstacleColors: {
+                block: '#ffff00', blockGlow: '#ffa500',        // unchanged from before
+                red: '#ff0040', redGlow: '#ff4d4d',
+                purple: '#bf55ec', purpleGlow: '#e056fd',
+                overhead: '#00ffff', overheadGlow: '#7df5ff',
+            }
         },
         assets: {
             backgroundType: 'city'
@@ -265,7 +286,13 @@ export const STAGES: StageConfig[] = [
             groundColor: '#4b1248', // Dark Purple/Brown beach sand
             skyColors: ['#6a3093', '#ff00cc', '#fdbb2d'], // Reference: Purple -> Pink -> Golden
             sunColor: '#ffffff', // Bright white sun
-            moonColor: '#ffffff'
+            moonColor: '#ffffff',
+            obstacleColors: {
+                block: '#ffb347', blockGlow: '#ff7043',
+                red: '#ff4f81', redGlow: '#ff85a8',
+                purple: '#c86090', purpleGlow: '#e58bb4',
+                overhead: '#ffd79a', overheadGlow: '#ff9e5e',
+            }
         },
         assets: {
             backgroundType: 'beach'
@@ -276,7 +303,7 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 6.5,
             spawnRate: 1200,
-            allowedObstacles: ['purple', 'red'],
+            allowedObstacles: ['purple', 'red', 'overhead', 'heart'],
             allowDoubleSpawns: false
         },
         courseLength: COURSE_LENGTH
@@ -291,7 +318,13 @@ export const STAGES: StageConfig[] = [
             skyColors: ['#0b1a44', '#0e265a', '#143979'], // Midnight navy, lighter at the horizon
             sunColor: '#b0f7fd', // Unused: stage 3 is fixed at midnight
             moonColor: '#b0f7fd',
-            gridColor: 'rgba(34, 211, 238, 0.55)'
+            gridColor: 'rgba(34, 211, 238, 0.55)',
+            obstacleColors: {
+                block: '#9ef7ff', blockGlow: '#22d3ee',
+                red: '#ff6b9d', redGlow: '#ffa3c4',
+                purple: '#a78bfa', purpleGlow: '#c4b5fd',
+                overhead: '#e0fbff', overheadGlow: '#7df5ff',
+            }
         },
         assets: {
             backgroundType: 'mountains'
@@ -302,7 +335,7 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 7,
             spawnRate: 1100,
-            allowedObstacles: ['purple', 'red', 'boulder'],
+            allowedObstacles: ['purple', 'red', 'boulder', 'overhead', 'heart'],
             allowDoubleSpawns: true
         },
         courseLength: COURSE_LENGTH
@@ -315,7 +348,13 @@ export const STAGES: StageConfig[] = [
             groundColor: '#ffd700', // Gold
             skyColors: ['#4b6cb7', '#182848', '#FFD700'], // Royal Blue & Gold
             sunColor: '#ffffff',
-            moonColor: '#ffffff'
+            moonColor: '#ffffff',
+            obstacleColors: {
+                block: '#ffd700', blockGlow: '#ffaa00',
+                red: '#ff2fb9', redGlow: '#ff7ad9',
+                purple: '#9b5de5', purpleGlow: '#c77dff',
+                overhead: '#00e5ff', overheadGlow: '#7df5ff',
+            }
         },
         assets: {
             backgroundType: 'city_victory'
@@ -326,7 +365,7 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 8,
             spawnRate: 900,
-            allowedObstacles: ['purple', 'red'],
+            allowedObstacles: ['purple', 'red', 'overhead', 'heart'],
             allowDoubleSpawns: false
         },
         courseLength: COURSE_LENGTH

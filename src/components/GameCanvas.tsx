@@ -4,7 +4,8 @@ import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
     COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
-    GROUND_HEIGHT, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL,
+    GROUND_HEIGHT, HEART_SIZE, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL,
+    OVERHEAD_BOTTOM_OFFSET, OVERHEAD_TOP_OFFSET, OVERHEAD_WIDTH,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { STAGES, StageConfig } from "../game/stages";
@@ -171,6 +172,14 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     );
     const isCity = currentStage.assets.backgroundType === "city";
 
+    // Hazards wear the stage's colours; stage 1's values match what it always used.
+    const palette = currentStage.theme.obstacleColors ?? {
+        block: COLOR_OBSTACLE, blockGlow: COLOR_OBSTACLE_GLOW,
+        red: '#ff0040', redGlow: '#ff4d4d',
+        purple: '#bf55ec', purpleGlow: '#e056fd',
+        overhead: '#00ffff', overheadGlow: '#7df5ff',
+    };
+
     // 0 = every window dark, 1 = fully lit. Lights come on through the night
     // (nightProgress) and go off again towards dawn (lightsDwindle).
     const cityLightLevel = Math.max(0, Math.min(1,
@@ -287,30 +296,51 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 {/* 9. Obstacles */}
                 {obstacles.map(obs => {
                     const isBoulder = obs.type === 'boulder';
-                    let color = COLOR_OBSTACLE;
-                    let glowColor = COLOR_OBSTACLE_GLOW; // Default Orange/Gold for Yellow blocks
+                    let color = palette.block;
+                    let glowColor = palette.blockGlow;
 
                     if (obs.type === 'red') {
-                        color = '#ff0040';
-                        glowColor = '#ff4d4d';
+                        color = palette.red;
+                        glowColor = palette.redGlow;
                     }
                     if (obs.type === 'purple') {
-                        color = '#bf55ec';
-                        glowColor = '#e056fd';
+                        color = palette.purple;
+                        glowColor = palette.purpleGlow;
                     }
-                    if (obs.type === 'boulder') color = COLOR_OBSTACLE;
+                    // Hearts keep the same pink on every stage: a pickup that changed colour
+                    // per stage would stop reading as "this one helps you".
                     if (obs.type === 'heart') color = COLOR_HP_DEEP;
 
                     let size = OBSTACLE_SIZE;
                     if (obs.type === 'small') size = OBSTACLE_SIZE_SMALL;
                     if (obs.type === 'purple') size = OBSTACLE_SIZE_PURPLE;
-                    if (obs.type === 'heart') size = 30;
+                    if (obs.type === 'heart') size = HEART_SIZE;
 
                     const y = RUNNER_GROUND_Y - size;
                     const drawX = obs.x + gameOffsetX;
 
                     if (obs.type === 'heart') {
                         return <Circle key={obs.id} cx={drawX + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />;
+                    }
+                    if (obs.type === 'overhead') {
+                        // Hangs from above, down to just over a ducked head. Tall enough that
+                        // jumping into it never clears it.
+                        const barTop = RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET;
+                        const barHeight = OVERHEAD_TOP_OFFSET - OVERHEAD_BOTTOM_OFFSET;
+                        return (
+                            <Group key={obs.id}>
+                                <Rect
+                                    x={drawX - 4} y={barTop - 4}
+                                    width={OVERHEAD_WIDTH + 8} height={barHeight + 8}
+                                    color={safeColor(palette.overheadGlow)} opacity={safeOpacity(0.35)}
+                                />
+                                <Rect
+                                    x={drawX} y={barTop}
+                                    width={OVERHEAD_WIDTH} height={barHeight}
+                                    color={safeColor(palette.overhead)}
+                                />
+                            </Group>
+                        );
                     }
                     if (isBoulder) {
                         return (
@@ -349,6 +379,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     size={PLAYER_SIZE}
                     animationTimeSec={gameState.elapsedSecInStage ?? 0}
                     isGrounded={player.isGrounded}
+                    isDucking={player.isDucking}
                     isRunning={gameState.gameStarted && !gameState.gameOver}
                     status={gameState.stageStatus}
                 />

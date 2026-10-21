@@ -1,26 +1,33 @@
 import { Platform } from 'react-native';
-import { DAMAGE_BLOCK, DAMAGE_SMALL, DAMAGE_PURPLE, HEART_HEAL, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH } from '../constants';
+import { DAMAGE_BLOCK, DAMAGE_OVERHEAD, DAMAGE_SMALL, DAMAGE_PURPLE, HEART_HEAL, HEART_SIZE, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL, OVERHEAD_BOTTOM_OFFSET, OVERHEAD_TOP_OFFSET, OVERHEAD_WIDTH, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
 export const checkCollisions = (state: GameState) => {
     const playerX = PLAYER_X;
-    const playerY = state.player.y;
     const playerR = playerX + PLAYER_SIZE;
-    const playerB = playerY + PLAYER_SIZE;
+    // Ducking keeps the feet on the ground and drops the head, so the box shrinks from the top.
+    const ducking = state.player.isDucking;
+    const playerY = ducking ? RUNNER_GROUND_Y - PLAYER_DUCK_HEIGHT : state.player.y;
+    const playerB = ducking ? RUNNER_GROUND_Y : state.player.y + PLAYER_SIZE;
 
     for (let i = 0; i < state.obstacles.length; i++) {
         const obs = state.obstacles[i];
 
         const isPurple = obs.type === 'purple';
         const isSmall = obs.type === 'small';
-        const size = obs.type === 'heart' ? 30 : (isPurple ? OBSTACLE_SIZE_PURPLE : (isSmall ? OBSTACLE_SIZE_SMALL : OBSTACLE_SIZE));
-        const damage = isPurple ? DAMAGE_PURPLE : (isSmall ? DAMAGE_SMALL : DAMAGE_BLOCK);
+        const isOverhead = obs.type === 'overhead';
+        const size = obs.type === 'heart' ? HEART_SIZE
+            : isOverhead ? OVERHEAD_WIDTH
+            : (isPurple ? OBSTACLE_SIZE_PURPLE : (isSmall ? OBSTACLE_SIZE_SMALL : OBSTACLE_SIZE));
+        const damage = isOverhead ? DAMAGE_OVERHEAD
+            : (isPurple ? DAMAGE_PURPLE : (isSmall ? DAMAGE_SMALL : DAMAGE_BLOCK));
 
         const obsX = obs.x;
-        const obsY = RUNNER_GROUND_Y - size; // Align to runner ground (on grid)
         const obsR = obsX + size;
-        const obsB = obsY + size;
+        // Everything but the overhead bar sits on the ground; the bar hangs above it.
+        const obsY = isOverhead ? RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET : RUNNER_GROUND_Y - size;
+        const obsB = isOverhead ? RUNNER_GROUND_Y - OVERHEAD_BOTTOM_OFFSET : RUNNER_GROUND_Y;
 
         // AABB Collision with Forgiveness (Hitbox reduction)
         const hitMargin = 5;
@@ -77,11 +84,12 @@ export const checkCollisions = (state: GameState) => {
 
             // Explosion scaling; fewer particles on web to reduce CanvasKit load (avoids Aborted).
             const isBig = !isPurple && !isSmall;
+            const burstY = isOverhead ? obsB - 10 : obsY + size / 2;
             const particleCount = Platform.OS === 'web' ? (isBig ? 12 : 6) : (isBig ? 30 : 15);
             state.particles = spawnParticles(
                 state.particles,
                 obs.x + size / 2,
-                obsY + size / 2,
+                burstY,
                 '#ffff00',
                 particleCount,
                 isPurple ? 4 : 6,

@@ -5,7 +5,7 @@ import { updateParticles } from '../particles';
 import { STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
-import { applyPhysics, jump } from '../systems/physics';
+import { applyPhysics, jump, startDuck } from '../systems/physics';
 import { resetSpawner, spawnObstacle } from '../systems/spawn';
 
 export const useGameLoop = () => {
@@ -185,6 +185,12 @@ export const useGameLoop = () => {
         setRenderTrigger(prev => prev + 1);
     }, []);
 
+    const onDuck = useCallback(() => {
+        const state = stateRef.current;
+        if (state.gameOver || !state.gameStarted) return;
+        startDuck(state);
+    }, []);
+
     // Toggle Debug Mode
     const toggleDebugMode = useCallback(() => {
         stateRef.current.debugMode = !stateRef.current.debugMode;
@@ -223,6 +229,7 @@ export const useGameLoop = () => {
         gameState: stateRef.current,
         gameMetrics,
         onJump,
+        onDuck,
         restartGame,
         onContinue,
         toggleDebugMode,

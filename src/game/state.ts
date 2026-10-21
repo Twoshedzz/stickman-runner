@@ -7,6 +7,10 @@ export interface GameState {
         dy: number;
         isGrounded: boolean;
         jumpCount: number;
+        /** Ducking under an overhead bar. Only possible with both feet on the ground. */
+        isDucking: boolean;
+        /** Seconds of ducking left. Counts down in real time, like everything else. */
+        duckTimer: number;
         health: number;
         maxHealth: number;
     };
@@ -14,7 +18,7 @@ export interface GameState {
         x: number;
         id: number;
         passed?: boolean;
-        type?: 'standard' | 'small' | 'red' | 'purple' | 'heart' | 'boulder';
+        type?: 'standard' | 'small' | 'red' | 'purple' | 'heart' | 'boulder' | 'overhead';
         phase?: number; // For oscillation
     }[];
     particles: Particle[];
@@ -42,6 +46,8 @@ export const createInitialState = (): GameState => ({
         dy: 0,
         isGrounded: true,
         jumpCount: 0,
+        isDucking: false,
+        duckTimer: 0,
         health: MAX_HEALTH,
         maxHealth: MAX_HEALTH,
     },
