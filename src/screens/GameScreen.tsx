@@ -26,7 +26,7 @@ export const GameScreen = () => {
     const viewportWidth = isWeb ? WEB_VIEWPORT.width : windowDim.width;
     const viewportHeight = isWeb ? WEB_VIEWPORT.height : windowDim.height;
 
-    const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode, onContinue } = useGameLoop();
+    const { gameState, gameMetrics, onJump, restartGame, tick, highScore, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
@@ -234,6 +234,32 @@ export const GameScreen = () => {
                             <RNText style={{ color: 'white', fontWeight: 'bold' }}>Distance: {Math.floor(gameState.distance)}</RNText>
                             <RNText style={{ color: 'white' }}>Segment: {Math.min(6, 1 + Math.floor(gameState.distance / 7200))} (30s each)</RNText>
                             <RNText style={{ color: 'white', opacity: 0.8 }}>tick: {tick}</RNText>
+                            {/* Jump to a stage, so stages 2-4 can be checked without playing through. */}
+                            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                                {STAGES.map((stage, i) => (
+                                    <Pressable
+                                        key={stage.id}
+                                        onPress={() => {
+                                            jumpToStage(stage.id);
+                                            musicStartedForRunRef.current = true;
+                                            playMusic(stage.audio?.musicTrack || 'music_city');
+                                        }}
+                                        style={{
+                                            paddingHorizontal: 10,
+                                            paddingVertical: 4,
+                                            marginRight: 6,
+                                            borderRadius: 6,
+                                            borderWidth: 1,
+                                            borderColor: '#00ffff',
+                                            backgroundColor: gameState.stageId === stage.id ? '#00ffff' : 'transparent',
+                                        }}
+                                    >
+                                        <RNText style={{ color: gameState.stageId === stage.id ? '#0f0c29' : '#00ffff', fontWeight: 'bold' }}>
+                                            {i + 1}
+                                        </RNText>
+                                    </Pressable>
+                                ))}
+                            </View>
                         </View>
                     )}
                     {/* Debug Toggle */}

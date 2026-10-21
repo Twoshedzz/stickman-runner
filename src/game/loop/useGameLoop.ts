@@ -167,6 +167,24 @@ export const useGameLoop = () => {
         }
     }, []);
 
+    /** Debug only: jump straight to a stage so you don't have to play through to reach it. */
+    const jumpToStage = useCallback((stageId: string) => {
+        const state = stateRef.current;
+        state.stageId = stageId;
+        state.distance = 0;
+        state.stageProgress = 0;
+        state.elapsedSecInStage = 0;
+        state.stageStartTime = Date.now() / 1000;
+        state.stageStatus = 'playing';
+        state.showContinue = false;
+        state.gameOver = false;
+        state.gameStarted = true;
+        state.obstacles = [];
+        state.particles = [];
+        resetSpawner();
+        setRenderTrigger(prev => prev + 1);
+    }, []);
+
     // Toggle Debug Mode
     const toggleDebugMode = useCallback(() => {
         stateRef.current.debugMode = !stateRef.current.debugMode;
@@ -208,6 +226,7 @@ export const useGameLoop = () => {
         restartGame,
         onContinue,
         toggleDebugMode,
+        jumpToStage,
         tick: renderTrigger,
         highScore
     };
