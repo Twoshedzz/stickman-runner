@@ -193,6 +193,10 @@ export const useGameLoop = () => {
                 state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
                 state.obstacles = [];
                 resetSpawner();
+            } else {
+                // Last stage cleared: end the run so the player isn't left on a frozen screen.
+                // A proper win screen replaces this (see docs/PROJECT_PLAN.md phase 6).
+                state.gameOver = true;
             }
         }, 1000);
     }, []);
