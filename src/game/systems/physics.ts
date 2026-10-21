@@ -1,11 +1,12 @@
 import { BASE_SPEED, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, OBSTACLE_SIZE, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { frameScale } from '../frame';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
 /** deltaTimeSec: seconds since last frame (used so movement stays in sync with real time) */
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
-    const scale = Math.max(0.001, Math.min(2, deltaTimeSec * 60)); // 60 = nominal fps; cap so one slow frame doesn't overshoot
+    const scale = frameScale(deltaTimeSec);
 
     // Player vertical physics: scale by time so jump duration and height are the same at any frame rate
     player.dy += GRAVITY * scale;
@@ -37,7 +38,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
         player.jumpCount = 0; // Reset jumps
 
         // Energy Regen
-        state.energy = Math.min(state.energy + ENERGY_REGEN, MAX_ENERGY);
+        state.energy = Math.min(state.energy + ENERGY_REGEN * scale, MAX_ENERGY);
 
         // Run Dust
         if (Math.random() < 0.4) {
@@ -62,7 +63,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     obstacles.forEach(obs => {
         let speed = BASE_SPEED;
         if (obs.type === 'boulder') {
-            obs.phase = (obs.phase || 0) + 0.1;
+            obs.phase = (obs.phase || 0) + 0.1 * scale;
             speed += Math.cos(obs.phase) * 3;
         }
         obs.x -= speed * scale;

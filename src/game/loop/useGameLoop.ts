@@ -91,7 +91,7 @@ export const useGameLoop = () => {
                     if (state.distance < currentStage.courseLength - 1000) {
                         spawnObstacle(state, currentStage);
                     }
-                    state.particles = updateParticles(state.particles);
+                    state.particles = updateParticles(state.particles, deltaTimeSec);
                     const isCollision = checkCollisions(state);
 
                     if (isCollision) {

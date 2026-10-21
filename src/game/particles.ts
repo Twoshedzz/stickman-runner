@@ -1,3 +1,6 @@
+import { Platform } from 'react-native';
+import { frameScale } from './frame';
+
 export interface Particle {
     id: number;
     x: number;
@@ -16,9 +19,9 @@ let particleIdCounter = 0;
 /** Cap particle count to avoid lag. Lower on web to reduce CanvasKit load (avoids Aborted under collision). */
 const MAX_PARTICLES_NATIVE = 40;
 const MAX_PARTICLES_WEB = 22;
-export const MAX_PARTICLES = typeof globalThis !== 'undefined' && (globalThis as unknown as { window?: unknown }).window !== undefined
-    ? MAX_PARTICLES_WEB
-    : MAX_PARTICLES_NATIVE;
+// Platform.OS, not a `window` check: React Native defines `window` too, so a window check
+// made phones quietly use the lower web cap.
+export const MAX_PARTICLES = Platform.OS === 'web' ? MAX_PARTICLES_WEB : MAX_PARTICLES_NATIVE;
 
 export const createParticle = (
     x: number,
@@ -40,7 +43,9 @@ export const createParticle = (
     target,
 });
 
-export const updateParticles = (particles: Particle[]): Particle[] => {
+/** deltaTimeSec: seconds since the last frame, so particles fade at the same rate on any device. */
+export const updateParticles = (particles: Particle[], deltaTimeSec: number = 1 / 60): Particle[] => {
+    const scale = frameScale(deltaTimeSec);
     return particles
         .map(p => {
             let vx = p.vx;
@@ -71,15 +76,17 @@ export const updateParticles = (particles: Particle[]): Particle[] => {
 
             return {
                 ...p,
-                x: p.x + vx,
-                y: p.y + vy,
+                x: p.x + vx * scale,
+                y: p.y + vy * scale,
                 vx,
                 vy,
-                life: p.life - p.decay,
+                life: p.life - p.decay * scale,
             };
         })
         .filter(p => p.life > 0)
-        .slice(0, MAX_PARTICLES);
+        // Keep the newest, same as spawnParticles: trimming the newest would make a fresh
+        // explosion vanish the moment the cap is reached.
+        .slice(-MAX_PARTICLES);
 };
 
 export const spawnParticles = (
