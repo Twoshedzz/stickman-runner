@@ -11,7 +11,7 @@
  * Same shape as the other scenery: numbers in, strips tiled by world position.
  */
 
-import { Circle, Group, Image, Rect } from "@shopify/react-native-skia";
+import { Circle, Group, Image, Path, Rect } from "@shopify/react-native-skia";
 import type { SkImage } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 import { GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH } from "../../game/constants";
@@ -97,7 +97,16 @@ function tileLayer(
     });
 }
 
-/** Broken bars of light on the water, narrowing towards the horizon. */
+/**
+ * Broken bars of light on the water, narrowing towards the horizon.
+ *
+ * Grouped into three bands by brightness and baked into one path each, so the whole
+ * reflection costs three shapes rather than fifty. Drawing a shape per bar put stage 2
+ * well above stage 1's element count, and per-frame element churn is what makes
+ * CanvasKit give up on web.
+ */
+const REFLECTION_BANDS = [0.72, 0.52, 0.34];
+
 function useReflection(viewWidth: number, distance: number) {
     // Shifts slowly so the water moves without the bars jittering every frame.
     const phase = Math.floor(distance / 26);
@@ -107,22 +116,20 @@ function useReflection(viewWidth: number, distance: number) {
             seed = (seed * 1103515245 + 12345) & 0x7fffffff;
             return seed / 0x7fffffff;
         };
-        const bars = [];
+
+        const bands = REFLECTION_BANDS.map(() => '');
         for (let y = WATERLINE + 3; y < SAND; y += 3) {
             const depth = (y - WATERLINE) / (SAND - WATERLINE);
             const spread = 10 + depth * 46;
+            // Nearer the horizon the light is brighter, so pick the band by depth.
+            const band = Math.min(REFLECTION_BANDS.length - 1, Math.floor(depth * REFLECTION_BANDS.length));
             for (let b = 0; b < 3; b++) {
                 const length = spread * (0.3 + random() * 0.7);
-                bars.push({
-                    key: `${y}-${b}`,
-                    x: viewWidth / 2 + (random() - 0.5) * spread * 2 - length / 2,
-                    y,
-                    width: length,
-                    opacity: 0.35 + 0.4 * (1 - depth),
-                });
+                const x = viewWidth / 2 + (random() - 0.5) * spread * 2 - length / 2;
+                bands[band] += `M${x.toFixed(1)} ${y}h${length.toFixed(1)}v1.5h-${length.toFixed(1)}Z`;
             }
         }
-        return bars;
+        return bands.map((d, i) => ({ d, opacity: REFLECTION_BANDS[i] }));
     }, [viewWidth, phase]);
 }
 
@@ -158,10 +165,9 @@ export const SunsetBeachBackground = ({ distance, viewWidth: viewWidthProp }: Pr
 
             {/* Water, then the light running across it. */}
             <Rect x={0} y={WATERLINE} width={viewWidth} height={SAND - WATERLINE} color={OCEAN} />
-            {reflection.map((bar) => (
-                <Rect key={bar.key} x={bar.x} y={bar.y} width={bar.width} height={1.5}
-                      color={REFLECTION} opacity={bar.opacity} />
-            ))}
+            {reflection.map((band, i) => band.d ? (
+                <Path key={i} path={band.d} color={REFLECTION} style="fill" opacity={band.opacity} />
+            ) : null)}
 
             {/* Sand, then the palms standing on it. */}
             <Rect x={0} y={SAND} width={viewWidth} height={GRID_TOP_Y - SAND} color={SAND_COLOUR} />
