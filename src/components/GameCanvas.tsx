@@ -1,14 +1,15 @@
 
-import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, Image, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
     COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
-    GROUND_HEIGHT, HEART_SIZE, OBSTACLE_SIZE, OBSTACLE_SIZE_PURPLE, OBSTACLE_SIZE_SMALL,
-    OVERHEAD_BOTTOM_OFFSET, OVERHEAD_TOP_OFFSET, OVERHEAD_WIDTH,
+    GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
+import { spriteFor, STAGE_OBSTACLES } from "../game/obstacleCatalogue";
 import { STAGES, StageConfig } from "../game/stages";
+import { useStripImages } from "./backgrounds/useStripImages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
@@ -26,6 +27,8 @@ interface GameCanvasProps {
 }
 
 const PLAYER_X = 50;
+/** Stable empty list for stages that have no obstacle art yet. */
+const NO_SPRITES: number[] = [];
 /** Visual only: draw runner 5px higher so feet align with obstacle bottom. Physics/collision unchanged. */
 const RUNNER_VISUAL_Y_OFFSET = -5;
 
@@ -172,6 +175,13 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     );
     const isCity = currentStage.assets.backgroundType === "city";
 
+    // Each stage's obstacle drawings, loaded once and cached.
+    const obstacleArt = STAGE_OBSTACLES[gameState.stageId];
+    const obstacleSprites = useStripImages(
+        `obstacles-${gameState.stageId}`,
+        obstacleArt?.sources ?? NO_SPRITES
+    );
+
     // Hazards wear the stage's colours; stage 1's values match what it always used.
     const palette = currentStage.theme.obstacleColors ?? {
         block: COLOR_OBSTACLE, blockGlow: COLOR_OBSTACLE_GLOW,
@@ -293,82 +303,55 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     );
                 })()}
 
-                {/* 9. Obstacles */}
+                {/* 9. Obstacles. The drawing is the hitbox, so what you see is what you hit. */}
                 {obstacles.map(obs => {
-                    const isBoulder = obs.type === 'boulder';
-                    let color = palette.block;
-                    let glowColor = palette.blockGlow;
-
-                    if (obs.type === 'red') {
-                        color = palette.red;
-                        glowColor = palette.redGlow;
-                    }
-                    if (obs.type === 'purple') {
-                        color = palette.purple;
-                        glowColor = palette.purpleGlow;
-                    }
-                    // Hearts keep the same pink on every stage: a pickup that changed colour
-                    // per stage would stop reading as "this one helps you".
-                    if (obs.type === 'heart') color = COLOR_HP_DEEP;
-
-                    let size = OBSTACLE_SIZE;
-                    if (obs.type === 'small') size = OBSTACLE_SIZE_SMALL;
-                    if (obs.type === 'purple') size = OBSTACLE_SIZE_PURPLE;
-                    if (obs.type === 'heart') size = HEART_SIZE;
-
-                    const y = RUNNER_GROUND_Y - size;
+                    const role = obs.role ?? 'small';
                     const drawX = obs.x + gameOffsetX;
 
-                    if (obs.type === 'heart') {
-                        return <Circle key={obs.id} cx={drawX + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />;
-                    }
-                    if (obs.type === 'overhead') {
-                        // Hangs from above, down to just over a ducked head. Tall enough that
-                        // jumping into it never clears it.
-                        const barTop = RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET;
-                        const barHeight = OVERHEAD_TOP_OFFSET - OVERHEAD_BOTTOM_OFFSET;
+                    // Hearts keep the same pink everywhere: a pickup that changed colour per
+                    // stage would stop reading as "this one helps you".
+                    if (role === 'heart') {
+                        const heartY = RUNNER_GROUND_Y - HEART_SIZE;
                         return (
-                            <Group key={obs.id}>
-                                <Rect
-                                    x={drawX - 4} y={barTop - 4}
-                                    width={OVERHEAD_WIDTH + 8} height={barHeight + 8}
-                                    color={safeColor(palette.overheadGlow)} opacity={safeOpacity(0.35)}
-                                />
-                                <Rect
-                                    x={drawX} y={barTop}
-                                    width={OVERHEAD_WIDTH} height={barHeight}
-                                    color={safeColor(palette.overhead)}
-                                />
-                            </Group>
+                            <Circle
+                                key={obs.id}
+                                cx={drawX + HEART_SIZE / 2}
+                                cy={heartY + HEART_SIZE / 2}
+                                r={HEART_SIZE / 2}
+                                color={safeColor(COLOR_HP_DEEP)}
+                            />
                         );
                     }
-                    if (isBoulder) {
+
+                    const art = spriteFor(gameState.stageId, obs.sprite ?? 0);
+                    // Swarms hang in the air; everything else stands on the ground.
+                    const y = art.overhead
+                        ? RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET
+                        : RUNNER_GROUND_Y - art.height;
+                    const image = obstacleSprites[obs.sprite ?? 0];
+
+                    // Until the art has loaded, draw a plain block so an obstacle is never
+                    // invisible - being hit by something you cannot see would be unfair.
+                    if (!image) {
                         return (
-                            <Group key={obs.id}>
-                                <Circle cx={drawX + size / 2} cy={y + size / 2} r={size / 2} color={safeColor(color)} />
-                                <Circle cx={drawX + size / 2 - 5} cy={y + size / 2 - 5} r={size / 4} color="rgba(0,0,0,0.2)" />
-                            </Group>
+                            <Rect
+                                key={obs.id}
+                                x={drawX} y={y}
+                                width={art.width} height={art.height}
+                                color={safeColor(palette.block)}
+                                opacity={safeOpacity(0.85)}
+                            />
                         );
                     }
 
                     return (
-                        <Group key={obs.id}>
-                            <Rect
-                                x={drawX - 4}
-                                y={y - 4}
-                                width={size + 8}
-                                height={size + 8}
-                                color={safeColor(glowColor)}
-                                opacity={safeOpacity(0.4)}
-                            />
-                            <Rect
-                                x={drawX}
-                                y={y}
-                                width={size}
-                                height={size}
-                                color={safeColor(color)}
-                            />
-                        </Group>
+                        <Image
+                            key={obs.id}
+                            image={image}
+                            x={drawX} y={y}
+                            width={art.width} height={art.height}
+                            fit="fill"
+                        />
                     );
                 })}
 

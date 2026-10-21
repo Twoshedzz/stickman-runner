@@ -1,4 +1,5 @@
 import { COURSE_LENGTH, STAGE_DURATION_SECONDS } from './constants';
+import { ObstacleRole } from './obstacleCatalogue';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
 
@@ -19,7 +20,8 @@ export interface VisualEvent {
     };
 }
 
-export type ObstacleType = 'standard' | 'small' | 'red' | 'purple' | 'boulder' | 'heart' | 'overhead';
+/** Kept as an alias so older references still read clearly. */
+export type ObstacleType = ObstacleRole;
 
 /** Overrides for difficulty during a time segment. Only set fields you want to override. */
 export interface DifficultySegment {
@@ -138,17 +140,17 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 5,
             spawnRate: 1500,
-            allowedObstacles: ['standard', 'small', 'boulder', 'heart'],
+            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'huge', 'heart'],
             allowDoubleSpawns: true
         },
         // 30-second segments: difficulty follows scroll (distance). courseLength 43200 => 7200 per 30s.
         difficultySegments: [
             { startSec: 0, endSec: 30, spawnRate: 2000, allowDoubleSpawns: false, allowedObstacles: ['small', 'heart'] },
-            { startSec: 30, endSec: 60, spawnRate: 1800, allowDoubleSpawns: false, allowedObstacles: ['standard', 'small', 'heart'] },
-            { startSec: 60, endSec: 90, spawnRate: 1600, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'heart'] },
-            { startSec: 90, endSec: 120, spawnRate: 1500, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'heart'] },
-            { startSec: 120, endSec: 150, spawnRate: 1400, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'boulder', 'heart'] },
-            { startSec: 150, endSec: 9999, spawnRate: 1200, allowDoubleSpawns: true, allowedObstacles: ['standard', 'small', 'boulder', 'heart'] },
+            { startSec: 30, endSec: 60, spawnRate: 1800, allowDoubleSpawns: false, allowedObstacles: ['small', 'large', 'heart'] },
+            { startSec: 60, endSec: 90, spawnRate: 1600, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'heart'] },
+            { startSec: 90, endSec: 120, spawnRate: 1500, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'] },
+            { startSec: 120, endSec: 150, spawnRate: 1400, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'] },
+            { startSec: 150, endSec: 9999, spawnRate: 1200, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'overhead', 'huge', 'heart'] },
         ],
         courseLength: COURSE_LENGTH,
         // SECTIONS (7200 per 30s):
@@ -303,7 +305,7 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 6.5,
             spawnRate: 1200,
-            allowedObstacles: ['purple', 'red', 'overhead', 'heart'],
+            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'],
             allowDoubleSpawns: false
         },
         courseLength: COURSE_LENGTH
@@ -335,7 +337,7 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 7,
             spawnRate: 1100,
-            allowedObstacles: ['purple', 'red', 'boulder', 'overhead', 'heart'],
+            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'],
             allowDoubleSpawns: true
         },
         courseLength: COURSE_LENGTH
@@ -365,7 +367,7 @@ export const STAGES: StageConfig[] = [
         difficulty: {
             baseSpeed: 8,
             spawnRate: 900,
-            allowedObstacles: ['purple', 'red', 'overhead', 'heart'],
+            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'huge', 'heart'],
             allowDoubleSpawns: false
         },
         courseLength: COURSE_LENGTH

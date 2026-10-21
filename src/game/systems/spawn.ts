@@ -1,6 +1,13 @@
 import { SCREEN_WIDTH } from '../constants';
-import { getDifficultyAtDistance, ObstacleType, StageConfig } from '../stages';
+import { ObstacleRole, spritesForRole } from '../obstacleCatalogue';
+import { getDifficultyAtDistance, StageConfig } from '../stages';
 import { GameState } from '../state';
+
+/** Picks one of the drawings this role can use on this stage. -1 means it has no sprite. */
+const pickSprite = (stageId: string, role: ObstacleRole) => {
+    const options = spritesForRole(stageId, role);
+    return options.length ? options[Math.floor(Math.random() * options.length)] : -1;
+};
 
 let nextId = 0;
 
@@ -22,10 +29,12 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
 
     // If no obstacles yet, spawn one immediately (safely)
     if (state.obstacles.length === 0) {
+        const first = allowedObstacles.find((r) => r !== 'heart') ?? 'small';
         state.obstacles.push({
             x: SCREEN_WIDTH + 200,
             id: nextId++,
-            type: allowedObstacles[0] || 'standard',
+            role: first,
+            sprite: pickSprite(currentStage.id, first),
         });
         return;
     }
@@ -38,45 +47,50 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
         const shouldSpawn = (lastX < SCREEN_WIDTH - maxDist) || (Math.random() < 0.05);
 
         if (shouldSpawn) {
-            // Determine Type
-            let type: ObstacleType = 'standard';
+            // Pick what it does first, then which of that role's drawings to use.
+            let role: ObstacleRole = 'small';
             if (allowedObstacles.includes('heart') && Math.random() < 0.1) {
-                type = 'heart';
+                role = 'heart';
             } else {
-                const available = allowedObstacles.filter(t => t !== 'heart');
+                // Only roles this stage actually has artwork for.
+                const available = allowedObstacles.filter(
+                    (r) => r !== 'heart' && spritesForRole(currentStage.id, r).length > 0
+                );
                 if (available.length > 0) {
-                    const randIndex = Math.floor(Math.random() * available.length);
-                    type = available[randIndex];
+                    role = available[Math.floor(Math.random() * available.length)];
                 }
             }
 
             state.obstacles.push({
                 x: SCREEN_WIDTH,
                 id: nextId++,
-                type: type,
-                phase: type === 'boulder' ? Math.random() * Math.PI : undefined,
+                role,
+                sprite: pickSprite(currentStage.id, role),
+                phase: role === 'mover' ? Math.random() * Math.PI : undefined,
             });
 
             // Double Obstacle Logic (Energy Gated; cooldown ~4s at baseSpeed 5 so energy can replenish)
             if (allowDoubleSpawns && state.distance - state.lastDoubleObstacleDistance > 1200) {
                 // 20% Chance for a double obstacle
                 if (Math.random() < 0.2) {
-                    // Second obstacle: at most one heart per double; hearts rare in doubles
-                    const simpleTypes = allowedObstacles.filter(t =>
-                        t === 'standard' || t === 'small' || t === 'purple' || t === 'red' || t === 'heart'
+                    // Second obstacle: only the easy roles, and never a bus right behind
+                    // something else. At most one heart per pair.
+                    const simpleRoles = allowedObstacles.filter(
+                        (r) => (r === 'small' || r === 'large' || r === 'heart') &&
+                               (r === 'heart' || spritesForRole(currentStage.id, r).length > 0)
                     );
-                    // If first is heart, second must not be heart. Otherwise allow heart rarely (15%) so at most 1 heart per double.
-                    const allowHeartInSecond = type !== 'heart' && (Math.random() < 0.15);
+                    const allowHeartInSecond = role !== 'heart' && (Math.random() < 0.15);
                     const secondPool = allowHeartInSecond
-                        ? simpleTypes
-                        : simpleTypes.filter(t => t !== 'heart');
+                        ? simpleRoles
+                        : simpleRoles.filter((r) => r !== 'heart');
                     if (secondPool.length > 0) {
-                        const secondType = secondPool[Math.floor(Math.random() * secondPool.length)];
+                        const secondRole = secondPool[Math.floor(Math.random() * secondPool.length)];
 
                         state.obstacles.push({
                             x: SCREEN_WIDTH + 100, // Close gap!
                             id: nextId++,
-                            type: secondType,
+                            role: secondRole,
+                            sprite: pickSprite(currentStage.id, secondRole),
                         });
 
                         state.lastDoubleObstacleDistance = state.distance;

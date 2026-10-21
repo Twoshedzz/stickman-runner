@@ -1,5 +1,6 @@
-import { BASE_SPEED, DUCK_DURATION_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, OBSTACLE_SIZE, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { BASE_SPEED, DUCK_DURATION_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { frameScale } from '../frame';
+import { spriteFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
@@ -71,14 +72,15 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     // Move Obstacles (scale by deltaTime so movement is in sync with real time)
     obstacles.forEach(obs => {
         let speed = BASE_SPEED;
-        if (obs.type === 'boulder') {
+        if (obs.role === 'mover') {
             obs.phase = (obs.phase || 0) + 0.1 * scale;
             speed += Math.cos(obs.phase) * 3;
         }
         obs.x -= speed * scale;
 
-        // Score Logic
-        const obsRight = obs.x + OBSTACLE_SIZE;
+        // Score Logic: use this obstacle's real width, so wide ones score when they
+        // have actually gone past rather than when a 40px box would have.
+        const obsRight = obs.x + spriteFor(state.stageId, obs.sprite ?? 0).width;
         // Check if obstacle has passed the player (player's left side is at PLAYER_X)
         // We use PLAYER_X here. If obstacle right side < PLAYER_X, it's passed.
         // We need to track if it's already been scored.
@@ -89,7 +91,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     });
 
     // Remove off-screen obstacles
-    state.obstacles = obstacles.filter(obs => obs.x + OBSTACLE_SIZE > 0);
+    state.obstacles = obstacles.filter(obs => obs.x + spriteFor(state.stageId, obs.sprite ?? 0).width > 0);
 };
 
 /** Duck under an overhead bar. Grounded only, and free: it must not compete with the double jump. */

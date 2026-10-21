@@ -1,4 +1,5 @@
 import { MAX_HEALTH, PLAYER_SIZE, RUNNER_GROUND_Y } from './constants';
+import { ObstacleRole } from './obstacleCatalogue';
 import { Particle } from './particles';
 
 export interface GameState {
@@ -18,7 +19,10 @@ export interface GameState {
         x: number;
         id: number;
         passed?: boolean;
-        type?: 'standard' | 'small' | 'red' | 'purple' | 'heart' | 'boulder' | 'overhead';
+        /** What it does: jump it, duck it, collect it. The sprite is only how it looks. */
+        role?: ObstacleRole;
+        /** Index into the stage's sprite list, so one role can have several drawings. */
+        sprite?: number;
         phase?: number; // For oscillation
     }[];
     particles: Particle[];
