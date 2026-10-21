@@ -106,4 +106,11 @@ export const STAGE_DURATION_SECONDS = 180;
 export const COURSE_LENGTH = BASE_SPEED * 60 * STAGE_DURATION_SECONDS;
 
 // Debug
-export const DEBUG_ENABLED = true;
+/**
+ * The DEBUG switch, the stats panel and the stage-jump buttons.
+ *
+ * __DEV__ is true when running from the dev server and false in a built app, so none of
+ * this reaches players. It matters because debug mode turns off all damage, which would
+ * make a deployed build impossible to lose.
+ */
+export const DEBUG_ENABLED = __DEV__;
