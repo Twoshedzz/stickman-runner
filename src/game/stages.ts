@@ -125,7 +125,7 @@ export const STAGES: StageConfig[] = [
             sunColor: '#FDB813', // Yellow
             moonColor: '#FEFCD7',
             obstacleColors: {
-                block: '#ffff00', blockGlow: '#ffa500',        // unchanged from before
+                block: '#00e5ff', blockGlow: '#7df5ff',        // line art, against the pink grid
                 red: '#ff0040', redGlow: '#ff4d4d',
                 purple: '#bf55ec', purpleGlow: '#e056fd',
                 overhead: '#00ffff', overheadGlow: '#7df5ff',
@@ -290,7 +290,7 @@ export const STAGES: StageConfig[] = [
             sunColor: '#ffffff', // Bright white sun
             moonColor: '#ffffff',
             obstacleColors: {
-                block: '#ffb347', blockGlow: '#ff7043',
+                block: '#ffb347', blockGlow: '#ffd79a',
                 red: '#ff4f81', redGlow: '#ff85a8',
                 purple: '#c86090', purpleGlow: '#e58bb4',
                 overhead: '#ffd79a', overheadGlow: '#ff9e5e',
@@ -322,7 +322,7 @@ export const STAGES: StageConfig[] = [
             moonColor: '#b0f7fd',
             gridColor: 'rgba(34, 211, 238, 0.55)',
             obstacleColors: {
-                block: '#9ef7ff', blockGlow: '#22d3ee',
+                block: '#22d3ee', blockGlow: '#7df5ff',
                 red: '#ff6b9d', redGlow: '#ffa3c4',
                 purple: '#a78bfa', purpleGlow: '#c4b5fd',
                 overhead: '#e0fbff', overheadGlow: '#7df5ff',
@@ -352,7 +352,7 @@ export const STAGES: StageConfig[] = [
             sunColor: '#ffffff',
             moonColor: '#ffffff',
             obstacleColors: {
-                block: '#ffd700', blockGlow: '#ffaa00',
+                block: '#ffd700', blockGlow: '#ffe98a',
                 red: '#ff2fb9', redGlow: '#ff7ad9',
                 purple: '#9b5de5', purpleGlow: '#c77dff',
                 overhead: '#00e5ff', overheadGlow: '#7df5ff',

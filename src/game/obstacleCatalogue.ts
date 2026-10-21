@@ -1,14 +1,16 @@
 /**
  * What each stage's obstacles are, how big they are, and what they do.
  *
- * The shape of an obstacle is art; its ROLE is the mechanic. A bench, a rock and a car
- * are all "something low you jump over" - they only differ in how they look and how much
- * a hit costs. That keeps one set of rules across every stage.
+ * The drawing of an obstacle is art; its ROLE is the mechanic. A bench, a rock and a car
+ * are all "something low you jump over" - they only differ in how they look and what a hit
+ * costs. That keeps one set of rules across every stage, with the art as dressing.
  *
- * Heights are chosen against the jump arc: a jump peaks 120px up and covers 160px, so
- * anything up to about 90px wide can be cleared. The bus is deliberately wider than that
- * and needs a double jump - it is the one obstacle that makes the energy bar matter.
+ * Widths are chosen against the jump arc: a jump peaks 120px up and covers 160px, so
+ * anything up to about 90px wide can be cleared. The bus is deliberately wider and needs a
+ * double jump - it is the one obstacle that makes the energy bar matter.
  */
+
+import { OBSTACLE_ART } from './obstacleArt';
 
 export type ObstacleRole = 'small' | 'large' | 'mover' | 'huge' | 'overhead' | 'heart';
 
@@ -22,76 +24,53 @@ export const ROLE_DAMAGE: Record<ObstacleRole, number> = {
     heart: 0,
 };
 
-export interface ObstacleSprite {
-    /** Width and height in game pixels. The hitbox is the same, so what you see is what you hit. */
+export interface ObstacleEntry {
+    /** Key into OBSTACLE_ART. */
+    art: string;
+    /** Drawn width in game pixels. Height follows from the drawing's proportions. */
     width: number;
-    height: number;
-    /** Sits on the ground unless this is set, which lifts it to the duck band. */
+    /** Hangs in the duck band instead of standing on the ground. */
     overhead?: boolean;
 }
 
-export interface StageObstacles {
-    sources: number[];
-    sprites: ObstacleSprite[];
-    /** Which sprites can appear for each role. More than one means variety. */
+interface StageObstacles {
+    entries: ObstacleEntry[];
+    /** Which entries can appear for each role. More than one gives variety. */
     roles: Partial<Record<ObstacleRole, number[]>>;
 }
 
 export const STAGE_OBSTACLES: Record<string, StageObstacles> = {
     stage_1_city: {
-        sources: [
-            require('../../assets/obstacles/city/car-hatchback.png'),
-            require('../../assets/obstacles/city/car-sedan.png'),
-            require('../../assets/obstacles/city/van.png'),
-            require('../../assets/obstacles/city/dog.png'),
-            require('../../assets/obstacles/city/bus.png'),
-            require('../../assets/obstacles/city/bird-swarm.png'),
-        ],
-        sprites: [
-            { width: 79, height: 30 },   // hatchback
-            { width: 87, height: 26 },   // sedan
-            { width: 83, height: 38 },   // van
-            { width: 42, height: 22 },   // dog
-            { width: 156, height: 42 },  // bus - too wide for a single jump, by design
-            { width: 48, height: 144, overhead: true },
+        entries: [
+            { art: 'carHatchback', width: 79 },
+            { art: 'carSedan', width: 87 },
+            { art: 'van', width: 83 },
+            { art: 'cityDog', width: 42 },
+            { art: 'bus', width: 156 },          // too wide for a single jump, by design
+            { art: 'birdSwarm', width: 48, overhead: true },
         ],
         roles: { small: [0, 1], large: [2], mover: [3], huge: [4], overhead: [5] },
     },
 
     stage_2_beach: {
-        sources: [
-            require('../../assets/obstacles/beach/bench.png'),
-            require('../../assets/obstacles/beach/car.png'),
-            require('../../assets/obstacles/beach/dog.png'),
-            require('../../assets/obstacles/beach/roller-skater-left.png'),
-            require('../../assets/obstacles/beach/roller-skater-right.png'),
-            require('../../assets/obstacles/beach/seagull-swarm.png'),
-        ],
-        sprites: [
-            { width: 74, height: 24 },   // bench
-            { width: 77, height: 30 },   // car
-            { width: 38, height: 22 },   // dog
-            { width: 39, height: 40 },   // skater, left stride
-            { width: 37, height: 40 },   // skater, right stride
-            { width: 52, height: 144, overhead: true },
+        entries: [
+            { art: 'bench', width: 74 },
+            { art: 'beachCar', width: 77 },
+            { art: 'beachDog', width: 38 },
+            { art: 'skaterLeft', width: 39 },
+            { art: 'skaterRight', width: 37 },
+            { art: 'seagullSwarm', width: 52, overhead: true },
         ],
         roles: { small: [0], large: [1], mover: [2, 3, 4], overhead: [5] },
     },
 
     stage_3_landscape: {
-        sources: [
-            require('../../assets/obstacles/mountain/shrub.png'),
-            require('../../assets/obstacles/mountain/log.png'),
-            require('../../assets/obstacles/mountain/rock.png'),
-            require('../../assets/obstacles/mountain/bear.png'),
-            require('../../assets/obstacles/mountain/bat-swarm.png'),
-        ],
-        sprites: [
-            { width: 55, height: 24 },   // shrub
-            { width: 65, height: 20 },   // log
-            { width: 68, height: 26 },   // rock
-            { width: 62, height: 34 },   // bear
-            { width: 50, height: 144, overhead: true },
+        entries: [
+            { art: 'shrub', width: 55 },
+            { art: 'log', width: 65 },
+            { art: 'rock', width: 68 },
+            { art: 'bear', width: 62 },
+            { art: 'batSwarm', width: 50, overhead: true },
         ],
         roles: { small: [0, 1], large: [2], mover: [3], overhead: [4] },
     },
@@ -100,13 +79,31 @@ export const STAGE_OBSTACLES: Record<string, StageObstacles> = {
 // Victory Dawn returns to the city, so it uses the same objects.
 STAGE_OBSTACLES.stage_4_victory = STAGE_OBSTACLES.stage_1_city;
 
-/** Looks up one obstacle's size, falling back to something sane for an unknown stage. */
-export function spriteFor(stageId: string, index: number): ObstacleSprite {
-    const stage = STAGE_OBSTACLES[stageId];
-    return stage?.sprites[index] ?? { width: 40, height: 40 };
+export interface ObstacleSprite {
+    width: number;
+    height: number;
+    overhead?: boolean;
+    art?: string;
 }
 
-/** The sprites a role can use on a stage, or an empty list if the stage doesn't have that role. */
+/** One obstacle's size on screen. The hitbox is the same, so what you see is what you hit. */
+export function spriteFor(stageId: string, index: number): ObstacleSprite {
+    const entry = STAGE_OBSTACLES[stageId]?.entries[index];
+    if (!entry) return { width: 40, height: 40 };
+    const art = OBSTACLE_ART[entry.art];
+    // An overhead swarm is sized by its height instead, so it fills the duck band exactly.
+    if (entry.overhead) {
+        const height = 144;
+        return { width: entry.width, height, overhead: true, art: entry.art };
+    }
+    return {
+        width: entry.width,
+        height: Math.round(entry.width * art.height / art.width),
+        art: entry.art,
+    };
+}
+
+/** The entries a role can use on a stage, or an empty list if it doesn't have that role. */
 export function spritesForRole(stageId: string, role: ObstacleRole): number[] {
     return STAGE_OBSTACLES[stageId]?.roles[role] ?? [];
 }

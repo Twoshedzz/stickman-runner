@@ -1,5 +1,5 @@
 
-import { Canvas, Circle, Group, Image, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -7,9 +7,9 @@ import {
     GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
-import { spriteFor, STAGE_OBSTACLES } from "../game/obstacleCatalogue";
+import { OBSTACLE_ART } from "../game/obstacleArt";
+import { spriteFor } from "../game/obstacleCatalogue";
 import { STAGES, StageConfig } from "../game/stages";
-import { useStripImages } from "./backgrounds/useStripImages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
@@ -27,8 +27,6 @@ interface GameCanvasProps {
 }
 
 const PLAYER_X = 50;
-/** Stable empty list for stages that have no obstacle art yet. */
-const NO_SPRITES: number[] = [];
 /** Visual only: draw runner 5px higher so feet align with obstacle bottom. Physics/collision unchanged. */
 const RUNNER_VISUAL_Y_OFFSET = -5;
 
@@ -36,10 +34,57 @@ const RUNNER_VISUAL_Y_OFFSET = -5;
 const safeColor = (c: unknown): string =>
     (typeof c === 'string' && c.length > 0) ? c : '#000000';
 
-/** Ensure opacity is a number in 0–1. */
+/** Ensure opacity is a number in 0-1. */
 const safeOpacity = (o: unknown): number => {
     const n = Number(o);
     return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 1;
+};
+
+/**
+ * One obstacle, drawn exactly as the artwork describes it: a dark body, translucent facet
+ * planes, a rim highlight clipped to the body, then the neon outlines on top.
+ *
+ * The drawing is stored in its own coordinate space and scaled here, so it stays crisp at
+ * any size, and its colours are authored per stage rather than tinted by the game.
+ */
+const ObstacleArtwork = ({ artKey, x, y, width, height, swarm }: {
+    artKey: string; x: number; y: number; width: number; height: number; swarm?: boolean;
+}) => {
+    const art = OBSTACLE_ART[artKey];
+    if (!art) return null;
+    // A swarm is sized by height so it fills the duck band; everything else by width.
+    const scale = swarm ? height / art.height : width / art.width;
+
+    return (
+        <Group transform={[{ translateX: x }, { translateY: y }, { scale }]}>
+            {art.ops.map((op, i) => {
+                const node = op.fill ? (
+                    <Path
+                        path={op.d}
+                        color={safeColor(op.fill)}
+                        style="fill"
+                        fillType={op.evenOdd ? "evenOdd" : "winding"}
+                        opacity={op.opacity === undefined ? 1 : safeOpacity(op.opacity)}
+                    />
+                ) : (
+                    <Path
+                        path={op.d}
+                        color={safeColor(op.stroke)}
+                        style="stroke"
+                        strokeWidth={op.strokeWidth ?? 3}
+                        strokeJoin="round"
+                        strokeCap="round"
+                        opacity={op.opacity === undefined ? 1 : safeOpacity(op.opacity)}
+                    />
+                );
+
+                // The rim highlight is clipped to the body so it never spills outside it.
+                return op.clip && art.clip
+                    ? <Group key={i} clip={art.clip}>{node}</Group>
+                    : <React.Fragment key={i}>{node}</React.Fragment>;
+            })}
+        </Group>
+    );
 };
 
 // Helper: Hex Color Interpolation
@@ -174,13 +219,6 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         [gameState.distance, currentStage]
     );
     const isCity = currentStage.assets.backgroundType === "city";
-
-    // Each stage's obstacle drawings, loaded once and cached.
-    const obstacleArt = STAGE_OBSTACLES[gameState.stageId];
-    const obstacleSprites = useStripImages(
-        `obstacles-${gameState.stageId}`,
-        obstacleArt?.sources ?? NO_SPRITES
-    );
 
     // Hazards wear the stage's colours; stage 1's values match what it always used.
     const palette = currentStage.theme.obstacleColors ?? {
@@ -328,29 +366,24 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     const y = art.overhead
                         ? RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET
                         : RUNNER_GROUND_Y - art.height;
-                    const image = obstacleSprites[obs.sprite ?? 0];
 
-                    // Until the art has loaded, draw a plain block so an obstacle is never
-                    // invisible - being hit by something you cannot see would be unfair.
-                    if (!image) {
+                    if (!art.art) {
+                        // No drawing for this stage yet: a plain block, so an obstacle is
+                        // never invisible - being hit by something you can't see is unfair.
                         return (
-                            <Rect
-                                key={obs.id}
-                                x={drawX} y={y}
-                                width={art.width} height={art.height}
-                                color={safeColor(palette.block)}
-                                opacity={safeOpacity(0.85)}
-                            />
+                            <Rect key={obs.id} x={drawX} y={y}
+                                  width={art.width} height={art.height}
+                                  color={safeColor(palette.block)} opacity={safeOpacity(0.85)} />
                         );
                     }
 
                     return (
-                        <Image
+                        <ObstacleArtwork
                             key={obs.id}
-                            image={image}
+                            artKey={art.art}
                             x={drawX} y={y}
                             width={art.width} height={art.height}
-                            fit="fill"
+                            swarm={art.overhead}
                         />
                     );
                 })}
