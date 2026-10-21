@@ -51,6 +51,8 @@ export interface StageConfig {
         skyColors: [string, string, string]; // Top, Mid, Bottom
         sunColor: string;
         moonColor: string;
+        /** Optional neon colour for the grid lines. Colour only; the grid's shape never changes. */
+        gridColor?: string;
     };
     assets: {
         backgroundType: 'city' | 'beach' | 'mountains' | 'city_victory';
@@ -283,11 +285,13 @@ export const STAGES: StageConfig[] = [
         id: 'stage_3_landscape',
         name: 'DIGITAL PEAKS',
         description: 'Navigate the wireframe mountains.',
+        // Colours sampled from assets/concepts/stage 3 - midnight mountains.png
         theme: {
-            groundColor: '#00ff00', // Neon Green
-            skyColors: ['#000000', '#0f9b0f', '#000000'], // Matrix-ish
-            sunColor: '#00ff00',
-            moonColor: '#ccffcc'
+            groundColor: '#7df5ff', // Icy cyan horizon line
+            skyColors: ['#0b1a44', '#0e265a', '#143979'], // Midnight navy, lighter at the horizon
+            sunColor: '#b0f7fd', // Unused: stage 3 is fixed at midnight
+            moonColor: '#b0f7fd',
+            gridColor: 'rgba(34, 211, 238, 0.55)'
         },
         assets: {
             backgroundType: 'mountains'

@@ -11,6 +11,7 @@ import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { CityStripBackground } from "./backgrounds/CityStripBackground";
+import { MidnightMountainsBackground } from "./backgrounds/MidnightMountainsBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 import { GridFloor } from "./GridFloor";
 
@@ -175,15 +176,6 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         if (onAssetsReady && !isCity) onAssetsReady();
     }, [onAssetsReady, isCity]);
 
-    const renderNonCityBackground = () => {
-        switch (currentStage.assets.backgroundType) {
-            case "beach":
-                return <SynthwaveBeachBackground gameState={gameState} />;
-            default:
-                return null;
-        }
-    };
-
     return (
         <View style={[styles.container, { width: viewWidth }]}>
             <Canvas style={{ flex: 1 }}>
@@ -234,7 +226,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 })()}
 
                 {/* 4. Grid and ground line first; then city on top so buildings are never clipped by the line. */}
-                <GridFloor gameState={gameState} courseLength={currentStage.courseLength} tick={tick} viewWidth={viewWidth} />
+                <GridFloor gameState={gameState} courseLength={currentStage.courseLength} tick={tick} viewWidth={viewWidth} gridColor={currentStage.theme?.gridColor} />
                 <Rect
                     x={0}
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}
@@ -245,7 +237,14 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
 
                 {/* 5 & 6. City / non-city: drawn after grid + ground line so buildings render on top (no clip; city content is already above grid). */}
                 {isCity && <CityStripBackground gameState={gameState} currentTheme={currentTheme} onAssetsReady={onAssetsReady} />}
-                {!isCity && renderNonCityBackground()}
+                {/* Scenery is written inline rather than returned from a helper: with the React
+                    Compiler on, a helper's result gets cached and the background stops scrolling. */}
+                {currentStage.assets.backgroundType === "beach" && (
+                    <SynthwaveBeachBackground gameState={gameState} />
+                )}
+                {currentStage.assets.backgroundType === "mountains" && (
+                    <MidnightMountainsBackground distance={gameState.distance} viewWidth={viewWidth} />
+                )}
 
                 {/* 8. Victory Arch (If near end) - 600 zone centered via gameOffsetX */}
                 {(() => {

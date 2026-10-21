@@ -18,6 +18,9 @@ interface GridFloorProps {
     tick?: number;
     /** Drawn width (default SCREEN_WIDTH). When > 600, grid extends to fill wider view. */
     viewWidth?: number;
+    /** Neon colour of the grid lines. Defaults to stage 1's pink. Colour only: the line
+     *  count, spacing and perspective are the same on every stage. */
+    gridColor?: string;
 }
 
 /**
@@ -26,7 +29,7 @@ interface GridFloorProps {
  * Vertical lines: perspective (toward vanishing point) but they SCROLL horizontally
  * at the bottom instead of rotating - gives smooth motion without angle changes.
  */
-export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWidthProp }: GridFloorProps) => {
+export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)" }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const vanishX = viewWidth / 2;
     const isMoving =
@@ -44,7 +47,6 @@ export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWi
 
     const content = useMemo(() => {
         const lines: string[] = [];
-        const gridColor = "rgba(255, 100, 255, 0.55)";
         const depthToBottom = SCREEN_HEIGHT - VANISH_Y;
         const depthToGround = GROUND_Y - VANISH_Y;
         const tTop = depthToGround / depthToBottom; // param for where ray hits y=GROUND_Y
@@ -76,7 +78,7 @@ export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWi
         }
         lines.push(...linesOut);
 
-        return { lines, gridColor };
+        return { lines };
     }, [scrollOffset, tick, viewWidth, vanishX]);
 
     return (
@@ -94,7 +96,7 @@ export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWi
                     path={path}
                     style="stroke"
                     strokeWidth={2.5}
-                    color={content.gridColor}
+                    color={gridColor}
                 />
             ))}
         </Group>
