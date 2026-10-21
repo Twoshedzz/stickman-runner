@@ -80,28 +80,30 @@ before any difficulty tuning depends on it.
 
 Small and self-contained. Nothing here changes how stage 1 plays, except the energy timing.
 
-- [ ] **Finishing stage 4 freezes the game.** `onContinue` in `src/game/loop/useGameLoop.ts` looks
+- [x] **Finishing stage 4 freezes the game.** `onContinue` in `src/game/loop/useGameLoop.ts` looks
       for a next stage and silently does nothing when there isn't one: the runner stops, no message
       appears, tapping does nothing. Add the missing branch — for now route to Game Over; the proper
       win screen is Phase 6.
-- [ ] **Music dies if you restart quickly.** The 2-second fade-out in both
+- [x] **Music dies if you restart quickly.** The 2-second fade-out in both
       `src/hooks/useBackgroundMusic.ts` and `useBackgroundMusic.web.ts` re-reads "the current track"
       on every step, so if you press PLAY AGAIN during the fade it turns the *new* run's music down
       to zero and pauses it. Capture the audio element once when the fade starts and stop if it's
       been replaced.
-- [ ] **One track list, not two.** Both music hooks hold their own copy of `musicMap`. Extract to a
+- [x] **One track list, not two.** Both music hooks hold their own copy of `musicMap`. Extract to a
       single shared module so Phase 5 adds the new tracks in one place.
-- [ ] **Derive `courseLength`.** Stage 1's 43200 is exactly 180 sec × 240 px/sec, which is what makes
+- [x] **Derive `courseLength`.** Stage 1's 43200 is exactly 180 sec × 240 px/sec, which is what makes
       one unit of distance equal one pixel — the victory arch and grid scroll both rely on it.
       Stages 3 and 4 use 40000 and 50000, which makes the arch drift against the ground. Calculate it
       from speed × duration instead of typing a number per stage.
-- [ ] **Make frame-counted things time-based.** Energy regen, the boulder's wobble and particle fade
+- [x] **Make frame-counted things time-based.** Energy regen, the boulder's wobble and particle fade
       all count frames. Scale them by the `scale` value already used in
       `src/game/systems/physics.ts`, the way the player's jump already is.
-- [ ] **Fix platform detection.** `src/game/particles.ts` and `CityStripBackground.tsx` detect web
-      with `typeof window !== "undefined"`, but React Native defines `window` too — so the phone uses
-      the reduced web particle cap and loads the city PNGs twice. Use `Platform.OS === 'web'`, as
-      `collisions.ts` already does. (The second one is rewritten in Phase 4; fix it there if sooner.)
+- [x] **Fix platform detection in `particles.ts`.** It detected web with
+      `typeof window !== "undefined"`, but React Native defines `window` too, so phones quietly used
+      the lower web particle cap. Now uses `Platform.OS === 'web'`.
+- [ ] **Same bug in `CityStripBackground.tsx`**, where it makes the phone load every city PNG twice.
+      Deliberately left for Phase 4, which rewrites that loader anyway — changing it now would alter
+      how stage 1's city loads for no gain.
 
 ---
 
@@ -450,12 +452,12 @@ Phone (Expo Go) stays the source of truth for how things feel; web is a preview.
 
 | Phase | Area | Status |
 |---|---|---|
-| 0 | Blocking fixes (stage 4 freeze, music fade, course length, timing) | Not started |
+| 0 | Blocking fixes (stage 4 freeze, music fade, course length, timing) | ✅ Done, needs phone testing |
 | 1 | Duck mechanic (swipe down, overhead bars) | Not started |
 | 2 | Obstacle sequencing (patterns + difficulty budget) | Not started |
 | 3 | One day/night shape, four palettes | Not started |
 | 4 | Asset system (silhouette + lit) and families for stages 2–4 | Not started |
-| 5 | Music for Midnight Mountains and Victory Dawn | Needs tracks from ElevenLabs |
+| 5 | Music for Midnight Mountains and Victory Dawn | ✅ Both tracks in and wired up |
 | 6 | What happens after stage 4 | Needs a decision (recommend A) |
 | 7 | Tuning and polish (damage/energy, UI, stickman poses) | Not started |
 | 8 | Installable builds via EAS | Not started |
