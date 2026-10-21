@@ -10,7 +10,7 @@ import {
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
-import { CityStripBackground } from "./backgrounds/CityStripBackground";
+import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
 import { MidnightMountainsBackground } from "./backgrounds/MidnightMountainsBackground";
 import { SynthwaveBeachBackground } from "./backgrounds/SynthwaveBeachBackground";
 import { GridFloor } from "./GridFloor";
@@ -171,6 +171,12 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     );
     const isCity = currentStage.assets.backgroundType === "city";
 
+    // 0 = every window dark, 1 = fully lit. Lights come on through the night
+    // (nightProgress) and go off again towards dawn (lightsDwindle).
+    const cityLightLevel = Math.max(0, Math.min(1,
+        currentTheme.nightProgress * (1 - (currentTheme.lightsDwindle ?? 0))
+    ));
+
     // Non-city stages (e.g. beach) don't have async strip assets; signal ready immediately so countdown isn't blocked.
     useEffect(() => {
         if (onAssetsReady && !isCity) onAssetsReady();
@@ -236,7 +242,14 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 />
 
                 {/* 5 & 6. City / non-city: drawn after grid + ground line so buildings render on top (no clip; city content is already above grid). */}
-                {isCity && <CityStripBackground gameState={gameState} currentTheme={currentTheme} onAssetsReady={onAssetsReady} />}
+                {isCity && (
+                    <NeonCityScenery
+                        distance={gameState.distance}
+                        lightLevel={cityLightLevel}
+                        viewWidth={viewWidth}
+                        onAssetsReady={onAssetsReady}
+                    />
+                )}
                 {/* Scenery is written inline rather than returned from a helper: with the React
                     Compiler on, a helper's result gets cached and the background stops scrolling. */}
                 {currentStage.assets.backgroundType === "beach" && (
