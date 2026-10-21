@@ -108,27 +108,31 @@ function tiles(
     const firstTile = Math.floor(worldX / width);
     const count = Math.ceil(viewWidth / width) + 2;
 
-    // One overlay carries every window up to its level, plus the next fading in.
-    const position = Math.max(0, Math.min(1, lightLevel)) * (LEVELS - 1);
-    const step = Math.floor(position);
-    const fade = position - step;
+    // One overlay carries every window up to its level, plus the next fading in on top.
+    // Scaling by LEVELS (not LEVELS - 1) means the very first group fades in from nothing
+    // too: at a light level just above zero, overlay 0 is drawn at a sliver of opacity
+    // rather than snapping straight to full.
+    const position = Math.max(0, Math.min(1, lightLevel)) * LEVELS;
+    const step = Math.min(LEVELS - 1, Math.floor(position));
+    const fade = Math.min(1, position - step);
 
     return Array.from({ length: count }, (_, i) => {
         const tileIndex = firstTile + i;
         const variant = variantFor(tileIndex) % bases.length;
         const x = tileIndex * width - worldX;
         const litIndex = variant * LEVELS;
-        const current = lightLevel > 0 ? lit[litIndex + step] : null;
-        const next = fade > 0 && step + 1 < LEVELS ? lit[litIndex + step + 1] : null;
+        // Groups already fully on, then the one currently coming on.
+        const established = step > 0 ? lit[litIndex + step - 1] : null;
+        const arriving = fade > 0 ? lit[litIndex + step] : null;
 
         return (
             <React.Fragment key={`${keyPrefix}-${tileIndex}`}>
                 <Image image={bases[variant]} x={x} y={topY} width={width} height={height} fit="fill" />
-                {current && (
-                    <Image image={current} x={x} y={topY} width={width} height={height} fit="fill" />
+                {established && (
+                    <Image image={established} x={x} y={topY} width={width} height={height} fit="fill" />
                 )}
-                {next && (
-                    <Image image={next} x={x} y={topY} width={width} height={height} fit="fill" opacity={fade} />
+                {arriving && (
+                    <Image image={arriving} x={x} y={topY} width={width} height={height} fit="fill" opacity={fade} />
                 )}
             </React.Fragment>
         );

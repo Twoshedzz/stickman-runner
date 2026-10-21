@@ -203,6 +203,9 @@ These are the point of the whole phase. All of them come from the numbers in §3
    time has passed.
 4. **Recovery gap scales with cost:** `120px + cost × 40px`.
 5. **Never two patterns of cost 4 or more back to back.**
+0. **Stages 2–4 need hearts at all.** Only stage 1 lists `heart` in its allowed obstacles, so
+   the other three stages have **no pickups whatsoever** and can't be survived over time. A
+   one-line fix per stage, and it has to happen before any difficulty tuning means anything.
 6. **Hearts are placed, not random** — after an expensive pattern, or when health is below half —
    instead of the current flat 10% chance.
 
@@ -298,6 +301,12 @@ Two freebies worth taking:
 
 **Total: 23–27 new PNGs for three stages**, versus roughly 120 if stage 1's scheme were copied.
 
+### Obstacles should wear the stage's colours
+
+Obstacle colours are hardcoded hex in `GameCanvas.tsx` (yellow, red, purple) and stay the same
+on every stage. Since the shapes are deliberately abstract, their palette is the only thing tying
+them to the scenery — so it belongs in each stage's theme alongside the sky and grid colours.
+
 ### Which stage to build first
 
 Build **stage 3's scenery first**, even though stage 2 comes first in play order. It's static-time, so
@@ -331,6 +340,21 @@ Specs to match what's already there:
   dawn should arrive together
 - **Loop-friendly** — a player who dies at 2:50 and retries hears it from the start, so it shouldn't
   end on a hard stop
+
+### The music starts late, and stays late
+
+The stage clock starts the moment the stage does, but the music only starts once its 4MB file
+has loaded. A two second load means the music runs two seconds behind the sunrise **for the whole
+three minutes** — and the tracks are cut to match the stage exactly, so that drift is wasted work.
+
+- [ ] Start the stage clock when playback actually begins, not when the stage is entered. That
+      locks picture and sound together however long the file takes.
+- [ ] Preload the track so there's no silent gap, reusing the "Get ready…" gate that already
+      waits for the city images.
+
+Streaming would shorten the gap but not fix the drift, so it isn't the answer on its own.
+
+### The tracks
 
 Drop both files in `assets/`, alongside `neoncity.mp3` and `synthwavebeach.mp3`. Wiring is then one
 line each in the shared track map from Phase 0 — the `music_mountains` and `music_victory` keys
@@ -383,12 +407,16 @@ on these values:
 | Messages | GAME OVER, STAGE CLEAR, CONTINUE?, START GAME — wording, size, contrast |
 | Instructions | Needs the duck line; make it scannable; consider showing on first launch only |
 
-### Stickman poses
+### Stickman poses and run quality
 
-Beyond the duck pose from Phase 1: **landing** (a brief squash on touch-down), **hit** (a stagger when
-damaged), **victory** (arms up on stage clear), **idle** (gentle movement on the start screen). Add
-them one at a time — each is driven by existing state like `isGrounded`, so none of them touch game
-logic.
+**The run cycle itself needs work** — it reads as stiff. It's four hand-authored poses mirrored
+into eight and interpolated (`src/game/animations.ts`), so the fix is either better poses, more of
+them, or easing between them rather than straight interpolation. Worth doing before adding new
+poses, since everything else is built on the run.
+
+Then, beyond the duck pose from Phase 1: **landing** (a brief squash on touch-down), **hit** (a
+stagger when damaged), **victory** (arms up on stage clear), **idle** (gentle movement on the start
+screen). Each is driven by existing state like `isGrounded`, so none of them touch game logic.
 
 ---
 
