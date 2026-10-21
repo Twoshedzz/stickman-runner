@@ -28,12 +28,41 @@ export const GameScreen = () => {
     const viewportHeight = isWeb ? WEB_VIEWPORT.height : windowDim.height;
 
     const { gameState, gameMetrics, onJump, onDuck, restartGame, tick, highScore, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
-    const { playMusic, stopMusic } = useBackgroundMusic();
+    const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
     // Loading overlay: hide black block until building strip (and other assets) are ready.
     const [assetsReady, setAssetsReady] = useState(false);
     const onAssetsReady = useCallback(() => setAssetsReady(true), []);
+
+    /**
+     * The stage can't start until its music has loaded.
+     *
+     * Each track is 3 minutes to match the stage exactly, so if the stage starts first the
+     * music runs behind the sunrise for the whole run. Waiting here costs a moment on the
+     * start screen and keeps them locked together.
+     */
+    const [musicReady, setMusicReady] = useState(false);
+    useEffect(() => {
+        let cancelled = false;
+        const stage = STAGES.find((s) => s.id === gameState.stageId) || STAGES[0];
+        preloadTrack(stage.audio?.musicTrack || 'music_city').finally(() => {
+            if (!cancelled) setMusicReady(true);
+        });
+        return () => { cancelled = true; };
+        // Runs once: preloadTrack is stable and the stage is always the first one here.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [preloadTrack]);
+
+    /** Get the next stage's track in while the player is on the Stage Clear screen. */
+    useEffect(() => {
+        if (!gameState.showContinue) return;
+        const index = STAGES.findIndex((s) => s.id === gameState.stageId);
+        const next = STAGES[index + 1];
+        if (next) preloadTrack(next.audio?.musicTrack || 'music_city');
+    }, [gameState.showContinue, gameState.stageId, preloadTrack]);
+
+    const readyToStart = assetsReady && musicReady;
 
     // View width: on mobile when viewport is wide, draw wider so obstacles have longer run-in; focus stays left 600.
     const viewWidth = isWeb ? LOGICAL_WIDTH : Math.max(LOGICAL_WIDTH, LOGICAL_HEIGHT * (viewportWidth / viewportHeight));
@@ -154,13 +183,13 @@ export const GameScreen = () => {
                 {/* 3. UI Overlay */}
                 <View style={[styles.uiLayer, { pointerEvents: 'box-none' }]}>
                     {/* Loading: hide black block until assets ready */}
-                    {!assetsReady && (
+                    {!readyToStart && (
                         <View style={styles.countdownOverlay}>
                             <RNText style={styles.countdownText}>Get ready...</RNText>
                         </View>
                     )}
                     {/* Start Screen - only after assets loaded so scene is fully drawn */}
-                    {assetsReady && !gameState.gameStarted && !gameState.gameOver && !showInstructions && (
+                    {readyToStart && !gameState.gameStarted && !gameState.gameOver && !showInstructions && (
                         <View style={styles.startScreenContainer}>
                             <RNText style={styles.titleText}>STICKMAN</RNText>
                             <RNText style={styles.titleSubText}>RUNNER</RNText>

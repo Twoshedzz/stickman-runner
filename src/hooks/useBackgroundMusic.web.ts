@@ -13,6 +13,8 @@ export const useBackgroundMusic = () => {
     const currentTrackRef = useRef<string | null>(null);
     /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
     const playGenerationRef = useRef(0);
+    /** Tracks already fetched and buffered, so starting them is instant. */
+    const preloadedRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
     useEffect(() => {
         return () => {
@@ -25,6 +27,45 @@ export const useBackgroundMusic = () => {
             }
             currentTrackRef.current = null;
         };
+    }, []);
+
+    /**
+     * Fetches and buffers a track without playing it.
+     *
+     * Each track is about 4MB. Starting a stage before it has loaded puts the music
+     * permanently behind the visuals for the whole three minutes, and the tracks are cut
+     * to match the stage exactly, so that drift matters.
+     *
+     * Always resolves, even on failure: a missing track must not stop the game starting.
+     */
+    const preloadTrack = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
+        if (preloadedRef.current.has(trackKey)) return;
+        try {
+            const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
+            const asset = Asset.fromModule(source);
+            if (!asset.localUri && !asset.uri) await asset.downloadAsync();
+            const uri = asset.localUri ?? asset.uri;
+            if (!uri) return;
+
+            const audio = new Audio(uri) as HTMLAudioElement & { __trackKey?: string };
+            audio.__trackKey = trackKey;
+            audio.loop = true;
+            audio.preload = 'auto';
+            audio.load();
+
+            await new Promise<void>((resolve) => {
+                let settled = false;
+                const done = () => { if (!settled) { settled = true; resolve(); } };
+                if (audio.readyState >= 3) return done();
+                audio.addEventListener('canplaythrough', done, { once: true });
+                audio.addEventListener('error', done, { once: true });
+                setTimeout(done, 6000); // never block the game on a slow or broken file
+            });
+
+            preloadedRef.current.set(trackKey, audio);
+        } catch {
+            // Leave it unpreloaded; playMusic still works, just with the old delay.
+        }
     }, []);
 
     const playMusic = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
@@ -53,17 +94,26 @@ export const useBackgroundMusic = () => {
             }
             currentTrackRef.current = trackKey;
 
-            const asset = Asset.fromModule(source);
-            const uri = asset.localUri ?? asset.uri;
-            if (!uri) {
-                setMusicStatus('Error: No audio URL');
-                return;
-            }
-
             loadingRef.current = true;
             setMusicStatus(`Loading ${trackKey}...`);
 
-            const audio = new Audio(uri) as HTMLAudioElement & { __trackKey?: string };
+            // Use the buffered copy when there is one: it starts immediately, which is what
+            // keeps the music lined up with the stage.
+            const ready = preloadedRef.current.get(trackKey);
+            let audio: HTMLAudioElement & { __trackKey?: string };
+            if (ready) {
+                audio = ready as HTMLAudioElement & { __trackKey?: string };
+                audio.currentTime = 0;
+            } else {
+                const asset = Asset.fromModule(source);
+                const uri = asset.localUri ?? asset.uri;
+                if (!uri) {
+                    setMusicStatus('Error: No audio URL');
+                    loadingRef.current = false;
+                    return;
+                }
+                audio = new Audio(uri) as HTMLAudioElement & { __trackKey?: string };
+            }
             audio.__trackKey = trackKey;
             webAudioRef.current = audio;
             audio.loop = true;
@@ -119,5 +169,5 @@ export const useBackgroundMusic = () => {
         }
     }, []);
 
-    return { playMusic, stopMusic, musicStatus };
+    return { playMusic, stopMusic, preloadTrack, musicStatus };
 };

@@ -13,6 +13,8 @@ export const useBackgroundMusic = () => {
     const currentTrackRef = useRef<string | null>(null);
     /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
     const playGenerationRef = useRef(0);
+    /** Tracks already loaded, so starting them is instant. */
+    const preloadedRef = useRef<Map<string, ReturnType<typeof createAudioPlayer>>>(new Map());
 
     useEffect(() => {
         setAudioModeAsync({
@@ -28,6 +30,35 @@ export const useBackgroundMusic = () => {
             }
             currentTrackRef.current = null;
         };
+    }, []);
+
+    /**
+     * Loads a track without playing it.
+     *
+     * Each track is about 4MB. Starting a stage before it has loaded puts the music
+     * permanently behind the visuals for the whole three minutes, and the tracks are cut
+     * to match the stage exactly, so that drift matters.
+     *
+     * Always resolves, even on failure: a missing track must not stop the game starting.
+     */
+    const preloadTrack = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
+        if (preloadedRef.current.has(trackKey)) return;
+        try {
+            const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
+            const player = createAudioPlayer(source, {});
+            player.loop = true;
+            player.volume = 1;
+
+            // Wait for it to report loaded, but never hang the game on it.
+            const deadline = Date.now() + 6000;
+            while (!player.isLoaded && Date.now() < deadline) {
+                await new Promise((r) => setTimeout(r, 50));
+            }
+
+            preloadedRef.current.set(trackKey, player);
+        } catch {
+            // Leave it unpreloaded; playMusic still works, just with the old delay.
+        }
     }, []);
 
     const playMusic = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
@@ -50,11 +81,17 @@ export const useBackgroundMusic = () => {
             loadingRef.current = true;
             setMusicStatus(`Loading ${trackKey}...`);
 
-            const newPlayer = createAudioPlayer(source, {});
+            // Use the already-loaded copy when there is one: it starts immediately, which
+            // is what keeps the music lined up with the stage.
+            const ready = preloadedRef.current.get(trackKey);
+            const newPlayer = ready ?? createAudioPlayer(source, {});
             newPlayer.loop = true;
             newPlayer.volume = 1;
-            if (playerRef.current) {
-                playerRef.current.remove();
+            if (ready) newPlayer.seekTo(0);
+            // Don't remove a preloaded player; it's kept for the next time this track plays.
+            const previous = playerRef.current;
+            if (previous && previous !== newPlayer && !preloadedRef.current.has(currentTrackRef.current ?? '')) {
+                previous.remove();
             }
             playerRef.current = newPlayer;
             currentTrackRef.current = trackKey;
@@ -92,5 +129,5 @@ export const useBackgroundMusic = () => {
         }
     }, []);
 
-    return { playMusic, stopMusic, musicStatus };
+    return { playMusic, stopMusic, preloadTrack, musicStatus };
 };

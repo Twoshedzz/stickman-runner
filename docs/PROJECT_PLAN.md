@@ -347,10 +347,14 @@ The stage clock starts the moment the stage does, but the music only starts once
 has loaded. A two second load means the music runs two seconds behind the sunrise **for the whole
 three minutes** — and the tracks are cut to match the stage exactly, so that drift is wasted work.
 
-- [ ] Start the stage clock when playback actually begins, not when the stage is entered. That
-      locks picture and sound together however long the file takes.
-- [ ] Preload the track so there's no silent gap, reusing the "Get ready…" gate that already
-      waits for the city images.
+- [x] **Done.** The track is loaded before the stage can start, reusing the "Get ready…" gate that
+      already waits for the city images, and the next stage's track is fetched while the player is
+      on the Stage Clear screen. Measured on web: playback now begins 24ms after pressing start,
+      with the track already buffered, so there is nothing left to drift.
+
+      Anchoring the clock to playback instead was considered and rejected: obstacles move on their
+      own frame timer, independent of the stage clock, so delaying the clock would have desynced
+      the obstacles rather than fixing anything.
 
 Streaming would shorten the gap but not fix the drift, so it isn't the answer on its own.
 
@@ -485,7 +489,7 @@ Phone (Expo Go) stays the source of truth for how things feel; web is a preview.
 | 2 | Obstacle sequencing (patterns + difficulty budget) | Not started |
 | 3 | One day/night shape, four palettes | Not started |
 | 4 | Asset system (silhouette + lit) and families for stages 2–4 | Not started |
-| 5 | Music for Midnight Mountains and Victory Dawn | ✅ Both tracks in and wired up |
+| 5 | Music for Midnight Mountains and Victory Dawn | ✅ Tracks in, wired up, and preloaded so they start in sync |
 | 6 | What happens after stage 4 | Needs a decision (recommend A) |
 | 7 | Tuning and polish (damage/energy, UI, stickman poses) | Not started |
 | 8 | Installable builds via EAS | Not started |
