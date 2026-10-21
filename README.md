@@ -83,7 +83,7 @@ Orientation is **landscape**. Primary testing target is a real phone.
 | [docs/PROJECT_BRIEF.md](./docs/PROJECT_BRIEF.md) | Why the project exists, how it evolved, what’s next |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Architectural decisions and trade-offs |
 | [docs/STAGE_DESIGN.md](./docs/STAGE_DESIGN.md) | 3-minute stages, time-based progress, music sync |
-| [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) | Stages 2–4, installable builds, polish backlog |
+| [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) | The plan to finish the game: duck mechanic, obstacle sequencing, stages 2–4, music, polish |
 | [docs/STAGE1_REVIEW.md](./docs/STAGE1_REVIEW.md) | Stage 1 as stable base |
 | [docs/HISTORY.md](./docs/HISTORY.md) | Project history: debugging sessions and completed plans |
 | [project.md](./project.md) | Original goals and principles |

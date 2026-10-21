@@ -38,7 +38,7 @@
 
 ## Docs to read when relevant
 
-- **`PROJECT_PLAN.md`** – **Single project and implementation plan:** stages 2–4 (beach, mountain, final lap with crowd), what happens after stage 4, making the app installable, UI uplift, stickman animations. Use it to prioritise work and stay consistent.
+- **`PROJECT_PLAN.md`** – **Single project and implementation plan, in phase order:** blocking fixes, the duck mechanic, the obstacle sequencing system, one shared day/night cycle, the asset family for stages 2–4, remaining music, what happens after stage 4, tuning, and installable builds. Read it before starting any work, and keep its tick-boxes and summary table up to date.
 - **`STAGE_DESIGN.md`** – Why stages are 3 minutes, time-based progress, and how audio/visuals stay in sync.
 - **`STAGE1_REVIEW.md`** – How stage 1 works end-to-end (loop → physics → spawn → collisions → theme → render), and the **checklist for stages 2–4**.
 - **`WEB_PATCHES_AND_ARCHITECTURE.md`** – What the Expo and CanvasKit patches do, why web is fragile, and options (web without Skia vs mitigation vs accept preview-only).
