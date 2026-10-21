@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
-import { HEART_HEAL, HEART_SIZE, OVERHEAD_TOP_OFFSET, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
-import { ROLE_DAMAGE, spriteFor } from '../obstacleCatalogue';
+import { HEART_HEAL, OVERHEAD_TOP_OFFSET, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
+import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
@@ -17,11 +17,10 @@ export const checkCollisions = (state: GameState) => {
 
         const role = obs.role ?? 'small';
         const isHeart = role === 'heart';
-        // The hitbox is the drawing's own size, so what you see is what you hit.
-        const art = isHeart ? { width: HEART_SIZE, height: HEART_SIZE, overhead: false }
-                            : spriteFor(state.stageId, obs.sprite ?? 0);
+        // The hitbox is the shape's own size, so what you see is what you hit.
+        const art = shapeFor(role);
         const size = art.width;
-        const damage = ROLE_DAMAGE[role];
+        const damage = art.damage;
 
         const obsX = obs.x;
         const obsR = obsX + art.width;

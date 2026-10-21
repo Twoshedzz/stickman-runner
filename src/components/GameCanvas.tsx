@@ -7,8 +7,7 @@ import {
     GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
-import { OBSTACLE_ART } from "../game/obstacleArt";
-import { spriteFor } from "../game/obstacleCatalogue";
+import { shapeFor } from "../game/obstacleCatalogue";
 import { STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
@@ -38,53 +37,6 @@ const safeColor = (c: unknown): string =>
 const safeOpacity = (o: unknown): number => {
     const n = Number(o);
     return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 1;
-};
-
-/**
- * One obstacle, drawn exactly as the artwork describes it: a dark body, translucent facet
- * planes, a rim highlight clipped to the body, then the neon outlines on top.
- *
- * The drawing is stored in its own coordinate space and scaled here, so it stays crisp at
- * any size, and its colours are authored per stage rather than tinted by the game.
- */
-const ObstacleArtwork = ({ artKey, x, y, width, height, swarm }: {
-    artKey: string; x: number; y: number; width: number; height: number; swarm?: boolean;
-}) => {
-    const art = OBSTACLE_ART[artKey];
-    if (!art) return null;
-    // A swarm is sized by height so it fills the duck band; everything else by width.
-    const scale = swarm ? height / art.height : width / art.width;
-
-    return (
-        <Group transform={[{ translateX: x }, { translateY: y }, { scale }]}>
-            {art.ops.map((op, i) => {
-                const node = op.fill ? (
-                    <Path
-                        path={op.d}
-                        color={safeColor(op.fill)}
-                        style="fill"
-                        fillType={op.evenOdd ? "evenOdd" : "winding"}
-                        opacity={op.opacity === undefined ? 1 : safeOpacity(op.opacity)}
-                    />
-                ) : (
-                    <Path
-                        path={op.d}
-                        color={safeColor(op.stroke)}
-                        style="stroke"
-                        strokeWidth={op.strokeWidth ?? 3}
-                        strokeJoin="round"
-                        strokeCap="round"
-                        opacity={op.opacity === undefined ? 1 : safeOpacity(op.opacity)}
-                    />
-                );
-
-                // The rim highlight is clipped to the body so it never spills outside it.
-                return op.clip && art.clip
-                    ? <Group key={i} clip={art.clip}>{node}</Group>
-                    : <React.Fragment key={i}>{node}</React.Fragment>;
-            })}
-        </Group>
-    );
 };
 
 // Helper: Hex Color Interpolation
@@ -361,30 +313,46 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                         );
                     }
 
-                    const art = spriteFor(gameState.stageId, obs.sprite ?? 0);
-                    // Swarms hang in the air; everything else stands on the ground.
+                    const art = shapeFor(role);
+                    // The bar hangs in the air; everything else stands on the ground.
                     const y = art.overhead
                         ? RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET
                         : RUNNER_GROUND_Y - art.height;
 
-                    if (!art.art) {
-                        // No drawing for this stage yet: a plain block, so an obstacle is
-                        // never invisible - being hit by something you can't see is unfair.
+                    const colour = art.tint === 'red' ? palette.red
+                        : art.tint === 'purple' ? palette.purple
+                        : art.tint === 'overhead' ? palette.overhead
+                        : palette.block;
+                    const glow = art.tint === 'red' ? palette.redGlow
+                        : art.tint === 'purple' ? palette.purpleGlow
+                        : art.tint === 'overhead' ? palette.overheadGlow
+                        : palette.blockGlow;
+
+                    if (art.shape === 'sphere') {
                         return (
-                            <Rect key={obs.id} x={drawX} y={y}
-                                  width={art.width} height={art.height}
-                                  color={safeColor(palette.block)} opacity={safeOpacity(0.85)} />
+                            <Circle
+                                key={obs.id}
+                                cx={drawX + art.width / 2}
+                                cy={y + art.height / 2}
+                                r={art.width / 2}
+                                color={safeColor(colour)}
+                            />
                         );
                     }
 
                     return (
-                        <ObstacleArtwork
-                            key={obs.id}
-                            artKey={art.art}
-                            x={drawX} y={y}
-                            width={art.width} height={art.height}
-                            swarm={art.overhead}
-                        />
+                        <Group key={obs.id}>
+                            <Rect
+                                x={drawX - 4} y={y - 4}
+                                width={art.width + 8} height={art.height + 8}
+                                color={safeColor(glow)} opacity={safeOpacity(0.35)}
+                            />
+                            <Rect
+                                x={drawX} y={y}
+                                width={art.width} height={art.height}
+                                color={safeColor(colour)}
+                            />
+                        </Group>
                     );
                 })}
 

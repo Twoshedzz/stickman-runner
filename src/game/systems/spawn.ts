@@ -1,13 +1,7 @@
 import { SCREEN_WIDTH } from '../constants';
-import { ObstacleRole, spritesForRole } from '../obstacleCatalogue';
+import { ObstacleRole } from '../obstacleCatalogue';
 import { getDifficultyAtDistance, StageConfig } from '../stages';
 import { GameState } from '../state';
-
-/** Picks one of the drawings this role can use on this stage. -1 means it has no sprite. */
-const pickSprite = (stageId: string, role: ObstacleRole) => {
-    const options = spritesForRole(stageId, role);
-    return options.length ? options[Math.floor(Math.random() * options.length)] : -1;
-};
 
 let nextId = 0;
 
@@ -34,7 +28,6 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
             x: SCREEN_WIDTH + 200,
             id: nextId++,
             role: first,
-            sprite: pickSprite(currentStage.id, first),
         });
         return;
     }
@@ -52,10 +45,7 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
             if (allowedObstacles.includes('heart') && Math.random() < 0.1) {
                 role = 'heart';
             } else {
-                // Only roles this stage actually has artwork for.
-                const available = allowedObstacles.filter(
-                    (r) => r !== 'heart' && spritesForRole(currentStage.id, r).length > 0
-                );
+                const available = allowedObstacles.filter((r) => r !== 'heart');
                 if (available.length > 0) {
                     role = available[Math.floor(Math.random() * available.length)];
                 }
@@ -65,7 +55,6 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
                 x: SCREEN_WIDTH,
                 id: nextId++,
                 role,
-                sprite: pickSprite(currentStage.id, role),
                 phase: role === 'mover' ? Math.random() * Math.PI : undefined,
             });
 
@@ -76,8 +65,7 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
                     // Second obstacle: only the easy roles, and never a bus right behind
                     // something else. At most one heart per pair.
                     const simpleRoles = allowedObstacles.filter(
-                        (r) => (r === 'small' || r === 'large' || r === 'heart') &&
-                               (r === 'heart' || spritesForRole(currentStage.id, r).length > 0)
+                        (r) => r === 'small' || r === 'large' || r === 'heart'
                     );
                     const allowHeartInSecond = role !== 'heart' && (Math.random() < 0.15);
                     const secondPool = allowHeartInSecond
@@ -90,7 +78,6 @@ export const spawnObstacle = (state: GameState, currentStage: StageConfig) => {
                             x: SCREEN_WIDTH + 100, // Close gap!
                             id: nextId++,
                             role: secondRole,
-                            sprite: pickSprite(currentStage.id, secondRole),
                         });
 
                         state.lastDoubleObstacleDistance = state.distance;

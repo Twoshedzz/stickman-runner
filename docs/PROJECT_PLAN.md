@@ -301,6 +301,21 @@ Two freebies worth taking:
 
 **Total: 23–27 new PNGs for three stages**, versus roughly 120 if stage 1's scheme were copied.
 
+### Drawn obstacles: parked, with a diagnosis
+
+The hand-drawn line art in `assets/obstacle-art/` was built and then reverted to plain
+blocks and spheres. It didn't sit right against the flat scenery, and two specific reasons
+came out of seeing it in the game:
+
+- **Line weight.** The objects were drawn with their own stroke width, which didn't match
+  the grid's 2.5px lines. Everything in the scene should share one weight.
+- **Visibility.** Smaller objects, the dog especially, didn't stand out enough from the
+  background to read as obstacles.
+
+The SVGs and `scripts/generate-obstacle-art.js` are kept, so turning it back on means
+regenerating and drawing it again rather than redrawing the art. The generated path data
+added about 145KB to the app, so it is deliberately not generated while unused.
+
 ### Obstacles should wear the stage's colours
 
 Obstacle colours are hardcoded hex in `GameCanvas.tsx` (yellow, red, purple) and stay the same

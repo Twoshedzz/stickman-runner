@@ -21,8 +21,6 @@ export interface GameState {
         passed?: boolean;
         /** What it does: jump it, duck it, collect it. The sprite is only how it looks. */
         role?: ObstacleRole;
-        /** Index into the stage's sprite list, so one role can have several drawings. */
-        sprite?: number;
         phase?: number; // For oscillation
     }[];
     particles: Particle[];
