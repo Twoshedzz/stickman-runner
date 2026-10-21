@@ -133,7 +133,9 @@ function drawPalms({ width, height, colour, count, seed }) {
     const rand = makeRandom(seed);
     const png = blank(width, height);
     for (let n = 0; n < count; n++) {
-        const trunkHeight = height * (0.5 + rand() * 0.42);
+        // Fronds arc up above the crown by roughly a third of the trunk, so the trunk has
+        // to stop well short of the top or the crown gets cut off by the edge of the strip.
+        const trunkHeight = height * (0.42 + rand() * 0.26);
         const margin = height * 0.3;
         const baseX = margin + rand() * (width - margin * 2);
         const lean = (rand() - 0.5) * height * 0.3;
@@ -144,14 +146,26 @@ function drawPalms({ width, height, colour, count, seed }) {
 
 function write(name, png) {
     fs.writeFileSync(path.join(OUT_DIR, name), PNG.sync.write(png));
-    console.log('  written', name, `${png.width}x${png.height}`);
+
+    // Anything touching the top row has been cut off by the edge of the strip.
+    let clipped = 0;
+    for (let x = 0; x < png.width; x++) if (png.data[x * 4 + 3] > 0) clipped++;
+    const warning = clipped > 0 ? `  CLIPPED at the top (${clipped}px)` : '';
+    console.log('  written', name, `${png.width}x${png.height}${warning}`);
+    return clipped;
 }
 
 if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 console.log('Sunset Beach strips:');
+let clipped = 0;
 for (let v = 1; v <= 4; v++) {
-    write(`far_${v}.png`, drawHeadlands({ width: 300, height: 40, colour: HEADLAND, seed: 4000 + v }));
-    write(`palms_${v}.png`, drawPalms({ width: 450, height: 170, colour: PALM, count: 3, seed: 5000 + v }));
+    clipped += write(`far_${v}.png`, drawHeadlands({ width: 300, height: 40, colour: HEADLAND, seed: 4000 + v }));
+    clipped += write(`palms_${v}.png`, drawPalms({ width: 450, height: 170, colour: PALM, count: 3, seed: 5000 + v }));
 }
-console.log('Done. Re-run after changing any colour or shape above.');
+if (clipped > 0) {
+    console.error('\nSome art runs off the top of its strip. Lower the trunk height or make the strip taller.');
+    process.exitCode = 1;
+} else {
+    console.log('\nDone, nothing clipped. Re-run after changing any colour or shape above.');
+}
