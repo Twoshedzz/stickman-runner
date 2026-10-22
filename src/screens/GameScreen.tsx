@@ -15,6 +15,24 @@ const GameCanvas = React.lazy(() =>
     import('../components/GameCanvas').then(module => ({ default: module.GameCanvas }))
 );
 
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+/** "21 OCT", written by hand so it doesn't depend on the device's locale support. */
+const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+};
+
+/** How to play, worded for whatever the player is actually holding. */
+const instructionsFor = (isWeb: boolean) => [
+    { colour: '#00ffff', text: isWeb ? 'SPACE OR \u2191 TO JUMP' : 'TAP TO JUMP' },
+    { colour: '#00ffff', text: isWeb ? 'AGAIN IN THE AIR TO DOUBLE JUMP' : 'TAP AGAIN IN THE AIR TO DOUBLE JUMP' },
+    { colour: '#00ffff', text: 'DOUBLE JUMP NEEDS A FULL ENERGY BAR \u26A1' },
+    { colour: '#7df5ff', text: isWeb ? '\u2193 OR S TO DUCK' : 'SWIPE DOWN TO DUCK' },
+    { colour: '#ffff00', text: 'JUMP BLOCKS AND BALLS \u00B7 DUCK UNDER BARS' },
+    { colour: '#ff4d4d', text: 'WIDE BLOCKS NEED A DOUBLE JUMP' },
+    { colour: '#FF1493', text: 'HOT PINK BALLS RESTORE HEALTH \u2764\uFE0F' },
+];
+
 const LOGICAL_WIDTH = SCREEN_WIDTH;   // 600 – game logic (spawn, player, focus) stays in this width
 const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
 
@@ -27,7 +45,7 @@ export const GameScreen = () => {
     const viewportWidth = isWeb ? WEB_VIEWPORT.width : windowDim.width;
     const viewportHeight = isWeb ? WEB_VIEWPORT.height : windowDim.height;
 
-    const { gameState, gameMetrics, onJump, onDuck, restartGame, tick, highScore, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
+    const { gameState, gameMetrics, onJump, onDuck, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
@@ -104,6 +122,13 @@ export const GameScreen = () => {
         [onDuck]
     );
 
+    // A new run always starts at stage 1, so start stage 1's music - not the music of the
+    // stage the last run ended on.
+    const playAgain = useCallback(() => {
+        playMusic(STAGES[0].audio?.musicTrack || 'music_city');
+        restartGame();
+    }, [playMusic, restartGame]);
+
     const handleInteraction = useCallback(() => {
         if (gameState.gameOver) return;
         if (gameState.showContinue) return;
@@ -139,8 +164,7 @@ export const GameScreen = () => {
                     onDuckRef.current();
                 }
                 if (state.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
-                    const stage = STAGES.find(s => s.id === state.stageId) || STAGES[0];
-                    playMusicRef.current(stage.audio?.musicTrack || 'music_city');
+                    playMusicRef.current(STAGES[0].audio?.musicTrack || 'music_city');
                     restartGameRef.current();
                 }
             };
@@ -220,8 +244,37 @@ export const GameScreen = () => {
                         </React.Fragment>
                     )}
 
+                    {/* Finished: every stage cleared */}
+                    {gameState.gameComplete && !showInstructions && (
+                        <View style={[styles.gameOverContainer, styles.finishContainer]}>
+                            <RNText style={styles.finishTitle}>FINISHED!</RNText>
+                            <RNText style={styles.finishSubtitle}>ALL FOUR STAGES CLEARED</RNText>
+                            <RNText style={styles.finishScore}>Score: {gameState.score}</RNText>
+
+                            <RNText style={styles.tableHeading}>BEST RUNS</RNText>
+                            {scoreTable.length === 0 ? (
+                                <RNText style={styles.tableEmpty}>No scores yet</RNText>
+                            ) : scoreTable.map((entry, i) => {
+                                const isNew = i === newScoreIndex;
+                                return (
+                                    <View key={`${entry.date}-${i}`} style={styles.tableRow}>
+                                        <RNText style={[styles.tableCell, styles.tableRank, isNew && styles.tableNew]}>{i + 1}</RNText>
+                                        <RNText style={[styles.tableCell, styles.tableScore, isNew && styles.tableNew]}>{entry.score}</RNText>
+                                        <RNText style={[styles.tableCell, styles.tableDate, isNew && styles.tableNew]}>{formatDate(entry.date)}</RNText>
+                                        {/* A star marks runs that cleared every stage. */}
+                                        <RNText style={[styles.tableCell, styles.tableMark, isNew && styles.tableNew]}>{entry.completed ? '\u2605' : ''}</RNText>
+                                    </View>
+                                );
+                            })}
+
+                            <Pressable style={[styles.restartButton, styles.startButton, styles.finishButton]} onPress={playAgain}>
+                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>PLAY AGAIN</RNText>
+                            </Pressable>
+                        </View>
+                    )}
+
                     {/* Game Over Modal */}
-                    {gameState.gameOver && !showInstructions && (
+                    {gameState.gameOver && !gameState.gameComplete && !showInstructions && (
                         <View style={styles.gameOverContainer}>
                             <RNText style={styles.gameOverTitle}>GAME OVER</RNText>
                             <RNText style={styles.gameOverScore}>Final Score: {gameState.score}</RNText>
@@ -229,11 +282,7 @@ export const GameScreen = () => {
 
                             <Pressable
                                 style={styles.restartButton}
-                                onPress={() => {
-                                    const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
-                                    playMusic(currentStage.audio?.musicTrack || 'music_city');
-                                    restartGame();
-                                }}
+                                onPress={playAgain}
                             >
                                 <RNText style={styles.restartButtonText}>PLAY AGAIN</RNText>
                             </Pressable>
@@ -251,25 +300,12 @@ export const GameScreen = () => {
                         <View style={styles.instructionsContainer}>
                             <RNText style={styles.instructionsTitle}>HOW TO PLAY</RNText>
 
-                            <View style={styles.instructionRow}>
-                                <View style={[styles.instructionDot, { backgroundColor: '#ffff00' }]} />
-                                <RNText style={styles.instructionText}>AVOID YELLOW OBSTACLES ⚠️</RNText>
-                            </View>
-
-                            <View style={styles.instructionRow}>
-                                <View style={[styles.instructionDot, { backgroundColor: '#FF1493' }]} />
-                                <RNText style={styles.instructionText}>PINK HEARTS = HEALTH ❤️</RNText>
-                            </View>
-
-                            <View style={styles.instructionRow}>
-                                <View style={[styles.instructionDot, { backgroundColor: '#00ffff' }]} />
-                                <RNText style={styles.instructionText}>DOUBLE JUMP USES ENERGY ⚡</RNText>
-                            </View>
-
-                            <View style={styles.instructionRow}>
-                                <View style={[styles.instructionDot, { backgroundColor: '#7df5ff' }]} />
-                                <RNText style={styles.instructionText}>SWIPE DOWN TO DUCK ⬇️</RNText>
-                            </View>
+                            {instructionsFor(isWeb).map((row) => (
+                                <View key={row.text} style={styles.instructionRow}>
+                                    <View style={[styles.instructionDot, { backgroundColor: row.colour }]} />
+                                    <RNText style={styles.instructionText}>{row.text}</RNText>
+                                </View>
+                            ))}
 
                             <Pressable
                                 style={styles.closeButton}
@@ -435,6 +471,65 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 10,
     },
+    // Win screen: tighter than Game Over, so the score table fits the 350px-high view.
+    finishContainer: {
+        paddingVertical: 16,
+        paddingHorizontal: 36,
+    },
+    finishTitle: {
+        color: '#ffd700',
+        fontSize: 30,
+        fontWeight: '900',
+        letterSpacing: 4,
+        fontStyle: 'italic',
+        textShadowColor: '#ffd700',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
+    finishSubtitle: {
+        color: '#ff00cc',
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+        marginBottom: 6,
+    },
+    finishScore: {
+        color: '#00ffff',
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    tableHeading: {
+        color: '#ffdd55',
+        fontSize: 11,
+        fontWeight: 'bold',
+        letterSpacing: 3,
+        marginBottom: 4,
+    },
+    tableRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 19,
+    },
+    tableCell: {
+        color: 'rgba(255, 255, 255, 0.75)',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    tableRank: { width: 22, textAlign: 'left' },
+    tableScore: { width: 56, textAlign: 'right' },
+    tableDate: { width: 70, textAlign: 'right' },
+    tableMark: { width: 22, textAlign: 'right', color: '#ffd700' },
+    /** The run that just ended. */
+    tableNew: { color: '#00ffff' },
+    tableEmpty: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 13,
+        marginVertical: 6,
+    },
+    finishButton: {
+        marginTop: 10,
+    },
     highScoreText: {
         color: '#ffdd55', // Sun Yellow
         fontSize: 16, // Reduced from 20
@@ -536,7 +631,8 @@ const styles = StyleSheet.create({
     instructionsContainer: {
         position: 'absolute',
         backgroundColor: 'rgba(15, 12, 41, 0.98)',
-        padding: 30,
+        paddingVertical: 18,
+        paddingHorizontal: 28,
         borderRadius: 20,
         borderWidth: 2,
         borderColor: '#00ffff',
@@ -549,10 +645,10 @@ const styles = StyleSheet.create({
         elevation: 20,
     },
     instructionsTitle: {
-        fontSize: 32,
+        fontSize: 26,
         fontWeight: '900',
         color: '#00ffff',
-        marginBottom: 25,
+        marginBottom: 12,
         letterSpacing: 4,
         fontStyle: 'italic',
         textShadowColor: '#00ffff',
@@ -561,26 +657,26 @@ const styles = StyleSheet.create({
     instructionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: 7,
         width: '100%',
     },
     instructionDot: {
-        width: 15,
-        height: 15,
-        borderRadius: 8,
-        marginRight: 15,
+        width: 11,
+        height: 11,
+        borderRadius: 6,
+        marginRight: 12,
         shadowColor: "white",
         shadowOpacity: 0.8,
         shadowRadius: 5,
     },
     instructionText: {
         color: 'white',
-        fontSize: 18,
+        fontSize: 14,
         fontWeight: 'bold',
         letterSpacing: 1,
     },
     closeButton: {
-        marginTop: 25,
+        marginTop: 12,
         backgroundColor: '#FF1493',
         paddingVertical: 12,
         paddingHorizontal: 40,

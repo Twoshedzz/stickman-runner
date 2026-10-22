@@ -128,8 +128,15 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     const rElbow = getJoint(shoulders, pose.rArm.upper, limbLen1);
     const rHand = getJoint(rElbow, pose.rArm.upper + pose.rArm.lower, foreArmLen);
 
+    // Plant the feet when ducking. The duck pose folds the legs up, so drawn from the usual
+    // position the feet hang in the air and it reads as a flying kick. Shift the whole figure
+    // down until the lowest foot sits where straight legs would touch the ground.
+    const groundY = anchorY + headRadius + bodyLength + limbLen1 + limbLen2;
+    const lowestFoot = Math.max(lFoot.y, rFoot.y);
+    const plantShift = isDucking ? Math.max(0, groundY - lowestFoot) : 0;
+
     return (
-        <Group transform={[{ translateX: x }, { translateY: y }]}>
+        <Group transform={[{ translateX: x }, { translateY: y + plantShift }]}>
             {/* Render Back Limbs First (Left side usually, depends on direction) */}
             <Group>
                 <Line p1={hip} p2={lKnee} color={color} strokeWidth={strokeWidth} strokeCap="round" />

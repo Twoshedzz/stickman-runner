@@ -31,6 +31,8 @@ export interface GameState {
     energy: number;
     timeOfDay: number; // 0 to TIME_CYCLE_DURATION (Visual Only now, effectively)
     gameOver: boolean;
+    /** Every stage cleared. Ends the run like gameOver does, but shows the win screen. */
+    gameComplete: boolean;
     gameStarted: boolean;
     stageId: string;
     stageProgress: number; // 0 (Dusk) -> 1 (Dawn)
@@ -62,6 +64,7 @@ export const createInitialState = (): GameState => ({
     energy: 100,
     timeOfDay: 0.35 * 6000,
     gameOver: false,
+    gameComplete: false,
     gameStarted: false,
     stageId: 'stage_1_city',
     stageProgress: 0,

@@ -5,7 +5,9 @@ import { GameState } from "../game/state";
 
 const GROUND_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 const GRID_HEIGHT = GROUND_HEIGHT;
-const VANISH_Y = GROUND_Y - 120;
+/** Where the grid's lines converge. Exported so anything standing in the grid (the finish
+ *  line) can follow the same perspective. */
+export const VANISH_Y = GROUND_Y - 120;
 
 const CELL_WIDTH = 56; // spacing at bottom (~30% fewer lines = bigger squares), loops smoothly
 // Slight nudge so grid keeps up with obstacles (avoids obstacles appearing to slide forward)

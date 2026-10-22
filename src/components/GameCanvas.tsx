@@ -1,5 +1,5 @@
 
-import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, vec } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, LinearGradient, Mask, Rect, vec } from "@shopify/react-native-skia";
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -15,6 +15,7 @@ import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
 import { MidnightMountainsBackground } from "./backgrounds/MidnightMountainsBackground";
 import { SunsetBeachBackground } from "./backgrounds/SunsetBeachBackground";
 import { VictoryDawnBackground } from "./backgrounds/VictoryDawnBackground";
+import { FinishLineBehind, FinishLineFront } from "./FinishLine";
 import { GridFloor } from "./GridFloor";
 
 interface GameCanvasProps {
@@ -181,6 +182,13 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         overhead: '#00ffff', overheadGlow: '#7df5ff',
     };
 
+    // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
+    // second before the stage ends, so they finish standing just past it rather than on it.
+    const RUN_THROUGH = 60;
+    const finishX = (currentStage.courseLength - gameState.distance)
+        + PLAYER_X + PLAYER_SIZE / 2 - RUN_THROUGH + gameOffsetX;
+    const showFinish = finishX > -400 && finishX < viewWidth + 400;
+
     // 0 = every window dark, 1 = fully lit. Lights come on through the night
     // (nightProgress) and go off again towards dawn (lightsDwindle).
     const cityLightLevel = Math.max(0, Math.min(1,
@@ -272,30 +280,14 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     <VictoryDawnBackground distance={gameState.distance} viewWidth={viewWidth} />
                 )}
 
-                {/* 8. Victory Arch (If near end) - 600 zone centered via gameOffsetX */}
-                {(() => {
-                    const archLeft = (currentStage.courseLength - gameState.distance) + PLAYER_X - 40;
-                    const archRight = (currentStage.courseLength - gameState.distance) + PLAYER_X + 40;
-                    const gY = SCREEN_HEIGHT - GROUND_HEIGHT;
-                    if (archLeft <= -200 || archRight >= SCREEN_WIDTH + 200) return null;
-                    return (
-                        <Group>
-                            <Path
-                                path={`M ${archLeft + gameOffsetX} ${gY} L ${archLeft + gameOffsetX} ${gY - 70} C ${archLeft + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 70} L ${archRight + gameOffsetX} ${gY}`}
-                                style="stroke"
-                                strokeWidth={5}
-                                color="#00ffff"
-                            />
-                            <Path
-                                path={`M ${archLeft + gameOffsetX} ${gY} L ${archLeft + gameOffsetX} ${gY - 70} C ${archLeft + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 100} ${archRight + gameOffsetX} ${gY - 70} L ${archRight + gameOffsetX} ${gY}`}
-                                style="stroke"
-                                strokeWidth={15}
-                                color="#00ffff"
-                                opacity={safeOpacity(0.3)}
-                            />
-                        </Group>
-                    );
-                })()}
+                {/* 8. Finish line, far side: the runner is drawn in front of this part. */}
+                {showFinish && (
+                    <FinishLineBehind
+                        lineX={finishX}
+                        viewWidth={viewWidth}
+                        colour={safeColor(currentStage.theme?.groundColor)}
+                    />
+                )}
 
                 {/* 9. Obstacles. The drawing is the hitbox, so what you see is what you hit. */}
                 {obstacles.map(obs => {
@@ -371,6 +363,9 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     isRunning={gameState.gameStarted && !gameState.gameOver}
                     status={gameState.stageStatus}
                 />
+
+                {/* The finish line's near post passes in front of the runner. */}
+                {showFinish && <FinishLineFront lineX={finishX} viewWidth={viewWidth} />}
 
                 {/* 11. Particles (600 zone centered) */}
                 {gameState.particles.map(p => (

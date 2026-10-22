@@ -8,6 +8,18 @@ import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump, startDuck } from '../systems/physics';
 import { resetSpawner, spawnObstacle } from '../systems/spawn';
 
+/** One run in the score table. */
+export interface ScoreEntry {
+    score: number;
+    /** ISO date the run ended. */
+    date: string;
+    /** Cleared every stage, rather than running out of health. */
+    completed: boolean;
+}
+
+const SCORE_TABLE_KEY = 'SCORE_TABLE';
+const SCORE_TABLE_SIZE = 5;
+
 export const useGameLoop = () => {
     const stateRef = useRef<GameState>(createInitialState());
     // Ensure energy/time is initialized
@@ -43,6 +55,30 @@ export const useGameLoop = () => {
     const [highScore, setHighScore] = useState(0);
     const highScoreRef = useRef(0);
 
+    // The best runs, kept between sessions. Every run that scores goes in, not only ones
+    // that finish, so a big score that died in stage 4 still counts.
+    const [scoreTable, setScoreTable] = useState<ScoreEntry[]>([]);
+    const scoreTableRef = useRef<ScoreEntry[]>([]);
+    /** Where the run that just ended landed in the table, or -1 if it didn't make it. */
+    const [newScoreIndex, setNewScoreIndex] = useState(-1);
+    const recordedRef = useRef(false);
+
+    // Load the score table
+    useEffect(() => {
+        AsyncStorage.getItem(SCORE_TABLE_KEY).then((raw) => {
+            if (!raw) return;
+            try {
+                const saved = JSON.parse(raw);
+                if (Array.isArray(saved)) {
+                    scoreTableRef.current = saved;
+                    setScoreTable(saved);
+                }
+            } catch {
+                // A corrupt table just starts empty again.
+            }
+        });
+    }, []);
+
     // Load High Score
     useEffect(() => {
         AsyncStorage.getItem('HIGH_SCORE').then(value => {
@@ -77,9 +113,16 @@ export const useGameLoop = () => {
                 const isComplete = state.stageProgress >= 1;
 
                 if (isComplete && state.stageStatus === 'playing') {
-                    console.log(`Stage Complete! (Debug: ${state.debugMode})`);
-                    state.stageStatus = 'exhausted';
-                    state.showContinue = true;
+                    const isLastStage = STAGES.findIndex(s => s.id === state.stageId) === STAGES.length - 1;
+                    if (isLastStage) {
+                        // The whole game is done: straight to the win screen, no Continue.
+                        state.stageStatus = 'victory';
+                        state.gameComplete = true;
+                        state.gameOver = true;
+                    } else {
+                        state.stageStatus = 'exhausted';
+                        state.showContinue = true;
+                    }
                 }
 
                 // ONLY Update Game Logic if Playing
@@ -125,6 +168,28 @@ export const useGameLoop = () => {
                 }
             }
 
+            // A run just ended: put it in the score table once. Debug runs are left out,
+            // since debug mode switches off damage and would flood the table.
+            if (state.gameOver && !recordedRef.current) {
+                recordedRef.current = true;
+                if (state.score > 0 && !state.debugMode) {
+                    const entry: ScoreEntry = {
+                        score: state.score,
+                        date: new Date().toISOString(),
+                        completed: state.gameComplete,
+                    };
+                    const table = [...scoreTableRef.current, entry]
+                        .sort((a, b) => b.score - a.score)
+                        .slice(0, SCORE_TABLE_SIZE);
+                    scoreTableRef.current = table;
+                    setScoreTable(table);
+                    setNewScoreIndex(table.indexOf(entry));
+                    AsyncStorage.setItem(SCORE_TABLE_KEY, JSON.stringify(table));
+                } else {
+                    setNewScoreIndex(-1);
+                }
+            }
+
             // Force React to re-render for Canvas (60fps when possible for smooth animation).
             setRenderTrigger(prev => prev + 1);
 
@@ -142,6 +207,8 @@ export const useGameLoop = () => {
         stateRef.current = createInitialState();
         lastFrameTimeRef.current = 0;
         stateRef.current.gameStarted = true;
+        recordedRef.current = false;
+        setNewScoreIndex(-1);
         resetSpawner();
         // Reset Metrics immediately
         const initialMetrics = {
@@ -178,9 +245,11 @@ export const useGameLoop = () => {
         state.stageStatus = 'playing';
         state.showContinue = false;
         state.gameOver = false;
+        state.gameComplete = false;
         state.gameStarted = true;
         state.obstacles = [];
         state.particles = [];
+        recordedRef.current = false;
         resetSpawner();
         setRenderTrigger(prev => prev + 1);
     }, []);
@@ -218,8 +287,9 @@ export const useGameLoop = () => {
                 state.obstacles = [];
                 resetSpawner();
             } else {
-                // Last stage cleared: end the run so the player isn't left on a frozen screen.
-                // A proper win screen replaces this (see docs/PROJECT_PLAN.md phase 6).
+                // No stage after this one. The loop normally catches the last stage before
+                // Continue is ever offered; this is only a safety net.
+                state.gameComplete = true;
                 state.gameOver = true;
             }
         }, 1000);
@@ -235,6 +305,8 @@ export const useGameLoop = () => {
         toggleDebugMode,
         jumpToStage,
         tick: renderTrigger,
-        highScore
+        highScore,
+        scoreTable,
+        newScoreIndex
     };
 };
