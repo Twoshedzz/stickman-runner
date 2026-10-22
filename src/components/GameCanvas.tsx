@@ -293,6 +293,9 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 {obstacles.map(obs => {
                     const role = obs.role ?? 'small';
                     const drawX = obs.x + gameOffsetX;
+                    // Patterns are placed whole, so some of each one waits off to the right.
+                    // Don't draw what can't be seen: on web every shape adds to the load.
+                    if (drawX > viewWidth + 10 || drawX + shapeFor(role).width < -10) return null;
 
                     // Hearts keep the same pink everywhere: a pickup that changed colour per
                     // stage would stop reading as "this one helps you".
