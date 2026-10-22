@@ -1,0 +1,91 @@
+{
+  "strokeWidth": 2.25,
+  "units": "game pixels",
+  "assets": [
+    {
+      "file": "beach/bench.svg",
+      "width": 74.0,
+      "height": 24.24
+    },
+    {
+      "file": "beach/car.svg",
+      "width": 77.0,
+      "height": 31.37
+    },
+    {
+      "file": "beach/dog.svg",
+      "width": 38.0,
+      "height": 22.38
+    },
+    {
+      "file": "beach/roller-skater-left.svg",
+      "width": 39.0,
+      "height": 39.0
+    },
+    {
+      "file": "beach/roller-skater-right.svg",
+      "width": 37.0,
+      "height": 40.58
+    },
+    {
+      "file": "beach/seagull-swarm.svg",
+      "width": 96.0,
+      "height": 144.0
+    },
+    {
+      "file": "city/bird-swarm.svg",
+      "width": 96.0,
+      "height": 144.0
+    },
+    {
+      "file": "city/bus.svg",
+      "width": 156.0,
+      "height": 42.48
+    },
+    {
+      "file": "city/car-hatchback.svg",
+      "width": 79.0,
+      "height": 31.3
+    },
+    {
+      "file": "city/car-sedan.svg",
+      "width": 87.0,
+      "height": 27.51
+    },
+    {
+      "file": "city/dog.svg",
+      "width": 42.0,
+      "height": 23.21
+    },
+    {
+      "file": "city/van.svg",
+      "width": 83.0,
+      "height": 38.1
+    },
+    {
+      "file": "mountain/bat-swarm.svg",
+      "width": 96.0,
+      "height": 144.0
+    },
+    {
+      "file": "mountain/bear.svg",
+      "width": 62.0,
+      "height": 35.2
+    },
+    {
+      "file": "mountain/log.svg",
+      "width": 65.0,
+      "height": 21.53
+    },
+    {
+      "file": "mountain/rock.svg",
+      "width": 68.0,
+      "height": 27.55
+    },
+    {
+      "file": "mountain/shrub.svg",
+      "width": 55.0,
+      "height": 24.91
+    }
+  ]
+}
