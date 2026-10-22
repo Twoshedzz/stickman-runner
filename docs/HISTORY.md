@@ -71,6 +71,18 @@ A "strip queue" keyed by distance ensures a strip type never changes for tiles a
 
 ---
 
+## Web `Aborted()` crashes: found to be a memory leak (October 2026)
+
+**Problem:** Web play crashed with `Aborted()`, usually several minutes in (often late in stage 2). This had been put down to Skia-on-web being inherently fragile.
+
+**Diagnosis:** Sampling CanvasKit's memory (`CanvasKit.HEAPU8.byteLength`) during play showed it climbing about 5MB a second, reaching the 2GB ceiling in roughly 7 minutes. Counting objects created and freed per type showed Skia's web renderer never freeing the paints, paths, gradients, recorders and pictures it makes every frame, and leaking a paint's internals whenever one was copied.
+
+**Fix:** A patch to `@shopify/react-native-skia` (web-only files) that frees each frame's objects once its picture is recorded, frees the previous picture, and frees replaced paint internals. A full four-stage run now levels off at about 460MB with no errors. Details in [WEB_PATCHES_AND_ARCHITECTURE.md](./WEB_PATCHES_AND_ARCHITECTURE.md).
+
+**Still open:** the scene is recorded twice per screen refresh on web. Halving that would cut work, but isn't needed for stability.
+
+---
+
 ## Stage 1: bug fixed and performance pass
 
 While reviewing Stage 1 as the stable base for stages 2–4 (see `STAGE1_REVIEW.md` for the current-state writeup), two things came out of that pass:

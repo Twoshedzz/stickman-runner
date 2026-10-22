@@ -32,22 +32,43 @@ This patch is about **when and how** the WASM binary is supplied to CanvasKit, s
 
 ---
 
+### 3. Skia patch (`@shopify+react-native-skia+2.2.12.patch`) – the memory leak
+
+**This was the main cause of `Aborted()` on web.** On web, Skia objects (paints, paths, gradients, pictures) live in CanvasKit's own memory and are never freed automatically — something has to call `dispose()` on each one. The library's web renderer didn't, for the objects it creates while drawing each frame. Since the game redraws the whole scene every frame, CanvasKit's memory grew by about 5MB a second until it hit its 2GB ceiling — roughly 7 minutes of play, which is why crashes tended to come late in stage 2 — and then aborted.
+
+**What we changed** (web-only files; the phone app doesn't use them):
+
+- `sksg/Container.web` – each frame, track every paint, parsed SVG path, gradient and filter created while recording the picture, and free them once the picture is finished. Also free the picture recorder.
+- `views/SkiaPictureView.web` – free the previous frame's picture when the next one replaces it.
+- `skia/web/JsiSkPaint` – `assign()` and `reset()` replaced a paint's internals without freeing the old ones.
+
+Each change is applied to both `lib/module` (what the web build actually loads) and `src` (kept in step).
+
+**Measured:** before, memory hit 2GB within about 7 minutes. After, a full four-stage game levels off at about 460MB by mid stage 2 and stays flat to the end, with no errors.
+
+**How to check it again:** in the browser console during play, `CanvasKit.HEAPU8.byteLength / 1048576` is CanvasKit's memory in MB. It should level off, not climb steadily.
+
+---
+
 ## Keeping the patches applied
 
 The patches change code inside `node_modules`, which gets replaced whenever packages are reinstalled. So the changes are stored as files in `patches/` and re-applied automatically.
 
 **When they’re applied:** every `npm install` runs the `postinstall` script in `package.json`, which:
 
-1. Runs `patch-package` to apply both files in `patches/`.
+1. Runs `patch-package` to apply the files in `patches/`.
 2. Runs `scripts/patch-canvaskit-worker.js`, which makes further CanvasKit changes (a fallback download address for the `.wasm` file, cross-origin loading fixes, and extra loading fallbacks).
 3. Copies `canvaskit.wasm` into `web/static/js/`.
 
 A good run shows a tick for each patch:
 
 ```
+@shopify/react-native-skia@2.2.12 ✔
 canvaskit-wasm@0.40.0 ✔
 expo@54.0.33 ✔
 ```
+
+(Running it a second time on an already-patched install shows a "Failed to apply" error for `canvaskit-wasm` only. That's because the worker script in step 2 has changed the same file since; the patch is still in place.)
 
 **To re-apply by hand:** run `npm run postinstall`.
 
@@ -69,6 +90,10 @@ expo@54.0.33 ✔
 For CanvasKit, regenerate *before* `scripts/patch-canvaskit-worker.js` has run on the clean copy (step 1 makes sure of this); otherwise the worker script’s changes get baked into the patch.
 
 ---
+
+> **Update (October 2026):** most of the "architecture" diagnosis below turned out to be a
+> memory leak in Skia's web renderer, now fixed by patch 3 above. The notes are kept because
+> the load and chunk-loading risks they describe are still real, just much smaller.
 
 ## Is there a deeper root cause? Yes.
 
