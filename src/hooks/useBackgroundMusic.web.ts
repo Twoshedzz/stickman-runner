@@ -30,6 +30,33 @@ export const useBackgroundMusic = () => {
     }, []);
 
     /**
+     * iPhone Safari only lets a track start playing during a tap. The game starts the music
+     * a moment after START is tapped (once the screen has updated), which Safari would
+     * block, leaving the run silent. Starting and instantly stopping each loaded track
+     * during a tap "unlocks" it, so the game can play it later. Runs on every tap, so
+     * tracks loaded later (the next stage's, on the Stage Clear screen) get unlocked too.
+     */
+    useEffect(() => {
+        const unlocked = new WeakSet<HTMLAudioElement>();
+        const unlock = () => {
+            preloadedRef.current.forEach((audio) => {
+                if (unlocked.has(audio) || audio === webAudioRef.current) return;
+                unlocked.add(audio);
+                // Stopping straight away makes play() report an interruption; that's expected.
+                audio.play()?.catch(() => {});
+                audio.pause();
+                audio.currentTime = 0;
+            });
+        };
+        document.addEventListener('touchend', unlock, true);
+        document.addEventListener('click', unlock, true);
+        return () => {
+            document.removeEventListener('touchend', unlock, true);
+            document.removeEventListener('click', unlock, true);
+        };
+    }, []);
+
+    /**
      * Fetches and buffers a track without playing it.
      *
      * Each track is about 4MB. Starting a stage before it has loaded puts the music

@@ -206,10 +206,30 @@ back without redrawing. Hearts are also still circles rather than heart shapes.
 - **The run cycle reads as stiff** — better poses, more of them, or easing between them. Then
   landing, hit, victory and idle poses. The skater pose idea for stage 2 is in the backlog too.
 
-### Installable app (EAS)
+### Installable app
 
-Goal: install on a phone and play without Expo Go. Set up `eas.json` profiles, build a preview with
-`eas build --platform ios` (or `android`), and write the exact commands into `docs/RELEASE.md`.
+**Route 1 — home screen web app.** ✅ Built (22 October 2026), needs testing on Pete's iPhone.
+Open the Vercel site in Safari, then Share → Add to Home Screen. It opens full screen with its own
+icon and name. What makes it work:
+
+- Touch-screen browsers fill the screen like the phone app (desktop keeps the 600×350 preview), show
+  touch wording in HOW TO PLAY, and ask you to turn the phone sideways when it's upright — a web page
+  can't lock the orientation itself.
+- `app/+html.tsx`: home-screen icon, name, full-screen mode, and no page zoom, scroll or bounce.
+- `public/manifest.json` and the icons, drawn by `scripts/generate-app-icon.js` (sun, grid, runner).
+  Replace them with proper art any time by changing that script or the PNGs.
+- iPhone Safari only lets music start during a tap, so each track is silently started and stopped on
+  a tap to "unlock" it (`useBackgroundMusic.web.ts`).
+
+Worth checking on the phone: the swipe to duck, how long "Get ready…" takes (Safari may not load the
+music until the first tap), and that music plays.
+
+**Route 2 — a real app via EAS.** Not started. `eas.json` already has `development` / `preview` /
+`production` profiles and the app has its bundle identifiers. On iPhone this needs the Apple
+Developer Program ($99/year) to install via a link or TestFlight; the free alternative is installing
+from Xcode over a cable, which expires after 7 days. Before building: give the app a proper display
+name, icon and splash screen (both are still Expo's defaults), and write the exact commands into
+`docs/RELEASE.md`.
 
 ---
 
@@ -248,7 +268,8 @@ Not urgent, but each one removes a trap:
 | Web `Aborted()` crash | ✅ Fixed (Skia memory leak) |
 | Sky timeline tidy-up | Not started |
 | Tuning, UI, stickman poses | Not started |
-| Installable builds | Not started |
+| Installable: home screen web app (route 1) | ✅ Built, needs iPhone test |
+| Installable: real app via EAS (route 2) | Not started |
 | Cleanup backlog | Partly done |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the

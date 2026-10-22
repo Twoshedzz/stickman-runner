@@ -23,11 +23,11 @@ const formatDate = (iso: string) => {
 };
 
 /** How to play, worded for whatever the player is actually holding. */
-const instructionsFor = (isWeb: boolean) => [
-    { colour: '#00ffff', text: isWeb ? 'SPACE OR \u2191 TO JUMP' : 'TAP TO JUMP' },
-    { colour: '#00ffff', text: isWeb ? 'AGAIN IN THE AIR TO DOUBLE JUMP' : 'TAP AGAIN IN THE AIR TO DOUBLE JUMP' },
+const instructionsFor = (keyboard: boolean) => [
+    { colour: '#00ffff', text: keyboard ? 'SPACE OR \u2191 TO JUMP' : 'TAP TO JUMP' },
+    { colour: '#00ffff', text: keyboard ? 'AGAIN IN THE AIR TO DOUBLE JUMP' : 'TAP AGAIN IN THE AIR TO DOUBLE JUMP' },
     { colour: '#00ffff', text: 'DOUBLE JUMP NEEDS A FULL ENERGY BAR \u26A1' },
-    { colour: '#7df5ff', text: isWeb ? '\u2193 OR S TO DUCK' : 'SWIPE DOWN TO DUCK' },
+    { colour: '#7df5ff', text: keyboard ? '\u2193 OR S TO DUCK' : 'SWIPE DOWN TO DUCK' },
     { colour: '#ffff00', text: 'JUMP BLOCKS AND BALLS \u00B7 DUCK UNDER BARS' },
     { colour: '#ff4d4d', text: 'WIDE BLOCKS NEED A DOUBLE JUMP' },
     { colour: '#FF1493', text: 'HOT PINK BALLS RESTORE HEALTH \u2764\uFE0F' },
@@ -36,14 +36,27 @@ const instructionsFor = (isWeb: boolean) => [
 const LOGICAL_WIDTH = SCREEN_WIDTH;   // 600 – game logic (spawn, player, focus) stays in this width
 const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
 
-/** Web: fixed size for preview/feedback; no filling the browser. */
+/** Desktop web: fixed size for preview/feedback; no filling the browser. */
 const WEB_VIEWPORT = { width: 600, height: 350 };
+
+/**
+ * A phone or tablet browser, including the game saved to the home screen. These fill the
+ * screen the way the phone app does, rather than showing the small desktop preview.
+ */
+const isTouchWeb =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    !!window.matchMedia?.('(pointer: coarse)').matches;
 
 export const GameScreen = () => {
     const windowDim = useWindowDimensions();
     const isWeb = Platform.OS === 'web';
-    const viewportWidth = isWeb ? WEB_VIEWPORT.width : windowDim.width;
-    const viewportHeight = isWeb ? WEB_VIEWPORT.height : windowDim.height;
+    /** Desktop web shows a fixed-size preview; everything else fills the screen. */
+    const fixedPreview = isWeb && !isTouchWeb;
+    const viewportWidth = fixedPreview ? WEB_VIEWPORT.width : windowDim.width;
+    const viewportHeight = fixedPreview ? WEB_VIEWPORT.height : windowDim.height;
+    /** Phones can't be locked sideways from a web page, so ask the player to turn it. */
+    const needsRotate = isTouchWeb && windowDim.height > windowDim.width;
 
     const { gameState, gameMetrics, onJump, onDuck, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
@@ -83,7 +96,7 @@ export const GameScreen = () => {
     const readyToStart = assetsReady && musicReady;
 
     // View width: on mobile when viewport is wide, draw wider so obstacles have longer run-in; focus stays left 600.
-    const viewWidth = isWeb ? LOGICAL_WIDTH : Math.max(LOGICAL_WIDTH, LOGICAL_HEIGHT * (viewportWidth / viewportHeight));
+    const viewWidth = fixedPreview ? LOGICAL_WIDTH : Math.max(LOGICAL_WIDTH, LOGICAL_HEIGHT * (viewportWidth / viewportHeight));
     const viewHeight = LOGICAL_HEIGHT;
 
     // Single uniform scale → no stretch (aspect ratio preserved). Scale to fill viewport.
@@ -174,14 +187,14 @@ export const GameScreen = () => {
     }, []);
 
     return (
-        <View style={[styles.container, isWeb && styles.containerWeb]}>
+        <View style={[styles.container, fixedPreview && styles.containerWeb]}>
             <View
                 style={[
                     styles.scaledGameWrapper,
                     {
                         width: viewWidth,
                         height: viewHeight,
-                        transform: isWeb ? undefined : [
+                        transform: fixedPreview ? undefined : [
                             { translateX },
                             { translateY },
                             { scale },
@@ -300,7 +313,7 @@ export const GameScreen = () => {
                         <View style={styles.instructionsContainer}>
                             <RNText style={styles.instructionsTitle}>HOW TO PLAY</RNText>
 
-                            {instructionsFor(isWeb).map((row) => (
+                            {instructionsFor(fixedPreview).map((row) => (
                                 <View key={row.text} style={styles.instructionRow}>
                                     <View style={[styles.instructionDot, { backgroundColor: row.colour }]} />
                                     <RNText style={styles.instructionText}>{row.text}</RNText>
@@ -382,6 +395,12 @@ export const GameScreen = () => {
                 </View>
                 </View>
             </View>
+            {needsRotate && (
+                <View style={styles.rotateOverlay}>
+                    <RNText style={styles.rotateIcon}>{'\u21BB'}</RNText>
+                    <RNText style={styles.rotateText}>TURN YOUR PHONE SIDEWAYS</RNText>
+                </View>
+            )}
         </View>
     );
 };
@@ -395,6 +414,23 @@ const styles = StyleSheet.create({
     containerWeb: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    rotateOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#0f0c29',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 16,
+    },
+    rotateIcon: {
+        color: '#ff00cc',
+        fontSize: 64,
+    },
+    rotateText: {
+        color: '#00ffff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        letterSpacing: 2,
     },
     scaledGameWrapper: {
         position: 'absolute',
