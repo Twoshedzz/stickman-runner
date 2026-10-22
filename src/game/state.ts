@@ -2,6 +2,28 @@ import { MAX_HEALTH, PLAYER_SIZE, RUNNER_GROUND_Y } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
 import { Particle } from './particles';
 
+export interface SpawnerState {
+    /** Screen x of the last placed obstacle's back edge. Scrolls left with the world. */
+    endX: number;
+    /** Seconds of breathing space wanted after it, before the next pattern. */
+    restSec: number;
+    /** The last obstacle placed, so the next pattern leaves the right gap after it. */
+    lastRole: ObstacleRole | null;
+    lastCost: number;
+    /** Stage seconds when the last heart and last wide block were placed. */
+    lastHeartSec: number;
+    lastHugeSec: number;
+}
+
+export const createSpawnerState = (): SpawnerState => ({
+    endX: 0,
+    restSec: 0,
+    lastRole: null,
+    lastCost: 0,
+    lastHeartSec: 0,
+    lastHugeSec: -Infinity,
+});
+
 export interface GameState {
     player: {
         y: number;
@@ -27,7 +49,8 @@ export interface GameState {
     score: number;
     stageStatus: 'playing' | 'exhausted' | 'victory';
     distance: number;
-    lastDoubleObstacleDistance: number; // For tracking double obstacle cooldown
+    /** What the spawner remembers about the last pattern it placed. */
+    spawner: SpawnerState;
     energy: number;
     timeOfDay: number; // 0 to TIME_CYCLE_DURATION (Visual Only now, effectively)
     gameOver: boolean;
@@ -37,7 +60,7 @@ export interface GameState {
     stageId: string;
     stageProgress: number; // 0 (Dusk) -> 1 (Dawn)
     stageStartTime: number; // Unix seconds when stage started (for time-based progress)
-    /** Seconds elapsed in current stage (for difficulty segments). */
+    /** Seconds elapsed in current stage (run cycle, spawner timing). */
     elapsedSecInStage: number;
     shield: number;
     debugMode: boolean;
@@ -60,7 +83,7 @@ export const createInitialState = (): GameState => ({
     score: 0,
     stageStatus: 'playing',
     distance: 0,
-    lastDoubleObstacleDistance: -1200, // Allow immediate double obstacle if RNG allows
+    spawner: createSpawnerState(),
     energy: 100,
     timeOfDay: 0.35 * 6000,
     gameOver: false,

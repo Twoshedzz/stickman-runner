@@ -1,4 +1,4 @@
-import { COURSE_LENGTH, STAGE_DURATION_SECONDS } from './constants';
+import { COURSE_LENGTH } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
@@ -20,28 +20,21 @@ export interface VisualEvent {
     };
 }
 
-/** Kept as an alias so older references still read clearly. */
-export type ObstacleType = ObstacleRole;
-
-/** Overrides for difficulty during a time segment. Only set fields you want to override. */
-export interface DifficultySegment {
-    /** Start of segment in seconds from stage start (inclusive). */
-    startSec: number;
-    /** End of segment in seconds from stage start (exclusive). Use a large number for "to end". */
-    endSec: number;
-    /** Spawn interval in ms (higher = fewer obstacles). Overrides stage default. */
-    spawnRate?: number;
-    /** Allow double obstacles in this segment. */
-    allowDoubleSpawns?: boolean;
-    /** Obstacle types allowed in this segment. */
-    allowedObstacles?: ObstacleType[];
-}
-
-export interface StageDifficulty {
-    baseSpeed: number;
-    spawnRate: number; // Interval in ms (approx)
-    allowedObstacles: ObstacleType[];
-    allowDoubleSpawns: boolean;
+/**
+ * How a stage gets harder. The spawner picks patterns from src/game/patterns.ts; these
+ * numbers decide which ones are allowed and how much breathing space follows each one.
+ * Pairs are [start of stage, end of stage], blended smoothly in between.
+ */
+export interface StagePacing {
+    /** The most demanding pattern cost allowed (1 = single obstacles only, 4 = everything). */
+    budget: [number, number];
+    /** Seconds of breathing space after each pattern, before any extra for harder patterns. */
+    rest: [number, number];
+    /**
+     * When each obstacle first turns up, as a fraction of the stage (0 = from the start,
+     * 0.5 = halfway). Obstacles not listed never appear. Hearts are always available.
+     */
+    unlocks: Partial<Record<ObstacleRole, number>>;
 }
 
 export interface StageConfig {
@@ -77,41 +70,9 @@ export interface StageConfig {
     audio: {
         musicTrack: string; // Key for the music mapping
     };
-    difficulty: StageDifficulty;
-    /** Optional 30s (or custom) segments to ramp difficulty. First matching segment wins. */
-    difficultySegments?: DifficultySegment[];
+    pacing: StagePacing;
     courseLength: number; // Distance required to clear stage
     timeline?: VisualEvent[]; // Optional ordered list of visual changes
-}
-
-/**
- * Returns the effective difficulty at a given time in the stage.
- * If difficultySegments is set, the first segment containing elapsedSec is used to override
- * the stage's default difficulty. Safe to call with no segments (returns stage.difficulty).
- */
-export function getDifficultyAtTime(stage: StageConfig, elapsedSec: number): StageDifficulty {
-    const base = stage.difficulty;
-    const segments = stage.difficultySegments;
-    if (!segments?.length) return base;
-
-    const segment = segments.find(s => elapsedSec >= s.startSec && elapsedSec < s.endSec);
-    if (!segment) return base;
-
-    return {
-        baseSpeed: base.baseSpeed,
-        spawnRate: segment.spawnRate ?? base.spawnRate,
-        allowDoubleSpawns: segment.allowDoubleSpawns ?? base.allowDoubleSpawns,
-        allowedObstacles: segment.allowedObstacles ?? base.allowedObstacles,
-    };
-}
-
-/**
- * Returns difficulty for the current segment using distance so it matches 30-second
- * scroll progression. Progress = (distance / courseLength) * STAGE_DURATION_SECONDS.
- */
-export function getDifficultyAtDistance(stage: StageConfig, distance: number): StageDifficulty {
-    const progressSec = (distance / stage.courseLength) * STAGE_DURATION_SECONDS;
-    return getDifficultyAtTime(stage, progressSec);
 }
 
 export const STAGES: StageConfig[] = [
@@ -137,21 +98,12 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_city'
         },
-        difficulty: {
-            baseSpeed: 5,
-            spawnRate: 1500,
-            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'huge', 'heart'],
-            allowDoubleSpawns: true
+        // New obstacles arrive every 30 seconds or so, as they always have.
+        pacing: {
+            budget: [1, 3.5],
+            rest: [1.6, 0.9],
+            unlocks: { small: 0, large: 0.17, mover: 0.33, overhead: 0.5, huge: 0.83 },
         },
-        // 30-second segments: difficulty follows scroll (distance). courseLength 43200 => 7200 per 30s.
-        difficultySegments: [
-            { startSec: 0, endSec: 30, spawnRate: 2000, allowDoubleSpawns: false, allowedObstacles: ['small', 'heart'] },
-            { startSec: 30, endSec: 60, spawnRate: 1800, allowDoubleSpawns: false, allowedObstacles: ['small', 'large', 'heart'] },
-            { startSec: 60, endSec: 90, spawnRate: 1600, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'heart'] },
-            { startSec: 90, endSec: 120, spawnRate: 1500, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'] },
-            { startSec: 120, endSec: 150, spawnRate: 1400, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'] },
-            { startSec: 150, endSec: 9999, spawnRate: 1200, allowDoubleSpawns: true, allowedObstacles: ['small', 'large', 'mover', 'overhead', 'huge', 'heart'] },
-        ],
         courseLength: COURSE_LENGTH,
         // SECTIONS (7200 per 30s):
         // 1. 0–7200     : Sun in sky yellow→orange, moves down; sky dark at top by 7200
@@ -304,11 +256,10 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_beach'
         },
-        difficulty: {
-            baseSpeed: 6.5,
-            spawnRate: 1200,
-            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'],
-            allowDoubleSpawns: false
+        pacing: {
+            budget: [2, 4],
+            rest: [1.3, 0.8],
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0 },
         },
         courseLength: COURSE_LENGTH
     },
@@ -336,11 +287,10 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_mountains'
         },
-        difficulty: {
-            baseSpeed: 7,
-            spawnRate: 1100,
-            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'heart'],
-            allowDoubleSpawns: true
+        pacing: {
+            budget: [2.5, 4.5],
+            rest: [1.2, 0.75],
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0.2 },
         },
         courseLength: COURSE_LENGTH
     },
@@ -368,11 +318,10 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_victory'
         },
-        difficulty: {
-            baseSpeed: 8,
-            spawnRate: 900,
-            allowedObstacles: ['small', 'large', 'mover', 'overhead', 'huge', 'heart'],
-            allowDoubleSpawns: false
+        pacing: {
+            budget: [3, 5],
+            rest: [1.1, 0.7],
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0 },
         },
         courseLength: COURSE_LENGTH
     }

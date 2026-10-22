@@ -132,7 +132,7 @@ export const useGameLoop = () => {
                     lastFrameTimeRef.current = now;
                     applyPhysics(state, deltaTimeSec);
                     if (state.distance < currentStage.courseLength - 1000) {
-                        spawnObstacle(state, currentStage);
+                        spawnObstacle(state, currentStage, deltaTimeSec);
                     }
                     state.particles = updateParticles(state.particles, deltaTimeSec);
                     const isCollision = checkCollisions(state);
@@ -209,7 +209,7 @@ export const useGameLoop = () => {
         stateRef.current.gameStarted = true;
         recordedRef.current = false;
         setNewScoreIndex(-1);
-        resetSpawner();
+        resetSpawner(stateRef.current);
         // Reset Metrics immediately
         const initialMetrics = {
             score: 0,
@@ -250,7 +250,7 @@ export const useGameLoop = () => {
         state.obstacles = [];
         state.particles = [];
         recordedRef.current = false;
-        resetSpawner();
+        resetSpawner(state);
         setRenderTrigger(prev => prev + 1);
     }, []);
 
@@ -285,7 +285,7 @@ export const useGameLoop = () => {
                 state.stageStatus = 'playing';
                 state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
                 state.obstacles = [];
-                resetSpawner();
+                resetSpawner(state);
             } else {
                 // No stage after this one. The loop normally catches the last stage before
                 // Continue is ever offered; this is only a safety net.
