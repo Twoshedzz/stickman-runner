@@ -5,9 +5,9 @@
  * any timing of taps and swipes that gets past without a hit. If it finds none, the
  * pattern or spacing is impossible and the test fails.
  */
-import { BASE_SPEED, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, STAGE_DURATION_SECONDS } from '../constants';
+import { MAX_ENERGY, PLAYER_SIZE, PLAYER_X, STAGE_DURATION_SECONDS } from '../constants';
 import { PATTERNS } from '../patterns';
-import { STAGES } from '../stages';
+import { remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump, startDuck } from '../systems/physics';
@@ -50,6 +50,7 @@ const step = (sim: Sim, arrivals: Arrivals): boolean => {
         state.stageProgress = Math.min(sim.frame / STAGE_FRAMES, 1);
         state.elapsedSecInStage = sim.frame / 60;
         state.distance = state.stageProgress * stage.courseLength;
+        state.speed = speedAt(stage, state.stageProgress);
         if (state.distance < stage.courseLength - 1000) {
             spawnObstacle(state, stage, DT, () => nextRandom(sim));
         }
@@ -77,7 +78,7 @@ const tryAction = (sim: Sim, arrivals: Arrivals, action: Action, targetId: numbe
 };
 
 /** How far ahead of the runner an obstacle has to be before acting on it is worth trying. */
-const LOOK_AHEAD_PX = 1.1 * BASE_SPEED * 60;
+const LOOK_AHEAD_SEC = 1.1;
 
 /** 3 frames = 0.05 sec either side, so every move has a timing window of at least 0.1 sec. */
 const TIMING_SLACK_FRAMES = 3;
@@ -93,7 +94,7 @@ const solve = (start: Sim, arrivals: Arrivals, lastFrame: number): boolean => {
     for (;;) {
         const next = sim.state.obstacles.filter(isHazard).sort((a, b) => a.x - b.x)[0];
         if (!next && sim.frame > lastFrame) return true;
-        if (next && next.x - (PLAYER_X + PLAYER_SIZE) <= LOOK_AHEAD_PX) break;
+        if (next && next.x - (PLAYER_X + PLAYER_SIZE) <= LOOK_AHEAD_SEC * sim.state.speed) break;
         if (step(sim, arrivals)) return false;
     }
     const target = sim.state.obstacles.filter(isHazard).sort((a, b) => a.x - b.x)[0];
@@ -147,16 +148,17 @@ const solve = (start: Sim, arrivals: Arrivals, lastFrame: number): boolean => {
     }
 };
 
-const freshSim = (): Sim => {
+const freshSim = (speed = STAGES[0].speed[0]): Sim => {
     const state = createInitialState();
     state.gameStarted = true;
+    state.speed = speed;
     state.energy = MAX_ENERGY;
     return { state, frame: 0 };
 };
 
-const patternArrivals = (steps: { role: Obstacle['role']; at: number }[], phase = 0): Arrivals =>
+const patternArrivals = (steps: { role: Obstacle['role']; at: number }[], speed: number, phase = 0): Arrivals =>
     new Map([[0, steps.map((s, i) => ({
-        x: 500 + s.at * BASE_SPEED * 60,
+        x: 500 + s.at * speed,
         id: i,
         role: s.role,
         phase: s.role === 'mover' ? phase : undefined,
@@ -166,21 +168,26 @@ describe('the bot itself', () => {
     it('reports an impossible sequence as impossible', () => {
         // A bar straight after a block: you're still in the air when it arrives.
         triesLeft = 200000;
-        const arrivals = patternArrivals([{ role: 'large', at: 0 }, { role: 'overhead', at: 0.3 }]);
-        const sim = freshSim();
+        const arrivals = patternArrivals([{ role: 'large', at: 0 }, { role: 'overhead', at: 0.3 }], 300);
+        const sim = freshSim(300);
         sim.state.energy = 0;
         expect(solve(sim, arrivals, 0)).toBe(false);
     });
 });
 
+/** The slowest, a middle, and the fastest the world ever moves. */
+const SPEEDS = [STAGES[0].speed[0], 300, STAGES[STAGES.length - 1].speed[1]];
+
 describe('every pattern can be cleared', () => {
     for (const pattern of PATTERNS) {
         const phases = pattern.steps.some((s) => s.role === 'mover') ? [0, 0.8, 1.6, 2.4, 3.1] : [0];
-        for (const phase of phases) {
-            it(`${pattern.id}${phases.length > 1 ? ` (sphere phase ${phase})` : ''}`, () => {
-                triesLeft = 200000;
-                expect(solve(freshSim(), patternArrivals(pattern.steps, phase), 0)).toBe(true);
-            });
+        for (const speed of SPEEDS) {
+            for (const phase of phases) {
+                it(`${pattern.id} at ${speed} px/sec${phases.length > 1 ? ` (sphere phase ${phase})` : ''}`, () => {
+                    triesLeft = 200000;
+                    expect(solve(freshSim(speed), patternArrivals(pattern.steps, speed, phase), 0)).toBe(true);
+                });
+            }
         }
     }
 });
@@ -189,7 +196,7 @@ describe('a whole stage of spawned obstacles can be cleared', () => {
     STAGES.forEach((stage, stageIndex) => {
         for (const seed of [1, 2, 3]) {
             it(`${stage.name} (seed ${seed})`, () => {
-                const sim: Sim = { ...freshSim(), stageIndex, seed };
+                const sim: Sim = { ...freshSim(stage.speed[0]), stageIndex, seed };
                 sim.state.stageId = stage.id;
                 // A little hurt, so hearts get placed too.
                 sim.state.player.health = 5;
@@ -197,6 +204,23 @@ describe('a whole stage of spawned obstacles can be cleared', () => {
                 deepest = { frame: -1, energy: 0, ahead: '' };
                 expect(solve(sim, new Map(), STAGE_FRAMES)).toBe(true);
             });
+        }
+    });
+});
+
+describe('the finish line', () => {
+    it('is exactly as far away as the world will move before the stage ends', () => {
+        for (const stage of STAGES) {
+            // Move the world frame by frame, the way the game loop does, from a few points in.
+            for (const startFrame of [0, 3000, 9000]) {
+                let travelled = 0;
+                for (let frame = startFrame; frame < STAGE_FRAMES; frame++) {
+                    travelled += speedAt(stage, frame / STAGE_FRAMES) / 60;
+                }
+                const predicted = remainingScroll(stage, startFrame / STAGE_FRAMES);
+                // Within half a frame's movement.
+                expect(Math.abs(travelled - predicted)).toBeLessThan(stage.speed[1] / 120);
+            }
         }
     });
 });

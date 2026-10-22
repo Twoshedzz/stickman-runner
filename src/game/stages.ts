@@ -1,4 +1,4 @@
-import { COURSE_LENGTH } from './constants';
+import { COURSE_LENGTH, STAGE_DURATION_SECONDS } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
@@ -71,9 +71,32 @@ export interface StageConfig {
         musicTrack: string; // Key for the music mapping
     };
     pacing: StagePacing;
-    courseLength: number; // Distance required to clear stage
+    /**
+     * How fast the world moves, in pixels per second, at the start and end of the stage.
+     * It rises smoothly in between. The stage still ends on the 3-minute clock, so the
+     * music and the dawn stay in step whatever the speed.
+     */
+    speed: [number, number];
+    /**
+     * The length of the sky's dusk-to-dawn timeline (sun, moon, lights). Distance runs on
+     * the clock rather than the speed, so this is a clock in disguise; it is not how far
+     * the runner travels. For that, see GameState.scroll.
+     */
+    courseLength: number;
     timeline?: VisualEvent[]; // Optional ordered list of visual changes
 }
+
+/** World speed in pixels per second at a point in the stage (0 = start, 1 = end). */
+export const speedAt = (stage: StageConfig, progress: number) =>
+    stage.speed[0] + (stage.speed[1] - stage.speed[0]) * progress;
+
+/** How many more pixels the world will travel before the stage ends. Places the finish line. */
+export const remainingScroll = (stage: StageConfig, progress: number) => {
+    const [start, end] = stage.speed;
+    const p = Math.min(Math.max(progress, 0), 1);
+    // The area under a straight-line speed rise, from now to the end of the stage.
+    return STAGE_DURATION_SECONDS * (start * (1 - p) + ((end - start) * (1 - p * p)) / 2);
+};
 
 export const STAGES: StageConfig[] = [
     {
@@ -104,6 +127,7 @@ export const STAGES: StageConfig[] = [
             rest: [1.6, 0.9],
             unlocks: { small: 0, large: 0.17, mover: 0.33, overhead: 0.5, huge: 0.83 },
         },
+        speed: [260, 300],
         courseLength: COURSE_LENGTH,
         // SECTIONS (7200 per 30s):
         // 1. 0–7200     : Sun in sky yellow→orange, moves down; sky dark at top by 7200
@@ -261,6 +285,7 @@ export const STAGES: StageConfig[] = [
             rest: [1.3, 0.8],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0 },
         },
+        speed: [280, 320],
         courseLength: COURSE_LENGTH
     },
     {
@@ -292,6 +317,7 @@ export const STAGES: StageConfig[] = [
             rest: [1.2, 0.75],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0.2 },
         },
+        speed: [300, 340],
         courseLength: COURSE_LENGTH
     },
     {
@@ -323,6 +349,7 @@ export const STAGES: StageConfig[] = [
             rest: [1.1, 0.7],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0 },
         },
+        speed: [320, 360],
         courseLength: COURSE_LENGTH
     }
 ];

@@ -1,6 +1,6 @@
 import { Group, Path, Rect } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
-import { BASE_SPEED, GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH, STAGE_DURATION_SECONDS } from "../game/constants";
+import { GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH } from "../game/constants";
 import { GameState } from "../game/state";
 
 const GROUND_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
@@ -15,8 +15,6 @@ const GRID_SPEED_NUDGE = 1.18;
 
 interface GridFloorProps {
     gameState: GameState;
-    /** Stage course length (so grid scroll matches obstacle speed). */
-    courseLength: number;
     tick?: number;
     /** Drawn width (default SCREEN_WIDTH). When > 600, grid extends to fill wider view. */
     viewWidth?: number;
@@ -31,7 +29,7 @@ interface GridFloorProps {
  * Vertical lines: perspective (toward vanishing point) but they SCROLL horizontally
  * at the bottom instead of rotating - gives smooth motion without angle changes.
  */
-export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)" }: GridFloorProps) => {
+export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)" }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const vanishX = viewWidth / 2;
     const isMoving =
@@ -41,11 +39,10 @@ export const GridFloor = ({ gameState, courseLength, tick = 0, viewWidth: viewWi
 
     const scrollOffset = useMemo(() => {
         if (!isMoving) return 0;
-        // Match obstacle speed: obstacles move BASE_SPEED*60 px/s, distance increases by courseLength/STAGE_DURATION per second
-        const pixelsPerDistance = ((BASE_SPEED * 60 * STAGE_DURATION_SECONDS) / courseLength) * GRID_SPEED_NUDGE;
-        const raw = gameState.distance * pixelsPerDistance;
+        // Scroll moves exactly as far as the obstacles do, whatever the speed.
+        const raw = gameState.scroll * GRID_SPEED_NUDGE;
         return ((raw % CELL_WIDTH) + CELL_WIDTH) % CELL_WIDTH;
-    }, [isMoving, gameState.distance, courseLength, tick]);
+    }, [isMoving, gameState.scroll, tick]);
 
     const content = useMemo(() => {
         const lines: string[] = [];

@@ -70,6 +70,8 @@ interface Props {
     /** How far the player has run. A plain number: the React Compiler treats the game
      *  state object as unchanged, which would freeze this on its first frame. */
     distance: number;
+    /** Seconds into the stage, for the fireworks. Plain number, for the same reason. */
+    seconds: number;
     viewWidth?: number;
 }
 
@@ -103,7 +105,7 @@ function tileLayer(
     });
 }
 
-export const VictoryDawnBackground = ({ distance, viewWidth: viewWidthProp }: Props) => {
+export const VictoryDawnBackground = ({ distance, seconds, viewWidth: viewWidthProp }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const back = useStripImages("victory-back", BACK_SOURCES);
     const front = useStripImages("victory-front", FRONT_SOURCES);
@@ -112,9 +114,6 @@ export const VictoryDawnBackground = ({ distance, viewWidth: viewWidthProp }: Pr
         () => FIREWORKS.map((f) => burstPath(f.spokes)),
         []
     );
-
-    // Distance advances at a steady rate, so it doubles as a clock.
-    const seconds = distance / 240;
 
     return (
         <>

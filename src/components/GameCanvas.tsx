@@ -3,12 +3,12 @@ import { Canvas, Circle, Group, LinearGradient, Mask, Rect, vec } from "@shopify
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-    COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
+    BASE_SPEED, COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
     GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { shapeFor } from "../game/obstacleCatalogue";
-import { STAGES, StageConfig } from "../game/stages";
+import { remainingScroll, STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
@@ -185,7 +185,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
     const RUN_THROUGH = 60;
-    const finishX = (currentStage.courseLength - gameState.distance)
+    const finishX = remainingScroll(currentStage, gameState.stageProgress)
         + PLAYER_X + PLAYER_SIZE / 2 - RUN_THROUGH + gameOffsetX;
     const showFinish = finishX > -400 && finishX < viewWidth + 400;
 
@@ -250,7 +250,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 })()}
 
                 {/* 4. Grid and ground line first; then city on top so buildings are never clipped by the line. */}
-                <GridFloor gameState={gameState} courseLength={currentStage.courseLength} tick={tick} viewWidth={viewWidth} gridColor={currentStage.theme?.gridColor} />
+                <GridFloor gameState={gameState} tick={tick} viewWidth={viewWidth} gridColor={currentStage.theme?.gridColor} />
                 <Rect
                     x={0}
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}
@@ -262,7 +262,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 {/* 5 & 6. City / non-city: drawn after grid + ground line so buildings render on top (no clip; city content is already above grid). */}
                 {isCity && (
                     <NeonCityScenery
-                        distance={gameState.distance}
+                        distance={gameState.scroll}
                         lightLevel={cityLightLevel}
                         viewWidth={viewWidth}
                         onAssetsReady={onAssetsReady}
@@ -271,13 +271,17 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 {/* Scenery is written inline rather than returned from a helper: with the React
                     Compiler on, a helper's result gets cached and the background stops scrolling. */}
                 {currentStage.assets.backgroundType === "beach" && (
-                    <SunsetBeachBackground distance={gameState.distance} viewWidth={viewWidth} />
+                    <SunsetBeachBackground distance={gameState.scroll} viewWidth={viewWidth} />
                 )}
                 {currentStage.assets.backgroundType === "mountains" && (
-                    <MidnightMountainsBackground distance={gameState.distance} viewWidth={viewWidth} />
+                    <MidnightMountainsBackground distance={gameState.scroll} viewWidth={viewWidth} />
                 )}
                 {currentStage.assets.backgroundType === "city_victory" && (
-                    <VictoryDawnBackground distance={gameState.distance} viewWidth={viewWidth} />
+                    <VictoryDawnBackground
+                        distance={gameState.scroll}
+                        seconds={gameState.elapsedSecInStage}
+                        viewWidth={viewWidth}
+                    />
                 )}
 
                 {/* 8. Finish line, far side: the runner is drawn in front of this part. */}
@@ -360,7 +364,8 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     x={PLAYER_X + gameOffsetX}
                     y={player.y + RUNNER_VISUAL_Y_OFFSET}
                     size={PLAYER_SIZE}
-                    animationTimeSec={gameState.elapsedSecInStage ?? 0}
+                    // Legs keep pace with the ground: at the original 240 px/sec this is plain seconds.
+                    animationTimeSec={gameState.scroll / (BASE_SPEED * 60)}
                     isGrounded={player.isGrounded}
                     isDucking={player.isDucking}
                     isRunning={gameState.gameStarted && !gameState.gameOver}

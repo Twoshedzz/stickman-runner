@@ -1,4 +1,4 @@
-import { BASE_SPEED, DUCK_DURATION_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { DUCK_DURATION_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
@@ -71,7 +71,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
 
     // Move Obstacles (scale by deltaTime so movement is in sync with real time)
     obstacles.forEach(obs => {
-        let speed = BASE_SPEED;
+        let speed = state.speed / 60; // pixels per 60fps frame
         if (obs.role === 'mover') {
             obs.phase = (obs.phase || 0) + 0.1 * scale;
             speed += Math.cos(obs.phase) * 3;

@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAX_HEALTH, STAGE_DURATION_SECONDS, TIME_CYCLE_DURATION } from '../constants';
+import { frameScale } from '../frame';
 import { updateParticles } from '../particles';
-import { STAGES } from '../stages';
+import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump, startDuck } from '../systems/physics';
@@ -104,6 +105,7 @@ export const useGameLoop = () => {
                 state.elapsedSecInStage = elapsedSec;
                 state.stageProgress = Math.min(elapsedSec / STAGE_DURATION_SECONDS, 1);
                 state.distance = state.stageProgress * currentStage.courseLength;
+                state.speed = speedAt(currentStage, state.stageProgress);
 
                 const cycleStart = 0.25;
                 const cycleRange = 0.75;
@@ -130,6 +132,8 @@ export const useGameLoop = () => {
                     const now = performance.now();
                     const deltaTimeSec = lastFrameTimeRef.current ? (now - lastFrameTimeRef.current) / 1000 : 1 / 60;
                     lastFrameTimeRef.current = now;
+                    // Same step the obstacles take, so the scenery and grid move with them.
+                    state.scroll += (state.speed / 60) * frameScale(deltaTimeSec);
                     applyPhysics(state, deltaTimeSec);
                     if (state.distance < currentStage.courseLength - 1000) {
                         spawnObstacle(state, currentStage, deltaTimeSec);
@@ -239,6 +243,7 @@ export const useGameLoop = () => {
         const state = stateRef.current;
         state.stageId = stageId;
         state.distance = 0;
+        state.scroll = 0;
         state.stageProgress = 0;
         state.elapsedSecInStage = 0;
         state.stageStartTime = Date.now() / 1000;
@@ -282,6 +287,7 @@ export const useGameLoop = () => {
             if (nextStage) {
                 state.stageId = nextStage.id;
                 state.distance = 0;
+                state.scroll = 0;
                 state.stageStatus = 'playing';
                 state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
                 state.obstacles = [];

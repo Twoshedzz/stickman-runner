@@ -1,4 +1,4 @@
-import { MAX_HEALTH, PLAYER_SIZE, RUNNER_GROUND_Y } from './constants';
+import { BASE_SPEED, MAX_HEALTH, PLAYER_SIZE, RUNNER_GROUND_Y } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
 import { Particle } from './particles';
 
@@ -48,7 +48,12 @@ export interface GameState {
     particles: Particle[];
     score: number;
     stageStatus: 'playing' | 'exhausted' | 'victory';
+    /** Where the stage is on its dusk-to-dawn timeline. Runs on the clock, not the speed. */
     distance: number;
+    /** How far the world has actually moved this stage, in pixels. Scenery and grid scroll by this. */
+    scroll: number;
+    /** Current world speed, pixels per second. Rises through each stage. */
+    speed: number;
     /** What the spawner remembers about the last pattern it placed. */
     spawner: SpawnerState;
     energy: number;
@@ -83,6 +88,8 @@ export const createInitialState = (): GameState => ({
     score: 0,
     stageStatus: 'playing',
     distance: 0,
+    scroll: 0,
+    speed: BASE_SPEED * 60,
     spawner: createSpawnerState(),
     energy: 100,
     timeOfDay: 0.35 * 6000,

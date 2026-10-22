@@ -1,4 +1,4 @@
-import { BASE_SPEED, JUMP_ENERGY_COST, SCREEN_WIDTH } from '../constants';
+import { JUMP_ENERGY_COST, SCREEN_WIDTH } from '../constants';
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { minGapSec, Pattern, PATTERNS } from '../patterns';
@@ -72,8 +72,8 @@ export const spawnObstacle = (
     random: () => number = Math.random
 ) => {
     const spawner = state.spawner;
-    const speedPerFrame = BASE_SPEED;
-    const speed = speedPerFrame * 60; // pixels per second
+    const speed = state.speed; // pixels per second
+    const speedPerFrame = speed / 60;
 
     // The last pattern scrolls left with everything else.
     spawner.endX -= speedPerFrame * frameScale(deltaTimeSec);

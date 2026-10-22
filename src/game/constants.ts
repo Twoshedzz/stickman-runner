@@ -37,6 +37,11 @@ export const HEART_HEAL = 3;
 // Physics
 export const GRAVITY = 0.6;
 export const JUMP_FORCE = -12;
+/**
+ * The original world speed, 4px per frame (240 px/sec). The world now speeds up through
+ * each stage (see `speed` in stages.ts); this stays as the yardstick for the sky timeline
+ * and the run cycle, which were tuned at this speed.
+ */
 export const BASE_SPEED = 4;
 
 // Visuals (Synthwave Theme & Day/Night Cycle)
@@ -98,10 +103,9 @@ export const ENERGY_REGEN = 0.5;
 export const STAGE_DURATION_SECONDS = 180;
 
 /**
- * Distance units in one stage. This is the number of pixels the world travels in a stage
- * (BASE_SPEED x 60fps x duration), which is what keeps 1 distance unit = 1 pixel.
- * The victory arch and the grid scroll both rely on that, so don't hand-pick a different
- * number per stage: an arch that drifts against the ground is the symptom.
+ * Length of a stage's sky timeline (sun, moon, lights), in distance units. Distance runs
+ * on the clock: it was once also how far the world moved, back when the speed was fixed.
+ * Scenery, grid and finish line now move by GameState.scroll instead.
  */
 export const COURSE_LENGTH = BASE_SPEED * 60 * STAGE_DURATION_SECONDS;
 
