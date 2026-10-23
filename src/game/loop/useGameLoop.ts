@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { frameScale } from '../frame';
 import { updateParticles } from '../particles';
@@ -42,6 +43,30 @@ export const useGameLoop = () => {
     }
     const requestRef = useRef<number | null>(null);
     const lastFrameTimeRef = useRef<number>(0);
+
+    /**
+     * Freeze the game while it's in the background (another app, or the phone locked), and
+     * carry on exactly where it left off on return. The stage clock runs on real time, so the
+     * time away is added to the stage's start time; otherwise the stage would have jumped
+     * ahead while the music (paused by the music player) picked up where it stopped.
+     */
+    useEffect(() => {
+        let awaySince: number | null = null;
+        const subscription = AppState.addEventListener('change', (next) => {
+            if (next !== 'active') {
+                if (awaySince === null) awaySince = Date.now() / 1000;
+                return;
+            }
+            if (awaySince === null) return;
+            const away = Date.now() / 1000 - awaySince;
+            awaySince = null;
+            const state = stateRef.current;
+            if (state.stageStartTime > 0) state.stageStartTime += away;
+            // Start timing frames afresh, so the first frame back isn't one huge step.
+            lastFrameTimeRef.current = 0;
+        });
+        return () => subscription.remove();
+    }, []);
 
     // UI State Sync (Optimized)
     const [gameMetrics, setGameMetrics] = useState({
