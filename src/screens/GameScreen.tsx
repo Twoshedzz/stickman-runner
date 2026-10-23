@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
+import { GestureResponderEvent, Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
@@ -38,6 +38,9 @@ const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
 
 /** Desktop web: fixed size for preview/feedback; no filling the browser. */
 const WEB_VIEWPORT = { width: 600, height: 350 };
+
+/** How far a finger has to move down, in screen points, to count as a swipe to duck. */
+const SWIPE_DUCK_PX = 24;
 
 /**
  * A phone or tablet browser, including the game saved to the home screen. These fill the
@@ -148,6 +151,37 @@ export const GameScreen = () => {
         onJump();
     }, [onJump, gameState.gameOver, gameState.showContinue]);
 
+    /**
+     * Phone browsers: one handler decides, for each touch, whether it's a tap (jump) or a
+     * downward swipe (duck). In a browser the gesture library and the tap button each saw
+     * the same touch, so a swipe also jumped on release, and jumping cancels a duck.
+     * The phone app keeps the gesture library below, where it works.
+     */
+    const touchRef = useRef<{ x: number; y: number; ducked: boolean } | null>(null);
+    const onTouchStart = useCallback((e: GestureResponderEvent) => {
+        const t = e.nativeEvent.touches[0];
+        if (t) touchRef.current = { x: t.pageX, y: t.pageY, ducked: false };
+    }, []);
+    const onTouchMove = useCallback((e: GestureResponderEvent) => {
+        const start = touchRef.current;
+        const t = e.nativeEvent.touches[0];
+        if (!start || start.ducked || !t) return;
+        const dx = t.pageX - start.x;
+        const dy = t.pageY - start.y;
+        // Duck the moment the finger has clearly moved down, rather than waiting for it to lift.
+        if (dy > SWIPE_DUCK_PX && dy > Math.abs(dx)) {
+            start.ducked = true;
+            if (!gameState.gameOver && !gameState.showContinue) onDuck();
+        }
+    }, [onDuck, gameState.gameOver, gameState.showContinue]);
+    const onTouchEnd = useCallback((e: GestureResponderEvent) => {
+        const start = touchRef.current;
+        touchRef.current = null;
+        // Stops the browser also sending a mouse click for this touch.
+        e.preventDefault();
+        if (start && !start.ducked) handleInteraction();
+    }, [handleInteraction]);
+
     // Web Keyboard: capture phase so we handle Space/Up before React (no synthetic click on Pressable)
     const gameStateRef = React.useRef(gameState);
     gameStateRef.current = gameState;
@@ -211,14 +245,23 @@ export const GameScreen = () => {
                 </View>
 
                 {/* 2. Input Layer - Transparent; no tap when Continue modal is showing so music doesn’t restart */}
-                <GestureDetector gesture={duckGesture}>
-                    <View style={[styles.inputLayer, { pointerEvents: gameState.showContinue ? 'none' : 'auto' }]}>
-                        <Pressable style={StyleSheet.absoluteFill} onPress={handleInteraction} />
-                    </View>
-                </GestureDetector>
+                {isTouchWeb ? (
+                    <View
+                        style={[styles.inputLayer, { pointerEvents: gameState.showContinue ? 'none' : 'auto' }]}
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
+                    />
+                ) : (
+                    <GestureDetector gesture={duckGesture}>
+                        <View style={[styles.inputLayer, { pointerEvents: gameState.showContinue ? 'none' : 'auto' }]}>
+                            <Pressable style={StyleSheet.absoluteFill} onPress={handleInteraction} />
+                        </View>
+                    </GestureDetector>
+                )}
 
                 {/* 3. UI Overlay */}
-                <View style={[styles.uiLayer, { pointerEvents: 'box-none' }]}>
+                <View style={styles.uiLayer}>
                     {/* Loading: hide black block until assets ready */}
                     {!readyToStart && (
                         <View style={styles.countdownOverlay}>
@@ -455,7 +498,10 @@ const styles = StyleSheet.create({
     },
     uiLayer: {
         ...StyleSheet.absoluteFillObject,
-        // pointerEvents removed from style, used as prop instead
+        // Taps pass through to the jump layer except on buttons. This has to live here in the
+        // stylesheet: on web, 'box-none' written inline is silently dropped, and the overlay
+        // then swallows every tap, so tapping never jumped.
+        pointerEvents: 'box-none',
         zIndex: 20,
         justifyContent: 'center',
         alignItems: 'center',
