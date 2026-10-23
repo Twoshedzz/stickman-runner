@@ -77,6 +77,10 @@ export const useBackgroundMusic = () => {
             if (wantPlayingRef.current && current && current.paused) {
                 current.play()?.catch(() => {});
             }
+            // Only unlock other tracks once the music is already going (taps to jump during a
+            // stage). On the START tap itself this would start-and-stop stage 1's own track in
+            // the same instant the game starts it for real, and iPhone could drop the real start.
+            if (!wantPlayingRef.current) return;
             preloadedRef.current.forEach((audio) => {
                 if (unlocked.has(audio) || audio === webAudioRef.current) return;
                 unlocked.add(audio);
