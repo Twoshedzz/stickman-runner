@@ -44,11 +44,11 @@ const SURF_RATE = 0.3;
 const REFLECTION = "#fd9e5d";
 
 /**
- * Sunrise: the sun's centre at the start (just a sliver above the sea) and at the end (the
- * whole disk just clear of the water). It climbs steadily between them.
+ * Sunset: the sun's centre at the start (the whole disk just clear of the water) and at the
+ * end (just a sliver left above the sea). It sinks steadily between them.
  */
-const SUN_START_Y = WATERLINE + SUN.radius - 8;
-const SUN_END_Y = WATERLINE - SUN.radius - 4;
+const SUN_START_Y = WATERLINE - SUN.radius - 4;
+const SUN_END_Y = WATERLINE + SUN.radius - 8;
 
 const PALMS = { width: 450, height: 170, rate: 0.45 };
 
@@ -81,9 +81,9 @@ interface Props {
     distance: number;
     /** Seconds into the stage, for the waves. Plain number, for the same reason. */
     seconds: number;
-    /** How far through the stage, 0 to 1: the sun rises with it. */
+    /** How far through the stage, 0 to 1: the sun sets with it. */
     progress: number;
-    /** The sky's current top, middle and bottom colours (it lightens through the stage). */
+    /** The sky's current top, middle and bottom colours (it darkens through the stage). */
     skyTop: string;
     skyMid: string;
     skyBottom: string;
@@ -198,16 +198,16 @@ function useReflection(viewWidth: number, seconds: number, rise: number, sunHalf
     return paths.map((p) => {
         const along = (seconds / TWINKLE_SEC + p.group / TWINKLE_GROUPS) % 1;
         const glint = Math.sin(Math.PI * along) ** 2; // 0 at each end of the fade, 1 in the middle
-        // ...and grows brighter.
+        // ...and dims as the sun goes down.
         return { d: p.d, opacity: p.base * (0.45 + 0.55 * rise) * Math.min(1, glint * 1.6) };
     });
 }
 
 /**
- * Low cloud along the horizon, the classic 80s sunrise look. In perspective the streaks
+ * Low cloud along the horizon, the classic 80s sunset look. In perspective the streaks
  * nearest the horizon are the furthest away, so those stay as thin flat stripes, slightly
  * dimmer; the higher, nearer ones are a little thicker with a gently bumpy top. Both drift
- * slowly and warm in colour as the sun comes up. Each layer is one shape: two draws in all.
+ * slowly and cool in colour as the sun goes down. Each layer is one shape: two draws in all.
  */
 const CLOUD_TILE = 1200;
 const CLOUDS = {
@@ -222,7 +222,7 @@ const CLOUDS = {
         { x: 820, y: 209, length: 280, h: 4 }, { x: 0, y: 212, length: 90, h: 2 },
     ],
 };
-/** Colours of each layer before sunrise and once the sun is up. */
+/** Colours of each layer once the sun is down and while it's still up. */
 const CLOUD_COLOURS = {
     near: ["#6e3570", "#ffa98a"],
     far: ["#4a2a66", "#c97a8e"],
@@ -292,10 +292,13 @@ function useClouds(viewWidth: number, distance: number, seconds: number, rise: n
 export const SunsetBeachBackground = ({ distance, seconds, progress, skyTop, skyMid, skyBottom, viewWidth: viewWidthProp }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const palms = useStripImages("beach-palms", PALM_SOURCES);
-    const rise = Math.max(0, Math.min(1, progress));
-    const sunY = SUN_START_Y + (SUN_END_Y - SUN_START_Y) * rise;
-    // How wide the sun is where it meets the water: just a chord while it's still rising out
-    // of the sea, its full width once it's clear. The light on the water matches this.
+    const set = Math.max(0, Math.min(1, progress));
+    // How high the sun still is: 1 at the start, down to 0 as it sets. The clouds and the
+    // light on the water fade with it.
+    const rise = 1 - set;
+    const sunY = SUN_START_Y + (SUN_END_Y - SUN_START_Y) * set;
+    // How wide the sun is where it meets the water: its full width while it's clear, just a
+    // chord once it's sinking into the sea. The light on the water matches this.
     const belowWater = sunY - WATERLINE;
     const sunHalfWidth = belowWater <= 0
         ? SUN.radius
@@ -328,7 +331,7 @@ export const SunsetBeachBackground = ({ distance, seconds, progress, skyTop, sky
                 })}
             </Group>
 
-            {/* Low cloud on the horizon, in front of the rising sun. */}
+            {/* Low cloud on the horizon, in front of the setting sun. */}
             <Path path={clouds.far} color={clouds.farColour} style="fill" opacity={0.75} />
             <Path path={clouds.near} color={clouds.nearColour} style="fill" opacity={0.9} />
 

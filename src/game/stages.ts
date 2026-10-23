@@ -352,15 +352,15 @@ export const STAGES: StageConfig[] = [
         durationSec: 174, // music plays to 173.5s
         beat: { sec: 0.7483, firstSec: 0.025 }, // 80.2 BPM
         courseLength: COURSE_LENGTH,
-        // Sunrise: the sky lifts gently from deeper to lighter tones over the whole stage.
-        // The sun and its light on the water rise with it (SunsetBeachBackground).
+        // Sunset: the sky deepens gently from lighter to darker tones over the whole stage.
+        // The sun and its light on the water sink with it (SunsetBeachBackground).
         timeline: [
             {
                 type: 'sky_gradient',
                 trigger: { start: 0, end: COURSE_LENGTH },
                 values: {
-                    startColor: ['#3e2c7a', '#8c4a8e', '#d8636c'],
-                    endColor: ['#7d68bd', '#c472a8', '#f8957c'],
+                    startColor: ['#7d68bd', '#c472a8', '#f8957c'],
+                    endColor: ['#3e2c7a', '#8c4a8e', '#d8636c'],
                 },
             },
         ],
