@@ -271,7 +271,11 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 {/* Scenery is written inline rather than returned from a helper: with the React
                     Compiler on, a helper's result gets cached and the background stops scrolling. */}
                 {currentStage.assets.backgroundType === "beach" && (
-                    <SunsetBeachBackground distance={gameState.scroll} viewWidth={viewWidth} />
+                    <SunsetBeachBackground
+                        distance={gameState.scroll}
+                        seconds={gameState.elapsedSecInStage}
+                        viewWidth={viewWidth}
+                    />
                 )}
                 {currentStage.assets.backgroundType === "mountains" && (
                     <MidnightMountainsBackground distance={gameState.scroll} viewWidth={viewWidth} />

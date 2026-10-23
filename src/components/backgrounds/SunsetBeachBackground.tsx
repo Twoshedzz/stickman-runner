@@ -28,8 +28,18 @@ const SUN_BANDS = [0.34, 0.52, 0.70, 0.86];
 // Sea and sand are kept clearly apart: the sea cool and deep, the sand warm, catching the sunset.
 const OCEAN = "#221a52";
 const SAND_COLOUR = "#6e3657";
-/** A thin line of surf where the water meets the sand. */
+/** Surf where the water meets the sand. */
 const SURF = "#f7a8c4";
+/** How far into the sand the palm trunks stand: further than the waves ever reach. */
+const PALM_SETBACK = 16;
+/** The thin sheet of water a wave pushes up the sand. */
+const WASH = "#4a3a86";
+/** How long one wave takes to wash up the sand and slide back. */
+const WAVE_PERIOD_SEC = 5;
+/** How far up the sand a wave reaches, in pixels. */
+const WAVE_REACH = 7;
+/** The waterline sits at mid depth, so the surf drifts past at about this share of the ground's speed. */
+const SURF_RATE = 0.3;
 const REFLECTION = "#fd9e5d";
 
 /** Matches the stage's skyColors, so the sun's bands blend into the sky behind them. */
@@ -65,7 +75,30 @@ interface Props {
     /** How far the player has run. A plain number: the React Compiler treats the game
      *  state object as unchanged, which would freeze this on its first frame. */
     distance: number;
+    /** Seconds into the stage, for the waves. Plain number, for the same reason. */
+    seconds: number;
     viewWidth?: number;
+}
+
+/**
+ * The foam edge of one wave: a gently rippled line that washes a few pixels up the sand
+ * and slides back again, brightest at the top of its run. `offset` (0-1) staggers waves.
+ * One path per wave keeps the draw count low on web.
+ */
+function foam(viewWidth: number, distance: number, seconds: number, offset: number) {
+    const cycle = (seconds / WAVE_PERIOD_SEC + offset) % 1;
+    const wash = Math.sin(cycle * Math.PI); // 0 at the waterline, 1 at the top of the run
+    const reach = SAND + wash * WAVE_REACH;
+    const drift = distance * SURF_RATE;
+    let d = "";
+    for (let x = -10; x <= viewWidth + 10; x += 10) {
+        const worldX = x + drift;
+        const y = reach + Math.sin(worldX / 23) * 1.2 + Math.sin(worldX / 61 + seconds * 0.7) * 1.6 * wash;
+        d += `${d ? "L" : "M"}${x} ${y.toFixed(1)} `;
+    }
+    // The sheet of water behind the foam, from the waterline down to the foam's edge.
+    const sheet = `${d}L${viewWidth + 10} ${SAND} L-10 ${SAND} Z`;
+    return { d, sheet, wash, opacity: 0.15 + 0.6 * wash };
 }
 
 function tileLayer(
@@ -110,37 +143,59 @@ function tileLayer(
  */
 const REFLECTION_BANDS = [0.72, 0.52, 0.34];
 
-function useReflection(viewWidth: number, distance: number) {
-    // Shifts slowly so the water moves without the bars jittering every frame.
-    const phase = Math.floor(distance / 26);
-    return useMemo(() => {
-        let seed = 9901 + phase;
-        const random = () => {
-            seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-            return seed / 0x7fffffff;
-        };
+/** The glints on the water twinkle in groups, each brightening and fading in turn. */
+const TWINKLE_GROUPS = 3;
+/** How long one glint takes to brighten and fade away again. */
+const TWINKLE_SEC = 2.4;
 
-        const bands = REFLECTION_BANDS.map(() => '');
-        for (let y = WATERLINE + 3; y < SAND; y += 3) {
-            const depth = (y - WATERLINE) / (SAND - WATERLINE);
-            const spread = 10 + depth * 46;
-            // Nearer the horizon the light is brighter, so pick the band by depth.
-            const band = Math.min(REFLECTION_BANDS.length - 1, Math.floor(depth * REFLECTION_BANDS.length));
-            for (let b = 0; b < 3; b++) {
+/**
+ * The sun's reflection: short glints on the water that twinkle. Each group of glints fades
+ * in and out on its own beat, and only moves to new spots while it's fully faded, so the
+ * water sparkles gently instead of jumping. A few paths in all, to keep web drawing light.
+ */
+function useReflection(viewWidth: number, seconds: number) {
+    // Which fade each group is on. A group's glints are only re-laid out when this changes,
+    // which is the moment that group is invisible.
+    const cycles = Array.from({ length: TWINKLE_GROUPS }, (_, g) =>
+        Math.floor(seconds / TWINKLE_SEC + g / TWINKLE_GROUPS));
+    const cycleKey = cycles.join(',');
+
+    const paths = useMemo(() => {
+        const out: { d: string; base: number; group: number }[] = [];
+        cycles.forEach((cycle, group) => {
+            let seed = 9901 + group * 7919 + cycle * 104729;
+            const random = () => {
+                seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+                return seed / 0x7fffffff;
+            };
+            const bands = REFLECTION_BANDS.map(() => '');
+            for (let y = WATERLINE + 3; y < SAND; y += 3) {
+                const depth = (y - WATERLINE) / (SAND - WATERLINE);
+                const spread = 10 + depth * 46;
+                // Nearer the horizon the light is brighter, so pick the band by depth.
+                const band = Math.min(REFLECTION_BANDS.length - 1, Math.floor(depth * REFLECTION_BANDS.length));
                 const length = spread * (0.3 + random() * 0.7);
                 const x = viewWidth / 2 + (random() - 0.5) * spread * 2 - length / 2;
                 bands[band] += `M${x.toFixed(1)} ${y}h${length.toFixed(1)}v1.5h-${length.toFixed(1)}Z`;
             }
-        }
-        return bands.map((d, i) => ({ d, opacity: REFLECTION_BANDS[i] }));
-    }, [viewWidth, phase]);
+            bands.forEach((d, i) => out.push({ d, base: REFLECTION_BANDS[i], group }));
+        });
+        return out;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewWidth, cycleKey]);
+
+    return paths.map((p) => {
+        const along = (seconds / TWINKLE_SEC + p.group / TWINKLE_GROUPS) % 1;
+        const glint = Math.sin(Math.PI * along) ** 2; // 0 at each end of the fade, 1 in the middle
+        return { d: p.d, opacity: p.base * Math.min(1, glint * 1.6) };
+    });
 }
 
-export const SunsetBeachBackground = ({ distance, viewWidth: viewWidthProp }: Props) => {
+export const SunsetBeachBackground = ({ distance, seconds, viewWidth: viewWidthProp }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const far = useStripImages("beach-far", FAR_SOURCES);
     const palms = useStripImages("beach-palms", PALM_SOURCES);
-    const reflection = useReflection(viewWidth, distance);
+    const reflection = useReflection(viewWidth, seconds);
 
     const sunX = viewWidth / 2;
 
@@ -174,8 +229,18 @@ export const SunsetBeachBackground = ({ distance, viewWidth: viewWidthProp }: Pr
 
             {/* Sand, then the palms standing on it. */}
             <Rect x={0} y={SAND} width={viewWidth} height={GRID_TOP_Y - SAND} color={SAND_COLOUR} />
-            <Rect x={0} y={SAND - 1} width={viewWidth} height={2} color={SURF} opacity={0.55} />
-            {tileLayer(palms, PALMS, distance, viewWidth, SAND - PALMS.height + 8, "beach-palms")}
+            <Rect x={0} y={SAND - 1} width={viewWidth} height={1.5} color={SURF} opacity={0.35} />
+            {[0, 0.5].map((offset) => {
+                const wave = foam(viewWidth, distance, seconds, offset);
+                return (
+                    <Group key={offset}>
+                        <Path path={wave.sheet} color={WASH} style="fill" opacity={0.5 * wave.wash} />
+                        <Path path={wave.d} color={SURF} style="stroke" strokeWidth={1.6} opacity={wave.opacity} />
+                    </Group>
+                );
+            })}
+            {/* Palms stand far enough back that the highest wave (about 10px up the sand) stops short of the trunks. */}
+            {tileLayer(palms, PALMS, distance, viewWidth, SAND - PALMS.height + PALM_SETBACK, "beach-palms")}
         </>
     );
 };
