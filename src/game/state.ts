@@ -52,9 +52,15 @@ export interface GameState {
         /** What it does: jump it, duck it, collect it. The sprite is only how it looks. */
         role?: ObstacleRole;
         phase?: number; // For oscillation
+        /** Touched during the safe moment after a hit: it doesn't count towards the streak. */
+        grazed?: boolean;
     }[];
+    /** Neon pickups to collect, by the centre of each. They move with the obstacles. */
+    pickups: { id: number; x: number; y: number }[];
     particles: Particle[];
     score: number;
+    /** Obstacles cleared in a row without a hit. Sets the score multiplier (see pickups.ts). */
+    streak: number;
     stageStatus: 'playing' | 'exhausted' | 'victory';
     /** Where the stage is on its dusk-to-dawn timeline. Runs on the clock, not the speed. */
     distance: number;
@@ -96,8 +102,10 @@ export const createInitialState = (): GameState => ({
         maxHealth: MAX_HEALTH,
     },
     obstacles: [],
+    pickups: [],
     particles: [],
     score: 0,
+    streak: 0,
     stageStatus: 'playing',
     distance: 0,
     scroll: 0,

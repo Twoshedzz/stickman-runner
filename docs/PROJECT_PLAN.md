@@ -30,7 +30,8 @@ The names stay as they are, even though stage 2 is now a sunrise and stage 4 end
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the gameplay pass (§4). Steps 0–3 and 6 are done; steps 4 and 5 are next.
+**Current focus:** the gameplay pass (§4). Steps 0–4 and 6 are done (step 4 still to be tried on
+the phone); step 5 is next.
 
 ---
 
@@ -101,9 +102,24 @@ heart generosity (`pacing.hearts`): stage 1 the most generous, stage 4 the least
   second of a tight pair, which is deliberately close behind the first. A test checks this.
 - The ground line pulses on every beat.
 
-**Step 4 — something to do between obstacles.** Not started.
-Silent neon pickups in trails (along the ground and tracing jump arcs), and a streak multiplier
-(×2 / ×3 / ×4 at 10 / 25 / 50 clean obstacles; a hit resets it).
+**Step 4 — something to do between obstacles.** ✅ Done, not yet tried on the phone.
+All in `src/game/pickups.ts`; the spawner lays the trails as it places each pattern.
+- **Neon green diamonds**, a colour no stage uses for anything else. Silent: collecting one sends
+  a few sparks to the score.
+- **Jump arcs:** half the patterns get five pickups tracing a jump over each block (not over the
+  purple sphere, which wobbles, or the wide block). A well-timed jump collects the whole arc;
+  running underneath collects none. Two blocks one jump clears share one arc.
+- **Ground trails:** in most rests long enough, a line along the ground every 0.15 sec, starting
+  after the runner has landed and ending before the next pattern. Not when a heart is in the rest.
+- About 300–400 pickups a stage, against about 130 obstacles.
+- **Streak:** every obstacle cleared without a hit adds one; a hit resets it (in debug mode
+  too). ×2 / ×3 / ×4 at 10 / 25 / 50, applied to everything that scores. The multiplier and
+  streak count show under the score, and a green burst marks each new level.
+- Small changes to scoring: a missed heart no longer scores a point, and an obstacle brushed
+  during the safe second after a hit doesn't count.
+- **Scores are much bigger now** (pickups score, and the multiplier), so best runs from before
+  are easy to beat.
+- To tune: `TRAIL_SPACING_SEC`, `ARC_CHANCE`, `TRAIL_CHANCE` and `STREAK_LEVELS` in `pickups.ts`.
 
 **Step 5 — calm and busy sections that follow the music.** Not started.
 A short intensity list per track (warm-up, waves, breather, finale) that scales the step 1 budget.
@@ -115,10 +131,12 @@ A short intensity list per track (warm-up, waves, breather, finale) that scales 
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (90 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (111 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
+- `pickups.test.ts` checks a good jump collects a whole arc at every speed, running collects a
+  trail, no pickup sits inside an obstacle across whole stages, and the streak rules.
 - Then played on the phone — Pete and his son are the real test.
 
 ---
@@ -247,8 +265,9 @@ Not urgent, but each one removes a trap:
 | Gameplay step 1: obstacle patterns, budget, hearts | ✅ Done; stage 1 retuned |
 | Gameplay step 2: speed rise | ✅ Done |
 | Gameplay step 3: obstacles on the beat | ✅ Done |
+| Gameplay step 4: pickups and streak | ✅ Done; to try on the phone |
 | Gameplay step 6: feel and forgiveness | ✅ Done |
-| Gameplay steps 4–5: pickups and streak, music sections | ⏭️ Next |
+| Gameplay step 5: music sections | ⏭️ Next |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |

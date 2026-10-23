@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { frameScale } from '../frame';
 import { updateParticles } from '../particles';
+import { collectPickups } from '../pickups';
 import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
@@ -41,6 +42,10 @@ export const useGameLoop = () => {
     if (stateRef.current.debugMode === undefined) {
         stateRef.current.debugMode = false;
     }
+    if (stateRef.current.pickups === undefined) {
+        stateRef.current.pickups = [];
+        stateRef.current.streak = 0;
+    }
     const requestRef = useRef<number | null>(null);
     const lastFrameTimeRef = useRef<number>(0);
 
@@ -73,7 +78,8 @@ export const useGameLoop = () => {
         score: 0,
         health: MAX_HEALTH,
         energy: 100,
-        maxHealth: MAX_HEALTH
+        maxHealth: MAX_HEALTH,
+        streak: 0,
     });
     const metricsRef = useRef(gameMetrics); // Ref to avoid closure staleness in loop check
 
@@ -164,11 +170,8 @@ export const useGameLoop = () => {
                         spawnObstacle(state, currentStage, deltaTimeSec);
                     }
                     state.particles = updateParticles(state.particles, deltaTimeSec);
-                    const isCollision = checkCollisions(state);
-
-                    if (isCollision) {
-                        // state is mutated in place
-                    }
+                    checkCollisions(state);
+                    collectPickups(state);
                 }
 
                 // Check High Score
@@ -184,13 +187,15 @@ export const useGameLoop = () => {
                     state.score !== metricsRef.current.score ||
                     state.player.health !== metricsRef.current.health ||
                     Math.floor(state.energy) !== Math.floor(metricsRef.current.energy) ||
-                    state.player.maxHealth !== metricsRef.current.maxHealth
+                    state.player.maxHealth !== metricsRef.current.maxHealth ||
+                    state.streak !== metricsRef.current.streak
                 ) {
                     const newMetrics = {
                         score: state.score,
                         health: state.player.health,
                         energy: state.energy,
-                        maxHealth: state.player.maxHealth
+                        maxHealth: state.player.maxHealth,
+                        streak: state.streak,
                     };
                     metricsRef.current = newMetrics;
                     setGameMetrics(newMetrics);
@@ -244,7 +249,8 @@ export const useGameLoop = () => {
             score: 0,
             health: MAX_HEALTH,
             energy: 100,
-            maxHealth: MAX_HEALTH
+            maxHealth: MAX_HEALTH,
+            streak: 0,
         };
         metricsRef.current = initialMetrics;
         setGameMetrics(initialMetrics);

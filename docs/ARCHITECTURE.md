@@ -142,6 +142,7 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 |---------|----------------|
 | Gravity, jump, ground | `src/game/systems/physics.ts`, `constants.ts` |
 | Hits / hearts | `src/game/systems/collisions.ts` |
+| Pickups, streak multiplier | `src/game/pickups.ts` |
 | Obstacle cadence | `src/game/systems/spawn.ts`, stage `difficultySegments` |
 | Stage themes / music ids | `src/game/stages.ts` |
 | Loop / stage timing | `src/game/loop/useGameLoop.ts` |

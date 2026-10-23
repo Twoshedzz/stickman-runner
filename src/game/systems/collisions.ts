@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { HEART_HEAL, HIT_GRACE_SEC, OVERHEAD_TOP_OFFSET, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
+import { addScore, breakStreak } from '../pickups';
 import { GameState } from '../state';
 
 export const checkCollisions = (state: GameState) => {
@@ -55,7 +56,7 @@ export const checkCollisions = (state: GameState) => {
                     );
                 } else {
                     // Excess Health -> Score Bonus!
-                    state.score += 1;
+                    addScore(state);
                     // Spawn Gold Particles -> Fly to Score Display (Top Right)
                     state.particles = spawnParticles(
                         state.particles,
@@ -75,8 +76,13 @@ export const checkCollisions = (state: GameState) => {
             }
 
             // Just been hit: safe for a moment, so pass straight through.
-            if (state.player.hurtTimer > 0) continue;
+            if (state.player.hurtTimer > 0) {
+                obs.grazed = true;
+                continue;
+            }
             state.player.hurtTimer = HIT_GRACE_SEC;
+            // A hit ends the streak, debug mode or not: it's still a miss.
+            breakStreak(state);
 
             // 1. Deal Damage (Unless Debug Mode)
             if (!state.debugMode) {

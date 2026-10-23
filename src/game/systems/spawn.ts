@@ -2,6 +2,7 @@ import { JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X, SCREEN_WIDTH } from '../consta
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { minGapSec, Pattern, PATTERNS } from '../patterns';
+import { placePickups, resetPickups } from '../pickups';
 import { beatGridSec, StageConfig, StagePacing } from '../stages';
 import { createSpawnerState, GameState } from '../state';
 
@@ -120,6 +121,7 @@ export const spawnObstacle = (
     startX += (onBeat - arrival) * speed;
 
     let endX = startX;
+    const placedFrom = state.obstacles.length;
     // Steps are timed by their centres (where the beat lands), not their front edges, so a
     // wide block and a narrow one both arrive exactly on the beat.
     const firstCentre = startX + shapeFor(first).width / 2;
@@ -145,7 +147,9 @@ export const spawnObstacle = (
     const wantHeart =
         (health <= maxHealth * hearts.hurtBelow && sinceHeart >= hearts.hurtEverySec) ||
         (health < maxHealth && sinceHeart >= hearts.topUpEverySec && random() < hearts.topUpChance);
-    if (wantHeart && rest >= HEART_MIN_REST) {
+    const placed = state.obstacles.slice(placedFrom);
+    const heartPlaced = wantHeart && rest >= HEART_MIN_REST;
+    if (heartPlaced) {
         state.obstacles.push({
             x: endX + (rest / 2) * speed - shapeFor('heart').width / 2,
             id: nextId++,
@@ -154,14 +158,18 @@ export const spawnObstacle = (
         spawner.lastHeartSec = nowSec;
     }
 
+    // Something to collect: arcs over the blocks, and a trail through the rest.
+    placePickups(state, placed, endX, rest, heartPlaced, random);
+
     spawner.endX = endX;
     spawner.restSec = rest;
     spawner.lastRole = pattern.steps[pattern.steps.length - 1].role;
     spawner.lastCost = pattern.cost;
 };
 
-/** Start the spawner afresh, for a new run or a new stage. */
+/** Start the spawner afresh, for a new run or a new stage. Clears any pickups left over. */
 export const resetSpawner = (state: GameState) => {
     nextId = 0;
     state.spawner = createSpawnerState();
+    resetPickups(state);
 };

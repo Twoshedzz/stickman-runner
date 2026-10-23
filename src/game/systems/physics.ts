@@ -2,6 +2,7 @@ import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, ENERGY_REGEN, GRAVITY, JUMP_BUFFER
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
+import { clearedObstacle } from '../pickups';
 import { GameState } from '../state';
 
 /**
@@ -111,10 +112,17 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
         // We use PLAYER_X here. If obstacle right side < PLAYER_X, it's passed.
         // We need to track if it's already been scored.
         if (!obs.passed && obsRight < PLAYER_X) {
-            state.score += 1;
             obs.passed = true;
+            // A missed heart isn't an obstacle cleared, and one brushed straight after a hit
+            // wasn't cleanly cleared.
+            if (obs.role !== 'heart' && !obs.grazed) clearedObstacle(state);
         }
     });
+
+    // Pickups ride along with the world.
+    const pickupStep = (state.speed / 60) * scale;
+    state.pickups.forEach(p => { p.x -= pickupStep; });
+    state.pickups = state.pickups.filter(p => p.x > OFFSCREEN_LEFT_X);
 
     // Remove obstacles once they're off the screen. On a wide phone the screen reaches well
     // to the left of the 600px play area, so wait until they're past even the widest one;

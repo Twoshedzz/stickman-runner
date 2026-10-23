@@ -383,6 +383,7 @@ export const GameScreen = () => {
                             <ScoreDisplay
                                 score={gameMetrics.score}
                                 stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
+                                streak={gameMetrics.streak}
                             />
                         </View>
                     )}

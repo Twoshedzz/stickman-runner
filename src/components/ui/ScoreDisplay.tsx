@@ -1,13 +1,20 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { multiplierFor, PICKUP_COLOUR } from '../../game/pickups';
 import { RNText } from '../RNText';
 
 interface ScoreDisplayProps {
     score: number;
     stageNumber?: number;
+    /** Obstacles cleared in a row. Shows the multiplier it's earned, and the count once it's going. */
+    streak?: number;
 }
 
-export const ScoreDisplay = React.memo(({ score, stageNumber }: ScoreDisplayProps) => {
+/** The streak count only shows once it's worth noticing. */
+const SHOW_STREAK_FROM = 3;
+
+export const ScoreDisplay = React.memo(({ score, stageNumber, streak = 0 }: ScoreDisplayProps) => {
+    const multiplier = multiplierFor(streak);
     return (
         <View style={styles.scoreContainer}>
             {stageNumber !== undefined && (
@@ -15,10 +22,18 @@ export const ScoreDisplay = React.memo(({ score, stageNumber }: ScoreDisplayProp
             )}
             <RNText style={styles.scoreLabel}>SCORE</RNText>
             <RNText style={styles.scoreValue}>{score}</RNText>
+            {multiplier > 1 && (
+                <RNText style={styles.multiplier}>×{multiplier}</RNText>
+            )}
+            {streak >= SHOW_STREAK_FROM && (
+                <RNText style={styles.streak}>STREAK {streak}</RNText>
+            )}
         </View>
     );
 }, (prevProps, nextProps) => {
-    return prevProps.score === nextProps.score && prevProps.stageNumber === nextProps.stageNumber;
+    return prevProps.score === nextProps.score &&
+        prevProps.stageNumber === nextProps.stageNumber &&
+        prevProps.streak === nextProps.streak;
 });
 
 const styles = StyleSheet.create({
@@ -45,5 +60,20 @@ const styles = StyleSheet.create({
         color: '#ff00cc', // Neon Pink for stage
         letterSpacing: 2,
         marginBottom: -2,
-    }
+    },
+    multiplier: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: PICKUP_COLOUR,
+        marginTop: -4,
+        textShadowColor: PICKUP_COLOUR,
+        textShadowRadius: 8,
+    },
+    streak: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: PICKUP_COLOUR,
+        letterSpacing: 2,
+        opacity: 0.85,
+    },
 });
