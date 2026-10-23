@@ -4,7 +4,9 @@ import { useFonts } from 'expo-font';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HowToPlayScreen } from '../components/menu/HowToPlayScreen';
-import { MENU_FONT_FILES } from '../components/menu/menuStyle';
+import { LoadingScreen } from '../components/menu/LoadingScreen';
+import { FinishedScreen, GameOverScreen, StageClearScreen } from '../components/menu/ResultScreens';
+import { FONT, glow, MENU_FONT_FILES, NEON } from '../components/menu/menuStyle';
 import { TitleScreen } from '../components/menu/TitleScreen';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
@@ -19,13 +21,6 @@ import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
 const GameCanvas = React.lazy(() =>
     import('../components/GameCanvas').then(module => ({ default: module.GameCanvas }))
 );
-
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-/** "21 OCT", written by hand so it doesn't depend on the device's locale support. */
-const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? '' : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-};
 
 const LOGICAL_WIDTH = SCREEN_WIDTH;   // 600 – game logic (spawn, player, focus) stays in this width
 const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
@@ -323,16 +318,10 @@ export const GameScreen = () => {
                 <View style={styles.uiLayer}>
                     {/* Loading: hide black block until assets ready */}
                     {!readyToStart && (
-                        <View style={styles.countdownOverlay}>
-                            <RNText style={styles.countdownText}>
-                                {musicReady ? 'GET READY...' : `LOADING MUSIC ${musicPercent}%`}
-                            </RNText>
-                            {!musicReady && (
-                                <View style={styles.loadingTrack}>
-                                    <View style={[styles.loadingFill, { width: `${musicPercent}%` }]} />
-                                </View>
-                            )}
-                        </View>
+                        <LoadingScreen
+                            label={musicReady ? 'GET READY...' : `LOADING MUSIC ${musicPercent}%`}
+                            percent={musicReady ? undefined : musicPercent}
+                        />
                     )}
                     {/* Title screen - only after assets loaded so the game is ready behind it */}
                     {readyToStart && !gameState.gameStarted && !gameState.gameOver && !showInstructions && (
@@ -385,53 +374,23 @@ export const GameScreen = () => {
 
                     {/* Finished: every stage cleared */}
                     {gameState.gameComplete && !showInstructions && (
-                        <View style={[styles.gameOverContainer, styles.finishContainer]}>
-                            <RNText style={styles.finishTitle}>FINISHED!</RNText>
-                            <RNText style={styles.finishSubtitle}>ALL FOUR STAGES CLEARED</RNText>
-                            <RNText style={styles.finishScore}>Score: {gameState.score}</RNText>
-
-                            <RNText style={styles.tableHeading}>BEST RUNS</RNText>
-                            {scoreTable.length === 0 ? (
-                                <RNText style={styles.tableEmpty}>No scores yet</RNText>
-                            ) : scoreTable.map((entry, i) => {
-                                const isNew = i === newScoreIndex;
-                                return (
-                                    <View key={`${entry.date}-${i}`} style={styles.tableRow}>
-                                        <RNText style={[styles.tableCell, styles.tableRank, isNew && styles.tableNew]}>{i + 1}</RNText>
-                                        <RNText style={[styles.tableCell, styles.tableScore, isNew && styles.tableNew]}>{entry.score}</RNText>
-                                        <RNText style={[styles.tableCell, styles.tableDate, isNew && styles.tableNew]}>{formatDate(entry.date)}</RNText>
-                                        {/* A star marks runs that cleared every stage. */}
-                                        <RNText style={[styles.tableCell, styles.tableMark, isNew && styles.tableNew]}>{entry.completed ? '\u2605' : ''}</RNText>
-                                    </View>
-                                );
-                            })}
-
-                            <Pressable style={[styles.restartButton, styles.startButton, styles.finishButton]} onPress={playAgain}>
-                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>PLAY AGAIN</RNText>
-                            </Pressable>
-                        </View>
+                        <FinishedScreen
+                            score={gameState.score}
+                            scoreTable={scoreTable}
+                            newScoreIndex={newScoreIndex}
+                            onPlayAgain={playAgain}
+                        />
                     )}
 
-                    {/* Game Over Modal */}
+                    {/* Game over */}
                     {gameState.gameOver && !gameState.gameComplete && !showInstructions && (
-                        <View style={styles.gameOverContainer}>
-                            <RNText style={styles.gameOverTitle}>GAME OVER</RNText>
-                            <RNText style={styles.gameOverScore}>Final Score: {gameState.score}</RNText>
-                            <RNText style={styles.highScoreText}>Best: {highScore}</RNText>
-
-                            <Pressable
-                                style={styles.restartButton}
-                                onPress={playAgain}
-                            >
-                                <RNText style={styles.restartButtonText}>PLAY AGAIN</RNText>
-                            </Pressable>
-                            <Pressable
-                                style={[styles.instructionsButton, { marginTop: 15 }]}
-                                onPress={() => setShowInstructions(true)}
-                            >
-                                <RNText style={styles.instructionsButtonText}>HOW TO PLAY</RNText>
-                            </Pressable>
-                        </View>
+                        <GameOverScreen
+                            score={gameState.score}
+                            hiScore={highScore}
+                            newHiScore={gameState.score > 0 && newScoreIndex === 0}
+                            onPlayAgain={playAgain}
+                            onHowToPlay={() => setShowInstructions(true)}
+                        />
                     )}
 
                     {/* How to play: its own screen */}
@@ -489,21 +448,21 @@ export const GameScreen = () => {
                             />
                         </View>
                     )}
-                    {/* Continue Modal */}
-                    {gameState.showContinue && (
-                        <View style={styles.gameOverContainer}>
-                            <RNText style={styles.gameOverTitle}>STAGE CLEAR</RNText>
-                            <RNText style={styles.gameOverScore}>Next Stage Ready</RNText>
-                            <Pressable
-                                style={[styles.restartButton, styles.startButton, nextMusicPercent < 100 && styles.buttonWaiting]}
-                                onPress={nextMusicPercent < 100 ? undefined : onContinue}
-                            >
-                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>
-                                    {nextMusicPercent < 100 ? `LOADING MUSIC ${nextMusicPercent}%` : 'CONTINUE?'}
-                                </RNText>
-                            </Pressable>
-                        </View>
-                    )}
+                    {/* Stage clear */}
+                    {gameState.showContinue && (() => {
+                        const index = STAGES.findIndex(st => st.id === gameState.stageId);
+                        const next = STAGES[index + 1] ?? STAGES[index];
+                        return (
+                            <StageClearScreen
+                                stageNumber={index + 1}
+                                score={gameState.score}
+                                nextStageNumber={index + 2}
+                                nextStageName={next.name}
+                                nextMusicPercent={nextMusicPercent}
+                                onContinue={onContinue}
+                            />
+                        );
+                    })()}
                 </View>
                 </View>
             </View>
@@ -527,33 +486,34 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    // A dark see-through band behind the stage name, so it reads over the sun and sky.
     stageBanner: {
         position: 'absolute',
-        top: '24%',
+        top: '22%',
         left: 0,
         right: 0,
         alignItems: 'center',
+        paddingVertical: 8,
+        backgroundColor: 'rgba(4, 2, 12, 0.45)',
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: 'rgba(0, 255, 255, 0.35)',
         pointerEvents: 'none',
     },
     stageBannerNumber: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: FONT.bold,
+        fontSize: 13,
         letterSpacing: 6,
-        color: '#00ffff',
-        textShadowColor: '#00ffff',
-        textShadowRadius: 8,
-        textShadowOffset: { width: 0, height: 0 },
+        color: NEON.cyan,
+        ...glow(NEON.cyan, 6),
     },
     stageBannerName: {
-        marginTop: 4,
-        fontSize: 34,
-        fontWeight: '900',
-        fontStyle: 'italic',
+        marginTop: 2,
+        fontFamily: FONT.display,
+        fontSize: 30,
         letterSpacing: 4,
-        color: '#ffffff',
-        textShadowColor: '#ff00cc',
-        textShadowRadius: 12,
-        textShadowOffset: { width: 0, height: 0 },
+        color: NEON.white,
+        ...glow(NEON.pink, 12),
     },
     hudArea: {
         ...StyleSheet.absoluteFillObject,
@@ -607,285 +567,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    countdownOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(15, 12, 41, 0.92)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 5,
-    },
-    countdownText: {
-        fontSize: 28,
-        color: '#00ffff',
-        fontWeight: 'bold',
-        letterSpacing: 4,
-    },
-    loadingTrack: {
-        width: 260,
-        height: 8,
-        marginTop: 16,
-        borderRadius: 4,
-        backgroundColor: 'rgba(0, 255, 255, 0.15)',
-        overflow: 'hidden',
-    },
-    loadingFill: {
-        height: '100%',
-        backgroundColor: '#ff00cc',
-    },
-    buttonWaiting: {
-        opacity: 0.5,
-    },
-    gameOverContainer: {
-        backgroundColor: 'rgba(15, 12, 41, 0.95)', // Deep Purple
-        paddingVertical: 30, // Reduced from 40
-        paddingHorizontal: 40, // Reduced from 60
-        borderRadius: 20,
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#ff00cc', // Neon Pink Border
-        shadowColor: "#ff00cc",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 20,
-        elevation: 10,
-    },
-    gameOverTitle: {
-        color: '#ff00cc', // Neon Pink
-        fontSize: 36, // Reduced from 48
-        fontWeight: '900',
-        marginBottom: 8,
-        letterSpacing: 4,
-        textShadowColor: '#ff00cc',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-        fontStyle: 'italic',
-    },
-    gameOverScore: {
-        color: '#00ffff', // Cyan
-        fontSize: 24, // Reduced from 32
-        fontWeight: 'bold',
-        marginBottom: 4,
-        textShadowColor: 'rgba(0, 255, 255, 0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    // Win screen: tighter than Game Over, so the score table fits the 350px-high view.
-    finishContainer: {
-        paddingVertical: 16,
-        paddingHorizontal: 36,
-    },
-    finishTitle: {
-        color: '#ffd700',
-        fontSize: 30,
-        fontWeight: '900',
-        letterSpacing: 4,
-        fontStyle: 'italic',
-        textShadowColor: '#ffd700',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    finishSubtitle: {
-        color: '#ff00cc',
-        fontSize: 12,
-        fontWeight: 'bold',
-        letterSpacing: 2,
-        marginBottom: 6,
-    },
-    finishScore: {
-        color: '#00ffff',
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    tableHeading: {
-        color: '#ffdd55',
-        fontSize: 11,
-        fontWeight: 'bold',
-        letterSpacing: 3,
-        marginBottom: 4,
-    },
-    tableRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        height: 19,
-    },
-    tableCell: {
-        color: 'rgba(255, 255, 255, 0.75)',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    tableRank: { width: 22, textAlign: 'left' },
-    tableScore: { width: 56, textAlign: 'right' },
-    tableDate: { width: 70, textAlign: 'right' },
-    tableMark: { width: 22, textAlign: 'right', color: '#ffd700' },
     /** The run that just ended. */
-    tableNew: { color: '#00ffff' },
-    tableEmpty: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 13,
-        marginVertical: 6,
-    },
-    finishButton: {
-        marginTop: 10,
-    },
-    highScoreText: {
-        color: '#ffdd55', // Sun Yellow
-        fontSize: 16, // Reduced from 20
-        fontWeight: 'bold',
-        marginBottom: 20, // Reduced from 30
-        letterSpacing: 2,
-    },
-    restartButton: {
-        backgroundColor: '#FF1493', // Deep Pink
-        paddingVertical: 12, // Reduced from 15
-        paddingHorizontal: 30, // Reduced from 50
-        borderRadius: 30,
-        marginTop: 10,
-        borderWidth: 2,
-        borderColor: '#fff',
-        shadowColor: "#FF1493",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 15,
-        elevation: 8,
-    },
-    startButton: {
-        backgroundColor: '#00ffff', // Cyan
-        borderColor: '#fff',
-        shadowColor: "#00ffff",
-    },
-    startButtonText: {
-        color: '#0f0c29', // Deep Purple (Background color)
-        textShadowColor: 'rgba(255, 255, 255, 0.5)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 0, // Remove shadow or make it glow
-    },
-    restartButtonText: {
-        color: 'white',
-        fontSize: 20, // Reduced from 24
-        fontWeight: '900',
-        letterSpacing: 3,
-        textTransform: 'uppercase',
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
-    },
-    startScreenContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(15, 12, 41, 0.8)',
-        padding: 40,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 0, 204, 0.3)',
-    },
-    titleText: {
-        fontSize: 64,
-        fontWeight: '900',
-        color: '#00ffff', // Cyan
-        letterSpacing: 6,
-        fontStyle: 'italic',
-        textShadowColor: '#00ffff',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 15,
-    },
-    titleSubText: {
-        fontSize: 64,
-        fontWeight: '900',
-        color: '#ff00cc', // Pink
-        letterSpacing: 6,
-        fontStyle: 'italic',
-        marginBottom: 50,
-        textShadowColor: '#ff00cc',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 15,
-    },
-    startText: {
-        fontSize: 28,
-        color: 'white',
-        fontWeight: 'bold',
-        opacity: 1,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        textShadowColor: '#fff',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    instructionsButton: {
-        marginTop: 20,
-        paddingVertical: 10,
-        paddingHorizontal: 30,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#00ffff',
-    },
-    instructionsButtonText: {
-        color: '#00ffff',
-        fontSize: 18,
-        fontWeight: 'bold',
-        letterSpacing: 2,
-    },
-    instructionsContainer: {
-        position: 'absolute',
-        backgroundColor: 'rgba(15, 12, 41, 0.98)',
-        paddingVertical: 18,
-        paddingHorizontal: 28,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: '#00ffff',
-        alignItems: 'center',
-        zIndex: 50,
-        shadowColor: "#00ffff",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 20,
-    },
-    instructionsTitle: {
-        fontSize: 26,
-        fontWeight: '900',
-        color: '#00ffff',
-        marginBottom: 12,
-        letterSpacing: 4,
-        fontStyle: 'italic',
-        textShadowColor: '#00ffff',
-        textShadowRadius: 10,
-    },
-    instructionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 7,
-        width: '100%',
-    },
-    instructionDot: {
-        width: 11,
-        height: 11,
-        borderRadius: 6,
-        marginRight: 12,
-        shadowColor: "white",
-        shadowOpacity: 0.8,
-        shadowRadius: 5,
-    },
-    instructionText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    },
-    closeButton: {
-        marginTop: 12,
-        backgroundColor: '#FF1493',
-        paddingVertical: 12,
-        paddingHorizontal: 40,
-        borderRadius: 25,
-        borderWidth: 2,
-        borderColor: 'white',
-    },
-    closeButtonText: {
-        color: 'white',
-        fontSize: 20,
-        fontWeight: 'bold',
-        letterSpacing: 2,
-    }
 });
