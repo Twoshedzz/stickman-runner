@@ -254,11 +254,9 @@ export const STAGES: StageConfig[] = [
                 trigger: { start: 40520, end: 43200 },
                 values: { startOpacity: 0.75, endOpacity: 1 }
             },
-            {
-                type: 'night_lights_dwindle',
-                trigger: { start: 40000, end: 999999 },
-                values: { opacity: 1 }
-            },
+            // (A leftover rule here used to force every light off at 40000 - about 2:47 - so the
+            // last part of the switch-off happened all at once. Removed: the steps above now run
+            // right to the finish, and after the finish the day sky takes over anyway.)
             // --- SEGMENT 5: Dawn, pink glow emerges very slowly (28000–40000) ---
             {
                 type: 'sky_gradient',
