@@ -16,12 +16,13 @@ import { Image } from "@shopify/react-native-skia";
 import type { SkImage } from "@shopify/react-native-skia";
 import React, { useEffect, useRef } from "react";
 import { GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH } from "../../game/constants";
+import { BACK_LIT, CITY_LIGHT_LEVELS, FRONT_LIT } from "./cityLights.generated";
 import { useStripImages } from "./useStripImages";
 
 const GRID_TOP_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 
-/** Number of lighting steps the generator produced. */
-const LEVELS = 6;
+/** Number of lighting steps the generator produced (scripts/generate-city-lights.js). */
+const LEVELS = CITY_LIGHT_LEVELS;
 const VARIANTS = 4;
 
 /** Matches the previous city layout exactly, so stage 1 looks the same. */
@@ -43,36 +44,6 @@ const BACK_BASE = [
     require("../../../assets/city/back_none_2.png"),
     require("../../../assets/city/back_none_3.png"),
     require("../../../assets/city/back_none_4.png"),
-];
-
-// Flattened as variant * LEVELS + level, so one load covers every combination.
-const FRONT_LIT = [
-    require("../../../assets/city/lights/front_1_lit_0.png"), require("../../../assets/city/lights/front_1_lit_1.png"),
-    require("../../../assets/city/lights/front_1_lit_2.png"), require("../../../assets/city/lights/front_1_lit_3.png"),
-    require("../../../assets/city/lights/front_1_lit_4.png"), require("../../../assets/city/lights/front_1_lit_5.png"),
-    require("../../../assets/city/lights/front_2_lit_0.png"), require("../../../assets/city/lights/front_2_lit_1.png"),
-    require("../../../assets/city/lights/front_2_lit_2.png"), require("../../../assets/city/lights/front_2_lit_3.png"),
-    require("../../../assets/city/lights/front_2_lit_4.png"), require("../../../assets/city/lights/front_2_lit_5.png"),
-    require("../../../assets/city/lights/front_3_lit_0.png"), require("../../../assets/city/lights/front_3_lit_1.png"),
-    require("../../../assets/city/lights/front_3_lit_2.png"), require("../../../assets/city/lights/front_3_lit_3.png"),
-    require("../../../assets/city/lights/front_3_lit_4.png"), require("../../../assets/city/lights/front_3_lit_5.png"),
-    require("../../../assets/city/lights/front_4_lit_0.png"), require("../../../assets/city/lights/front_4_lit_1.png"),
-    require("../../../assets/city/lights/front_4_lit_2.png"), require("../../../assets/city/lights/front_4_lit_3.png"),
-    require("../../../assets/city/lights/front_4_lit_4.png"), require("../../../assets/city/lights/front_4_lit_5.png"),
-];
-const BACK_LIT = [
-    require("../../../assets/city/lights/back_1_lit_0.png"), require("../../../assets/city/lights/back_1_lit_1.png"),
-    require("../../../assets/city/lights/back_1_lit_2.png"), require("../../../assets/city/lights/back_1_lit_3.png"),
-    require("../../../assets/city/lights/back_1_lit_4.png"), require("../../../assets/city/lights/back_1_lit_5.png"),
-    require("../../../assets/city/lights/back_2_lit_0.png"), require("../../../assets/city/lights/back_2_lit_1.png"),
-    require("../../../assets/city/lights/back_2_lit_2.png"), require("../../../assets/city/lights/back_2_lit_3.png"),
-    require("../../../assets/city/lights/back_2_lit_4.png"), require("../../../assets/city/lights/back_2_lit_5.png"),
-    require("../../../assets/city/lights/back_3_lit_0.png"), require("../../../assets/city/lights/back_3_lit_1.png"),
-    require("../../../assets/city/lights/back_3_lit_2.png"), require("../../../assets/city/lights/back_3_lit_3.png"),
-    require("../../../assets/city/lights/back_3_lit_4.png"), require("../../../assets/city/lights/back_3_lit_5.png"),
-    require("../../../assets/city/lights/back_4_lit_0.png"), require("../../../assets/city/lights/back_4_lit_1.png"),
-    require("../../../assets/city/lights/back_4_lit_2.png"), require("../../../assets/city/lights/back_4_lit_3.png"),
-    require("../../../assets/city/lights/back_4_lit_4.png"), require("../../../assets/city/lights/back_4_lit_5.png"),
 ];
 
 interface Props {
