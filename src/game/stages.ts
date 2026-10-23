@@ -92,6 +92,11 @@ export interface StageConfig {
      */
     durationSec: number;
     /**
+     * The music's beat, measured by analysing the track: seconds per beat, and when the
+     * first beat falls. Obstacles are timed to reach the runner on this beat.
+     */
+    beat: { sec: number; firstSec: number };
+    /**
      * The length of the sky's dusk-to-dawn timeline (sun, moon, lights). Distance runs on
      * the clock rather than the speed, so this is a clock in disguise; it is not how far
      * the runner travels. For that, see GameState.scroll.
@@ -110,6 +115,18 @@ export const remainingScroll = (stage: StageConfig, progress: number) => {
     const p = Math.min(Math.max(progress, 0), 1);
     // The area under a straight-line speed rise, from now to the end of the stage.
     return stage.durationSec * (start * (1 - p) + ((end - start) * (1 - p * p)) / 2);
+};
+
+/**
+ * The rhythm obstacles snap to: half-beats, so they land in time with the music without the
+ * stage getting any sparser (about every 0.3-0.4 sec on these tracks).
+ */
+export const beatGridSec = (stage: StageConfig) => stage.beat.sec / 2;
+
+/** How far through the current beat the music is, 0 just as a beat lands to 1 just before the next. */
+export const beatPhase = (stage: StageConfig, stageSec: number) => {
+    const beats = (stageSec - stage.beat.firstSec) / stage.beat.sec;
+    return beats - Math.floor(beats);
 };
 
 export const STAGES: StageConfig[] = [
@@ -144,6 +161,7 @@ export const STAGES: StageConfig[] = [
         },
         speed: [260, 300],
         durationSec: 180, // music plays to 179.5s
+        beat: { sec: 0.7982, firstSec: 0.425 }, // 75.2 BPM
         courseLength: COURSE_LENGTH,
         // SECTIONS (7200 per 30s):
         // 1. 0–7200     : Sun in sky yellow→orange, moves down; sky dark at top by 7200
@@ -305,6 +323,7 @@ export const STAGES: StageConfig[] = [
         },
         speed: [280, 320],
         durationSec: 174, // music plays to 173.5s
+        beat: { sec: 0.7483, firstSec: 0.025 }, // 80.2 BPM
         courseLength: COURSE_LENGTH,
         // Sunrise: the sky lifts gently from deeper to lighter tones over the whole stage.
         // The sun and its light on the water rise with it (SunsetBeachBackground).
@@ -351,6 +370,7 @@ export const STAGES: StageConfig[] = [
         },
         speed: [300, 340],
         durationSec: 176, // music plays to 175.5s
+        beat: { sec: 0.59865, firstSec: 0.025 }, // 100.2 BPM
         courseLength: COURSE_LENGTH
     },
     {
@@ -385,6 +405,7 @@ export const STAGES: StageConfig[] = [
         },
         speed: [320, 360],
         durationSec: 178, // music plays to 177.4s
+        beat: { sec: 0.5986, firstSec: 0.18 }, // 100.2 BPM
         courseLength: COURSE_LENGTH,
         // Evening into night: a warm sunset sky deepens to navy by about 45% of the way,
         // then stays night to the finish (sun, street lights, fireworks and moon are in

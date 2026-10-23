@@ -30,8 +30,7 @@ The names stay as they are, even though stage 2 is now a sunrise and stage 4 end
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the gameplay pass (§4). Steps 0–2 are done; step 3, putting obstacles on the
-beat, is next.
+**Current focus:** the gameplay pass (§4). Steps 0–3 and 6 are done; steps 4 and 5 are next.
 
 ---
 
@@ -65,7 +64,7 @@ Don't re-open these without a reason — a lot depends on them.
 | Jump airtime | 0.67 sec | `JUMP_FORCE` −12, `GRAVITY` 0.6 |
 | Jump peak height | 120 px | |
 | Duck | 0.55 sec for a quick swipe; held, it lasts until 0.15 sec after letting go | `DUCK_DURATION_SEC`, `DUCK_RELEASE_SEC` |
-| Double jump cost | the whole energy bar | `JUMP_ENERGY_COST` = `MAX_ENERGY` = 100 |
+| Double jump cost | half the energy bar | `JUMP_ENERGY_COST` 50 of `MAX_ENERGY` 100 |
 | Energy refill while grounded | 3.3 sec | `ENERGY_REGEN`, time-based |
 | Stage length | 180 / 174 / 176 / 178 sec for stages 1–4: each ends when its music does | `durationSec` in `stages.ts` |
 
@@ -95,10 +94,12 @@ heart generosity (`pacing.hearts`): stage 1 the most generous, stage 4 the least
 
 **Step 2 — a gentle speed rise.** ✅ Done.
 
-**Step 3 — put the obstacles on the beat.** ⏭️ Next.
-- Measure each track's tempo and first beat once and store them in `src/hooks/musicTracks.ts`.
-- Schedule each pattern so its obstacles reach the runner on a beat; spacing written in beats.
-- The pink grid line brightens briefly on each beat.
+**Step 3 — put the obstacles on the beat.** ✅ Done.
+- Each track's tempo and first beat were measured by analysing the audio, and live in `beat` in
+  `stages.ts`: Neon City 75.2 BPM, Sunset Beach 80.2, Midnight Mountains and Victory Dawn 100.2.
+- Every obstacle reaches the runner on the half-beat grid (about every 0.3–0.4 sec), except the
+  second of a tight pair, which is deliberately close behind the first. A test checks this.
+- The ground line pulses on every beat.
 
 **Step 4 — something to do between obstacles.** Not started.
 Silent neon pickups in trails (along the ground and tracing jump arcs), and a streak multiplier
@@ -107,14 +108,14 @@ Silent neon pickups in trails (along the ground and tracing jump arcs), and a st
 **Step 5 — calm and busy sections that follow the music.** Not started.
 A short intensity list per track (warm-up, waves, breather, finale) that scales the step 1 budget.
 
-**Step 6 — feel and forgiveness.** Not started.
+**Step 6 — feel and forgiveness.** ✅ Done.
 - Jump buffering: a tap up to 0.12 sec before landing still jumps on landing.
-- Double jump costs half the bar, so it's usable two or three times a stage.
-- Hit feedback: a brief flash and a short safe window after a hit.
+- Double jump costs half the bar, so a full bar gives two.
+- After a hit: the runner blinks, a short pink flash, and 1 sec safe from further hits.
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (83 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (90 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
@@ -245,8 +246,9 @@ Not urgent, but each one removes a trap:
 | Menu screens: title, How to Play, Stage Clear, Game Over, Finished, loading | ✅ Done (80s arcade style) |
 | Gameplay step 1: obstacle patterns, budget, hearts | ✅ Done; stage 1 retuned |
 | Gameplay step 2: speed rise | ✅ Done |
-| Gameplay step 3: obstacles on the beat | ⏭️ Next |
-| Gameplay steps 4–6: pickups and streak, music sections, feel | Not started |
+| Gameplay step 3: obstacles on the beat | ✅ Done |
+| Gameplay step 6: feel and forgiveness | ✅ Done |
+| Gameplay steps 4–5: pickups and streak, music sections | ⏭️ Next |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |

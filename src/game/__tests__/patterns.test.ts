@@ -8,7 +8,7 @@
 import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, JUMP_ENERGY_COST, MAX_ENERGY, MAX_HEALTH, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { ROLE_SHAPES } from '../obstacleCatalogue';
 import { PATTERNS } from '../patterns';
-import { remainingScroll, speedAt, STAGES } from '../stages';
+import { beatGridSec, remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
@@ -300,5 +300,37 @@ describe('feel and forgiveness', () => {
         const hits = runFrames(sim, 240, arrivals);
         expect(hits).toBe(1);
         expect(sim.state.player.health).toBe(MAX_HEALTH - ROLE_SHAPES.small.damage);
+    });
+});
+
+describe('obstacles land on the beat', () => {
+    STAGES.forEach((stage) => {
+        it(`${stage.name}: obstacles reach the runner on the music's beat grid`, () => {
+            const state = createInitialState();
+            state.stageId = stage.id;
+            const grid = beatGridSec(stage);
+            const runnerX = PLAYER_X + PLAYER_SIZE / 2;
+            let offBeat = 0;
+            let lastArrival = -Infinity;
+            for (let frame = 0; frame < 60 * 60; frame++) {
+                const sec = frame / 60;
+                state.stageProgress = sec / stage.durationSec;
+                state.elapsedSecInStage = sec;
+                state.speed = speedAt(stage, state.stageProgress);
+                const before = state.obstacles.length;
+                spawnObstacle(state, stage, DT, Math.random);
+                const placed = state.obstacles.slice(before).filter((o) => o.role !== 'heart');
+                placed.forEach((o) => {
+                    const arrival = sec + (o.x + ROLE_SHAPES[o.role!].width / 2 - runnerX) / state.speed;
+                    const offGrid = Math.abs(((arrival - stage.beat.firstSec) / grid) % 1);
+                    // The second of a tight pair is deliberately close behind the first.
+                    const tightPair = arrival - lastArrival < grid / 2;
+                    if (!tightPair && Math.min(offGrid, 1 - offGrid) * grid >= 0.005) offBeat++;
+                    lastArrival = arrival;
+                });
+                state.obstacles.forEach((o) => { o.x -= state.speed / 60; });
+            }
+            expect(offBeat).toBe(0);
+        });
     });
 });

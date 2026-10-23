@@ -1,8 +1,8 @@
-import { JUMP_ENERGY_COST, SCREEN_WIDTH } from '../constants';
+import { JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X, SCREEN_WIDTH } from '../constants';
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { minGapSec, Pattern, PATTERNS } from '../patterns';
-import { StageConfig, StagePacing } from '../stages';
+import { beatGridSec, StageConfig, StagePacing } from '../stages';
 import { createSpawnerState, GameState } from '../state';
 
 let nextId = 0;
@@ -46,6 +46,17 @@ export const availablePatterns = (
             !(p.cost >= 4 && lastCost >= 4) &&
             (hugeAllowed || !p.steps.some((s) => s.role === 'huge'))
     );
+};
+
+/**
+ * A pattern step's timing, moved onto the beat grid so every obstacle lands in time. Steps
+ * meant to be very close together (like two blocks one jump clears) keep their tight spacing,
+ * and nothing is moved more than a little earlier than designed.
+ */
+const onGrid = (at: number, grid: number) => {
+    if (at < grid / 2) return at;
+    const nearest = Math.round(at / grid) * grid;
+    return nearest < at - 0.06 ? Math.ceil(at / grid) * grid : nearest;
 };
 
 /** Pick one, leaning towards the harder end of what's allowed. */
@@ -95,13 +106,25 @@ export const spawnObstacle = (
 
     // The first obstacle goes after the rest, or further if what came before needs more room.
     const first = pattern.steps[0].role;
-    const startX = spawner.lastRole
+    let startX = spawner.lastRole
         ? spawner.endX + Math.max(spawner.restSec, minGapSec(spawner.lastRole, first)) * speed
         : SPAWN_X;
 
+    // On the beat: push the pattern back (never forward, which could break a gap rule) so its
+    // first obstacle reaches the runner exactly on the music's beat grid.
+    const grid = beatGridSec(currentStage);
+    const { firstSec } = currentStage.beat;
+    const runnerX = PLAYER_X + PLAYER_SIZE / 2;
+    const arrival = nowSec + (startX + shapeFor(first).width / 2 - runnerX) / speed;
+    const onBeat = firstSec + Math.ceil((arrival - firstSec) / grid) * grid;
+    startX += (onBeat - arrival) * speed;
+
     let endX = startX;
+    // Steps are timed by their centres (where the beat lands), not their front edges, so a
+    // wide block and a narrow one both arrive exactly on the beat.
+    const firstCentre = startX + shapeFor(first).width / 2;
     for (const step of pattern.steps) {
-        const x = startX + step.at * speed;
+        const x = firstCentre + onGrid(step.at, grid) * speed - shapeFor(step.role).width / 2;
         state.obstacles.push({
             x,
             id: nextId++,

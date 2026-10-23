@@ -8,7 +8,7 @@ import {
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { shapeFor } from "../game/obstacleCatalogue";
-import { remainingScroll, STAGES, StageConfig } from "../game/stages";
+import { beatPhase, remainingScroll, STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
@@ -185,6 +185,10 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         overhead: '#00ffff', overheadGlow: '#7df5ff',
     };
 
+    // 1 just as a beat lands, easing to 0 before the next. Only while actually running.
+    const playing = gameState.gameStarted && !gameState.gameOver && gameState.stageStatus === 'playing';
+    const beatPulse = playing ? Math.pow(1 - beatPhase(currentStage, gameState.elapsedSecInStage), 3) : 0;
+
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
     const RUN_THROUGH = 60;
@@ -261,6 +265,17 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     height={2}
                     color={safeColor(currentStage.theme?.groundColor)}
                 />
+                {/* The ground line pulses on every beat of the music, fading before the next. */}
+                {beatPulse > 0.02 && (
+                    <Rect
+                        x={0}
+                        y={SCREEN_HEIGHT - GROUND_HEIGHT - 3}
+                        width={viewWidth}
+                        height={8}
+                        color={safeColor(currentStage.theme?.groundColor)}
+                        opacity={0.55 * beatPulse}
+                    />
+                )}
 
                 {/* 5 & 6. City / non-city: drawn after grid + ground line so buildings render on top (no clip; city content is already above grid). */}
                 {isCity && (
