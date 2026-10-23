@@ -4,7 +4,10 @@
  * Three parallax layers of generated silhouette strips (see scripts/generate-mountain-strips.js),
  * with the moon, its glow and the stars drawn as shapes since they never need art.
  *
- * The time of day is fixed at midnight, so nothing here fades or cycles: no timeline needed.
+ * It stays midnight throughout, but the stage still has an arc: the runner is crossing a
+ * mountain pass. The mountains start low, tower overhead in the middle of the stage, then
+ * drop away again, and the moon travels across the sky from left to right. Both change so
+ * slowly that you notice where you are, not the movement.
  *
  * Which strip variant appears at a given point is worked out from the world position, so a
  * tile always shows the same art no matter when it scrolls past — no queue to keep in step.
@@ -44,7 +47,19 @@ const FAR = { width: 600, height: 150, rate: 0.12 };
 const MID = { width: 600, height: 150, rate: 0.25 };
 const PINES = { width: 450, height: 90, rate: 0.5 };
 
-const MOON = { x: 0.5, y: 118, radius: 42, colour: "#b0f7fd" };
+const MOON = { radius: 42, colour: "#b0f7fd" };
+
+/** How tall each layer is through the pass: this share of its height at the start and end, and at the summit. */
+const FAR_RISE = { low: 0.55, summit: 1.5 };
+const MID_RISE = { low: 0.55, summit: 1.3 };
+
+/** The moon's path: across from left to right, highest in the middle of the stage. */
+function moonAt(progress: number, viewWidth: number) {
+    return {
+        x: viewWidth * (0.12 + 0.76 * progress),
+        y: 150 - 85 * Math.sin(Math.PI * progress),
+    };
+}
 const STAR_COUNT = 50;
 
 interface Props {
@@ -52,6 +67,8 @@ interface Props {
      *  the React Compiler memoises on prop identity, and the state object is mutated in place,
      *  so passing the object makes this component freeze on its first frame. */
     distance: number;
+    /** How far through the stage, 0 to 1: drives the moon and the height of the mountains. */
+    progress: number;
     /** Drawn width; wider than 600 on wide phones, so layers must tile to fill it. */
     viewWidth?: number;
 }
@@ -106,7 +123,7 @@ function tileLayer(
     });
 }
 
-export const MidnightMountainsBackground = ({ distance, viewWidth: viewWidthProp }: Props) => {
+export const MidnightMountainsBackground = ({ distance, progress, viewWidth: viewWidthProp }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const stars = useStars(viewWidth);
 
@@ -114,7 +131,12 @@ export const MidnightMountainsBackground = ({ distance, viewWidth: viewWidthProp
     const mid = useStripImages("mountains-mid", MID_SOURCES);
     const pines = useStripImages("mountains-pines", PINE_SOURCES);
 
-    const moonX = viewWidth * MOON.x;
+    const p = Math.max(0, Math.min(1, progress));
+    const { x: moonX, y: moonY } = moonAt(p, viewWidth);
+    // 0 at the start and end of the pass, 1 at the summit halfway through.
+    const summit = Math.sin(Math.PI * p);
+    const farHeight = FAR.height * (FAR_RISE.low + (FAR_RISE.summit - FAR_RISE.low) * summit);
+    const midHeight = MID.height * (MID_RISE.low + (MID_RISE.summit - MID_RISE.low) * summit);
 
     return (
         <>
@@ -127,18 +149,19 @@ export const MidnightMountainsBackground = ({ distance, viewWidth: viewWidthProp
 
             {/* Moon: one circle carrying a fading gradient for the halo, then the solid disk.
                 Stacked circles left visible rings. */}
-            <Circle cx={moonX} cy={MOON.y} r={MOON.radius * 2.3}>
+            <Circle cx={moonX} cy={moonY} r={MOON.radius * 2.3}>
                 <RadialGradient
-                    c={vec(moonX, MOON.y)}
+                    c={vec(moonX, moonY)}
                     r={MOON.radius * 2.3}
                     colors={["rgba(176, 247, 253, 0.42)", "rgba(176, 247, 253, 0.10)", "rgba(176, 247, 253, 0)"]}
                     positions={[0.34, 0.62, 1]}
                 />
             </Circle>
-            <Circle cx={moonX} cy={MOON.y} r={MOON.radius} color={MOON.colour} />
+            <Circle cx={moonX} cy={moonY} r={MOON.radius} color={MOON.colour} />
 
-            {tileLayer(far, FAR, distance, viewWidth, GRID_TOP_Y - FAR.height, "far")}
-            {tileLayer(mid, MID, distance, viewWidth, GRID_TOP_Y - MID.height, "mid")}
+            {/* The ridges are stretched upwards from the grid line, taller towards the summit. */}
+            {tileLayer(far, { ...FAR, height: farHeight }, distance, viewWidth, GRID_TOP_Y - farHeight, "far")}
+            {tileLayer(mid, { ...MID, height: midHeight }, distance, viewWidth, GRID_TOP_Y - midHeight, "mid")}
             {tileLayer(pines, PINES, distance, viewWidth, GRID_TOP_Y - PINES.height, "pines")}
         </>
     );

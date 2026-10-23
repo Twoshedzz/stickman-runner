@@ -274,16 +274,25 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     <SunsetBeachBackground
                         distance={gameState.scroll}
                         seconds={gameState.elapsedSecInStage}
+                        progress={gameState.stageProgress}
+                        skyTop={currentTheme.skyTop}
+                        skyMid={currentTheme.skyMid}
+                        skyBottom={currentTheme.skyBottom}
                         viewWidth={viewWidth}
                     />
                 )}
                 {currentStage.assets.backgroundType === "mountains" && (
-                    <MidnightMountainsBackground distance={gameState.scroll} viewWidth={viewWidth} />
+                    <MidnightMountainsBackground
+                        distance={gameState.scroll}
+                        progress={gameState.stageProgress}
+                        viewWidth={viewWidth}
+                    />
                 )}
                 {currentStage.assets.backgroundType === "city_victory" && (
                     <VictoryDawnBackground
                         distance={gameState.scroll}
                         seconds={gameState.elapsedSecInStage}
+                        progress={gameState.stageProgress}
                         viewWidth={viewWidth}
                     />
                 )}

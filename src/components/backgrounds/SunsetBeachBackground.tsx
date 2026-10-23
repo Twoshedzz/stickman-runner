@@ -22,7 +22,7 @@ const WATERLINE = 217;
 const SAND = 266;
 const GRID_TOP_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 
-const SUN = { y: 163, radius: 47, colour: "#fd943f" };
+const SUN = { radius: 47, colour: "#fd943f" };
 /** The bands cut across the sun's lower half in the concept, like heat haze over the sea. */
 const SUN_BANDS = [0.34, 0.52, 0.70, 0.86];
 // Sea and sand are kept clearly apart: the sea cool and deep, the sand warm, catching the sunset.
@@ -42,8 +42,12 @@ const WAVE_REACH = 7;
 const SURF_RATE = 0.3;
 const REFLECTION = "#fd9e5d";
 
-/** Matches the stage's skyColors, so the sun's bands blend into the sky behind them. */
-const SKY_STOPS = [[0x6f, 0x59, 0xad], [0xb2, 0x60, 0x9c], [0xee, 0x71, 0x74]];
+/**
+ * Sunrise: the sun's centre at the start (a sliver showing above the distant headlands) and
+ * at the end (the whole disk just clear of the water). It climbs steadily between them.
+ */
+const SUN_START_Y = WATERLINE + SUN.radius - 18;
+const SUN_END_Y = WATERLINE - SUN.radius - 4;
 
 const FAR = { width: 300, height: 40, rate: 0.08 };
 const PALMS = { width: 450, height: 170, rate: 0.45 };
@@ -61,10 +65,16 @@ const PALM_SOURCES = [
     require("../../../assets/beach/palms_4.png"),
 ];
 
+/** "#rrggbb" or "rgb(r, g, b)" as [r, g, b]. The sky colours arrive in both forms. */
+function toRgb(colour: string): number[] {
+    if (colour.startsWith('#')) return [1, 3, 5].map((i) => parseInt(colour.slice(i, i + 2), 16));
+    return (colour.match(/\d+/g) ?? ['0', '0', '0']).slice(0, 3).map(Number);
+}
+
 /** The sky colour at a given height, so the sun's bands match what's behind them. */
-function skyAt(y: number): string {
+function skyAt(y: number, sky: [string, string, string]): string {
     const t = Math.max(0, Math.min(1, y / WATERLINE));
-    const stops = SKY_STOPS;
+    const stops = sky.map(toRgb);
     const span = t < 0.5 ? [stops[0], stops[1], t * 2] : [stops[1], stops[2], (t - 0.5) * 2];
     const [from, to, mix] = span as [number[], number[], number];
     const channel = (i: number) => Math.round(from[i] + (to[i] - from[i]) * mix);
@@ -77,6 +87,12 @@ interface Props {
     distance: number;
     /** Seconds into the stage, for the waves. Plain number, for the same reason. */
     seconds: number;
+    /** How far through the stage, 0 to 1: the sun rises with it. */
+    progress: number;
+    /** The sky's current top, middle and bottom colours (it lightens through the stage). */
+    skyTop: string;
+    skyMid: string;
+    skyBottom: string;
     viewWidth?: number;
 }
 
@@ -153,7 +169,7 @@ const TWINKLE_SEC = 2.4;
  * in and out on its own beat, and only moves to new spots while it's fully faded, so the
  * water sparkles gently instead of jumping. A few paths in all, to keep web drawing light.
  */
-function useReflection(viewWidth: number, seconds: number) {
+function useReflection(viewWidth: number, seconds: number, rise: number) {
     // Which fade each group is on. A group's glints are only re-laid out when this changes,
     // which is the moment that group is invisible.
     const cycles = Array.from({ length: TWINKLE_GROUPS }, (_, g) =>
@@ -171,7 +187,8 @@ function useReflection(viewWidth: number, seconds: number) {
             const bands = REFLECTION_BANDS.map(() => '');
             for (let y = WATERLINE + 3; y < SAND; y += 3) {
                 const depth = (y - WATERLINE) / (SAND - WATERLINE);
-                const spread = 10 + depth * 46;
+                // The light spreads wider across the water as the sun climbs.
+                const spread = (10 + depth * 46) * (0.35 + 0.8 * rise);
                 // Nearer the horizon the light is brighter, so pick the band by depth.
                 const band = Math.min(REFLECTION_BANDS.length - 1, Math.floor(depth * REFLECTION_BANDS.length));
                 const length = spread * (0.3 + random() * 0.7);
@@ -187,15 +204,19 @@ function useReflection(viewWidth: number, seconds: number) {
     return paths.map((p) => {
         const along = (seconds / TWINKLE_SEC + p.group / TWINKLE_GROUPS) % 1;
         const glint = Math.sin(Math.PI * along) ** 2; // 0 at each end of the fade, 1 in the middle
-        return { d: p.d, opacity: p.base * Math.min(1, glint * 1.6) };
+        // ...and grows brighter.
+        return { d: p.d, opacity: p.base * (0.45 + 0.55 * rise) * Math.min(1, glint * 1.6) };
     });
 }
 
-export const SunsetBeachBackground = ({ distance, seconds, viewWidth: viewWidthProp }: Props) => {
+export const SunsetBeachBackground = ({ distance, seconds, progress, skyTop, skyMid, skyBottom, viewWidth: viewWidthProp }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const far = useStripImages("beach-far", FAR_SOURCES);
     const palms = useStripImages("beach-palms", PALM_SOURCES);
-    const reflection = useReflection(viewWidth, seconds);
+    const rise = Math.max(0, Math.min(1, progress));
+    const reflection = useReflection(viewWidth, seconds, rise);
+    const sunY = SUN_START_Y + (SUN_END_Y - SUN_START_Y) * rise;
+    const sky: [string, string, string] = [skyTop, skyMid, skyBottom];
 
     const sunX = viewWidth / 2;
 
@@ -203,17 +224,17 @@ export const SunsetBeachBackground = ({ distance, seconds, viewWidth: viewWidthP
         <>
             {/* Sun: a disk with the sky banding cut across its lower half, as in the concept. */}
             <Group>
-                <Circle cx={sunX} cy={SUN.y} r={SUN.radius} color={SUN.colour} />
+                <Circle cx={sunX} cy={sunY} r={SUN.radius} color={SUN.colour} />
                 {SUN_BANDS.map((at) => {
-                    const y = SUN.y + SUN.radius * at;
+                    const y = sunY + SUN.radius * at;
                     // Narrow towards the bottom of the disk, following its curve.
-                    const halfWidth = Math.sqrt(Math.max(0, SUN.radius * SUN.radius - (y - SUN.y) ** 2));
+                    const halfWidth = Math.sqrt(Math.max(0, SUN.radius * SUN.radius - (y - sunY) ** 2));
                     return (
                         <Rect
                             key={at}
                             x={sunX - halfWidth} y={y}
                             width={halfWidth * 2} height={3}
-                            color={skyAt(y)}
+                            color={skyAt(y, sky)}
                         />
                     );
                 })}

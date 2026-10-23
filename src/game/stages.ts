@@ -298,7 +298,19 @@ export const STAGES: StageConfig[] = [
             hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
         },
         speed: [280, 320],
-        courseLength: COURSE_LENGTH
+        courseLength: COURSE_LENGTH,
+        // Sunrise: the sky lifts gently from deeper to lighter tones over the whole stage.
+        // The sun and its light on the water rise with it (SunsetBeachBackground).
+        timeline: [
+            {
+                type: 'sky_gradient',
+                trigger: { start: 0, end: COURSE_LENGTH },
+                values: {
+                    startColor: ['#3e2c7a', '#8c4a8e', '#d8636c'],
+                    endColor: ['#7d68bd', '#c472a8', '#f8957c'],
+                },
+            },
+        ],
     },
     {
         id: 'stage_3_landscape',
@@ -364,6 +376,27 @@ export const STAGES: StageConfig[] = [
             hearts: { hurtBelow: 0.5, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 30 },
         },
         speed: [320, 360],
-        courseLength: COURSE_LENGTH
+        courseLength: COURSE_LENGTH,
+        // Evening into night: a warm sunset sky deepens to navy by about 45% of the way,
+        // then stays night to the finish (sun, street lights, fireworks and moon are in
+        // VictoryDawnBackground).
+        timeline: [
+            {
+                type: 'sky_gradient',
+                trigger: { start: 0, end: COURSE_LENGTH * 0.45 },
+                values: {
+                    startColor: ['#3d5fa3', '#d0769c', '#ffb36b'],
+                    endColor: ['#01114a', '#0f1661', '#261b7c'],
+                },
+            },
+            {
+                type: 'sky_gradient',
+                trigger: { start: COURSE_LENGTH * 0.45, end: COURSE_LENGTH },
+                values: {
+                    startColor: ['#01114a', '#0f1661', '#261b7c'],
+                    endColor: ['#01114a', '#0f1661', '#261b7c'],
+                },
+            },
+        ],
     }
 ];
