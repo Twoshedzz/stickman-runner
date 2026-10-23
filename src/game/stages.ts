@@ -211,10 +211,11 @@ export const STAGES: StageConfig[] = [
                 trigger: { start: 21600, end: -1 },
                 values: { startY: 400, endY: 400, opacity: 0 }
             },
-            // --- SEGMENT 5 (32000–40000): Lights dwindle in reverse order (night_lights_dwindle 0→1), gradual step-down ---
+            // --- Lights dwindle in reverse order (night_lights_dwindle 0→1), lingering into the sunrise:
+            //     they start going out at 2:30 and the last ones switch off right at the finish. ---
             {
                 type: 'night_lights_dwindle',
-                trigger: { start: 32000, end: 40000 },
+                trigger: { start: 36000, end: 43000 },
                 values: { startOpacity: 0, endOpacity: 1 }
             },
             {
