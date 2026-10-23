@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { ScoreEntry } from '../../game/loop/useGameLoop';
+import { BOARD_SIZE } from '../../scoreboard/rules';
+import type { SendOutcome } from '../../scoreboard/worldBoard';
 import { RNText } from '../RNText';
 import { ArcadeMenu, useBlink } from './ArcadeMenu';
 import { BestRuns } from './BestRuns';
@@ -21,6 +23,24 @@ const ScoreLine = ({ label, value, colour = NEON.yellow }: { label: string; valu
         <RNText style={[styles.scoreValue, { color: colour }]}>{padded(value)}</RNText>
     </View>
 );
+
+/** What became of this run's score on the world board, in a few words. */
+export const worldText = (world: SendOutcome | null | undefined) => {
+    if (!world) return '';
+    switch (world.outcome) {
+        case 'sending': return 'SENDING TO THE WORLD BOARD…';
+        case 'queued': return 'NO SIGNAL · WILL SEND LATER';
+        case 'refused': return "COULDN'T SEND TO THE WORLD BOARD";
+        case 'sent':
+            if (world.rank === null) return '';
+            return world.rank < BOARD_SIZE ? `#${world.rank + 1} IN THE WORLD!` : `WORLD #${world.rank + 1}`;
+    }
+};
+
+const WorldLine = ({ world }: { world?: SendOutcome | null }) => {
+    const text = worldText(world);
+    return text ? <RNText style={styles.world}>{text}</RNText> : null;
+};
 
 interface StageClearProps {
     stageNumber: number;
@@ -61,11 +81,15 @@ interface GameOverProps {
     hiScore: number;
     /** This run set the best score. */
     newHiScore: boolean;
+    /** This run's score on the world board, if it was entered. */
+    world?: SendOutcome | null;
     onPlayAgain: () => void;
     onHowToPlay: () => void;
+    /** Opens the world top 10. Left out when there's no world board to show. */
+    onWorldScores?: () => void;
 }
 
-export const GameOverScreen = ({ score, hiScore, newHiScore, onPlayAgain, onHowToPlay }: GameOverProps) => {
+export const GameOverScreen = ({ score, hiScore, newHiScore, world, onPlayAgain, onHowToPlay, onWorldScores }: GameOverProps) => {
     const blinkOn = useBlink(400);
     return (
         <MenuScreen>
@@ -76,10 +100,12 @@ export const GameOverScreen = ({ score, hiScore, newHiScore, onPlayAgain, onHowT
                     <ScoreLine label="HI-SCORE" value={hiScore} />
                 </View>
                 <RNText style={[styles.newHi, { opacity: newHiScore && blinkOn ? 1 : 0 }]}>NEW HI-SCORE!</RNText>
+                <WorldLine world={world} />
             </Panel>
             <ArcadeMenu
                 items={[
                     { label: 'PLAY AGAIN', onPress: onPlayAgain },
+                    ...(onWorldScores ? [{ label: 'WORLD SCORES', onPress: onWorldScores }] : []),
                     { label: 'HOW TO PLAY', onPress: onHowToPlay },
                 ]}
             />
@@ -92,15 +118,18 @@ interface FinishedProps {
     scoreTable: ScoreEntry[];
     /** Where this run landed in the table, to highlight it. -1 if it didn't make it. */
     newScoreIndex: number;
+    /** This run's score on the world board, if it was entered. */
+    world?: SendOutcome | null;
     onPlayAgain: () => void;
 }
 
 /** Every stage cleared: the big finish, and the best runs with this one picked out. */
-export const FinishedScreen = ({ score, scoreTable, newScoreIndex, onPlayAgain }: FinishedProps) => (
+export const FinishedScreen = ({ score, scoreTable, newScoreIndex, world, onPlayAgain }: FinishedProps) => (
     <MenuScreen>
         <Panel colour="rgba(255, 224, 102, 0.7)">
             <RNText style={[styles.title, styles.finished]}>FINISHED!</RNText>
-            <RNText style={styles.subtitle}>ALL FOUR STAGES CLEARED</RNText>
+            {/* The screen is full, so the world board line takes the subtitle's place. */}
+            {worldText(world) ? <WorldLine world={world} /> : <RNText style={styles.subtitle}>ALL FOUR STAGES CLEARED</RNText>}
             <ScoreLine label="SCORE" value={score} />
         </Panel>
         <View style={styles.table}>
@@ -189,5 +218,13 @@ const styles = StyleSheet.create({
     table: {
         marginTop: 8,
         marginBottom: 10,
+    },
+    world: {
+        fontFamily: FONT.bold,
+        fontSize: 12,
+        letterSpacing: 3,
+        color: NEON.cyan,
+        marginTop: 4,
+        ...glow(NEON.cyan, 8),
     },
 });

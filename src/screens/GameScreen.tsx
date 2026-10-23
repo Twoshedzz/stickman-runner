@@ -4,10 +4,12 @@ import { useFonts } from 'expo-font';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HowToPlayScreen } from '../components/menu/HowToPlayScreen';
+import { InitialsScreen } from '../components/menu/InitialsScreen';
 import { LoadingScreen } from '../components/menu/LoadingScreen';
 import { FinishedScreen, GameOverScreen, StageClearScreen } from '../components/menu/ResultScreens';
 import { FONT, glow, MENU_FONT_FILES, NEON } from '../components/menu/menuStyle';
 import { TitleScreen } from '../components/menu/TitleScreen';
+import { WorldScoresScreen } from '../components/menu/WorldScoresScreen';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
@@ -15,7 +17,9 @@ import { ScoreDisplay } from '../components/ui/ScoreDisplay';
 import { DEBUG_ENABLED, SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
 import { useGameLoop } from '../game/loop/useGameLoop';
 import { STAGES } from '../game/stages';
+import { BOARD_SIZE } from '../scoreboard/rules';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
+import { SendOutcome, useWorldBoard } from '../scoreboard/worldBoard';
 
 // Lazy load GameCanvas to ensure Skia is initialized before import (on Web)
 const GameCanvas = React.lazy(() =>
@@ -57,6 +61,54 @@ export const GameScreen = () => {
     const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
+
+    /**
+     * The world scoreboard. When a run ends with a score that makes the world top 10, it
+     * asks for initials before the Game Over or Finished screen. Debug runs never count.
+     */
+    const world = useWorldBoard();
+    const [enterInitials, setEnterInitials] = useState<{ score: number; completed: boolean } | null>(null);
+    /** What became of the last run's score on the world board, for the end screens. */
+    const [worldResult, setWorldResult] = useState<SendOutcome | null>(null);
+    /**
+     * The world top 10 screen: straight after entering initials ('entered', then on to the
+     * end screen), or opened from the title or Game Over menu ('browse').
+     */
+    const [worldScreen, setWorldScreen] = useState<'entered' | 'browse' | null>(null);
+    /** This run's own place on the board, to light up. */
+    const myPlace = worldResult?.outcome === 'sent' && worldResult.rank !== null && worldResult.rank < BOARD_SIZE
+        ? worldResult.rank
+        : -1;
+    const runCheckedRef = useRef(false);
+    /** A screen with its own keys is open (typing initials, the world board), so the game's keys stand aside. */
+    const initialsOpenRef = useRef(false);
+    initialsOpenRef.current = enterInitials !== null || worldScreen !== null;
+    useEffect(() => {
+        if (!gameState.gameOver) {
+            // A new run after the last one ended: look at the board afresh, so it's up to
+            // date by the time this run ends.
+            if (runCheckedRef.current && gameState.gameStarted) {
+                runCheckedRef.current = false;
+                setWorldResult(null);
+                world.refresh();
+            }
+            return;
+        }
+        if (runCheckedRef.current) return;
+        runCheckedRef.current = true;
+        if (!gameState.debugMode && world.canEnter(gameState.score)) {
+            setEnterInitials({ score: gameState.score, completed: gameState.gameComplete });
+        }
+    }, [gameState.gameOver, gameState.gameStarted, gameState.debugMode, gameState.score, gameState.gameComplete, world]);
+
+    const submitInitials = useCallback(async (initials: string) => {
+        const entry = enterInitials;
+        setEnterInitials(null);
+        if (!entry) return;
+        setWorldResult({ outcome: 'sending' });
+        setWorldScreen('entered');
+        setWorldResult(await world.submit({ initials, ...entry }));
+    }, [enterInitials, world]);
     // The menu lettering. Until it arrives, text shows in the system font rather than waiting.
     useFonts(MENU_FONT_FILES);
 
@@ -258,6 +310,8 @@ export const GameScreen = () => {
     useEffect(() => {
         if (Platform.OS === 'web') {
             const handleKeyDown = (e: KeyboardEvent) => {
+                // Typing initials: the keys are letters and arrows there, not jump and duck.
+                if (initialsOpenRef.current) return;
                 const state = gameStateRef.current;
                 if (e.code === 'Space' || e.code === 'ArrowUp') {
                     e.preventDefault();
@@ -339,12 +393,26 @@ export const GameScreen = () => {
                         />
                     )}
                     {/* Title screen - only after assets loaded so the game is ready behind it */}
-                    {readyToStart && !gameState.gameStarted && !gameState.gameOver && !showInstructions && (
+                    {readyToStart && !gameState.gameStarted && !gameState.gameOver && !showInstructions && !worldScreen && (
                         <TitleScreen
                             hiScore={highScore}
                             scoreTable={scoreTable}
+                            worldEntries={world.available ? world.entries : null}
                             onStart={startGame}
                             onHowToPlay={() => setShowInstructions(true)}
+                            onWorldScores={world.available ? () => setWorldScreen('browse') : undefined}
+                        />
+                    )}
+
+                    {/* The world top 10, with this run's entry lit up if it's on there */}
+                    {worldScreen && !showInstructions && (
+                        <WorldScoresScreen
+                            entries={world.entries}
+                            highlight={myPlace}
+                            world={worldScreen === 'entered' ? worldResult : null}
+                            offline={world.status === 'offline'}
+                            doneLabel={worldScreen === 'entered' ? 'CONTINUE' : 'BACK'}
+                            onDone={() => setWorldScreen(null)}
                         />
                     )}
 
@@ -389,24 +457,38 @@ export const GameScreen = () => {
                         </View>
                     )}
 
+                    {/* Made the world top 10: initials first, then the end screen */}
+                    {enterInitials && !showInstructions && (
+                        <InitialsScreen
+                            score={enterInitials.score}
+                            initials={world.lastInitials}
+                            keyboard={fixedPreview}
+                            onSubmit={submitInitials}
+                            onSkip={() => setEnterInitials(null)}
+                        />
+                    )}
+
                     {/* Finished: every stage cleared */}
-                    {gameState.gameComplete && !showInstructions && (
+                    {gameState.gameComplete && !enterInitials && !worldScreen && !showInstructions && (
                         <FinishedScreen
                             score={gameState.score}
                             scoreTable={scoreTable}
                             newScoreIndex={newScoreIndex}
+                            world={worldResult}
                             onPlayAgain={playAgain}
                         />
                     )}
 
                     {/* Game over */}
-                    {gameState.gameOver && !gameState.gameComplete && !showInstructions && (
+                    {gameState.gameOver && !gameState.gameComplete && !enterInitials && !worldScreen && !showInstructions && (
                         <GameOverScreen
                             score={gameState.score}
                             hiScore={highScore}
                             newHiScore={gameState.score > 0 && newScoreIndex === 0}
+                            world={worldResult}
                             onPlayAgain={playAgain}
                             onHowToPlay={() => setShowInstructions(true)}
+                            onWorldScores={world.available ? () => setWorldScreen('browse') : undefined}
                         />
                     )}
 

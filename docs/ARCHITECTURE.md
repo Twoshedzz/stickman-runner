@@ -129,9 +129,27 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 
 **Trade-off:** Any new draw code (obstacles, particles, arch) must remember to add `gameOffsetX`; anything using raw logical X will drift off-center on wide phones.
 
+## 12. One small server: the world scoreboard
+
+**Decision:** The game is a static site with no server, except for the world scoreboard: one
+Vercel function (`api/scores.ts`) and an Upstash Redis database, reached over HTTPS with no
+extra packages. The phone app calls the live site's address.
+
+**Why**
+
+- Vercel already hosts the site, so the function deploys with it and needs no second service.
+- A Redis sorted set keeps scores in order by itself, which is all a leaderboard needs.
+- The board is optional: when it can't be reached (no signal, not set up, the dev server) the
+  game carries on with its own best-runs table, and holds unsent scores until next time.
+
+**Trade-off:** Scores can't be proved genuine without replaying runs on the server, which isn't
+worth it here. The server checks the shape of an entry, caps the score at what's possible, and
+limits how often one address can send. `api/tsconfig.json` makes the function plain CommonJS,
+since Expo's TypeScript settings leave `import`/`export` lines that Node can't load.
+
 ## Deliberate non-goals (for now)
 
-- Multiplayer, backend, monetisation  
+- Multiplayer, accounts, monetisation (the world scoreboard, §12, is the only server)  
 - Full App Store polish as day-one requirement  
 - Feature parity of web vs native rendering quality  
 - Premature ECS or heavy abstraction layers  
@@ -143,6 +161,7 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 | Gravity, jump, ground | `src/game/systems/physics.ts`, `constants.ts` |
 | Hits / hearts | `src/game/systems/collisions.ts` |
 | Pickups, streak multiplier | `src/game/pickups.ts` |
+| World scoreboard | `api/scores.ts`, `api/_lib/scoreboardServer.ts` (server); `src/scoreboard/` (rules, game side); `src/components/menu/InitialsScreen.tsx`, `WorldBoard.tsx`, `WorldScoresScreen.tsx` |
 | Obstacle cadence | `src/game/systems/spawn.ts`, stage `difficultySegments` |
 | Stage themes / music ids | `src/game/stages.ts` |
 | Loop / stage timing | `src/game/loop/useGameLoop.ts` |

@@ -54,6 +54,8 @@ Don't re-open these without a reason — a lot depends on them.
 9. **Menus are screens of their own**, not pop-ups over the game, in an 80s arcade style: chrome
    and neon logo, Tron-style grid, arcade menu items with blinking arrows. Lettering is Audiowide
    (headings) and Orbitron (smaller text). The colour palette stays as it is.
+10. **One public world scoreboard**, arcade style: three initials, a score, the date. No accounts
+    and nothing personal (children play this). The game works fine without it.
 
 ---
 
@@ -211,6 +213,38 @@ Home Screen. It opens full screen, edge to edge, with its own icon and name.
 install via a link or TestFlight. Before building: a proper display name, icon and splash screen
 for the native app (still Expo's defaults), and the exact commands in `docs/RELEASE.md`.
 
+### World scoreboard
+
+One public top 10 for everyone who plays, on the web or in the phone app (decision 10).
+
+- **In the game:** a run that makes the top 10 asks for three initials, arcade style (tap ▲ ▼ or
+  swipe a letter; on a keyboard, type). SKIP leaves it off. Then the board appears with that
+  entry lit up, before Game Over or Finished. WORLD SCORES on the title and Game Over menus
+  opens it any time, and the title's attract mode shows it between the logo and the best runs.
+- **No signal:** the score is kept on the phone and sent next time the board can be reached.
+- **Server:** `api/scores.ts`, a small Vercel function next to the site, keeping scores in an
+  Upstash Redis database. The rules (three letters, a short rude-word list, the highest possible
+  score) are in `src/scoreboard/rules.ts` and are checked on both sides. One address can send
+  at most 10 scores in 10 minutes.
+- **Cheating:** anyone determined could still send a made-up score below the limit. Delete it
+  by hand (below). Fine for a family game.
+- **New season:** bump `SEASON` in `src/scoreboard/rules.ts` when scoring changes a lot. The
+  board starts empty; the old one stays in the database.
+
+**Setting it up (once, needs Pete's Vercel login):**
+1. In the Vercel dashboard, open the stickman-runner project → **Storage** (or the
+   Marketplace) → add **Upstash for Redis** (the free plan) and connect it to the project.
+   This gives the project the database's address and password as settings.
+2. Redeploy (push, or Redeploy in the dashboard): settings only reach new deployments.
+3. Check https://stickman-runner-twoshedzzs-projects.vercel.app/api/scores shows
+   `{"season":1,"entries":[]}`. "not set up" means step 1's settings are missing; a 404 or the
+   game's page means the function wasn't deployed.
+
+Until then the server answers "not set up" and the game simply leaves the world board out.
+
+**Removing an entry:** in the Upstash console, open the database's Data Browser, find the key
+`stickman:scores:season1`, and delete the line.
+
 ---
 
 ## 7. Still to do after the gameplay pass
@@ -281,6 +315,7 @@ Not urgent, but each one removes a trap:
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |
+| World scoreboard | ✅ Built; database to connect on Vercel (§6) |
 | Tuning, stickman poses | Not started |
 | Cleanup backlog | Partly done |
 
