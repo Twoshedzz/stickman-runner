@@ -9,7 +9,7 @@ game works today see [ARCHITECTURE.md](./ARCHITECTURE.md); for why it's shaped t
 
 **Work in step order.** Each step is small enough to test on the phone before moving on.
 
-*Last updated 23 October 2026.*
+*Last updated 23 October 2026 (evening).*
 
 ---
 
@@ -67,7 +67,7 @@ Don't re-open these without a reason — a lot depends on them.
 | Duck | 0.55 sec for a quick swipe; held, it lasts until 0.15 sec after letting go | `DUCK_DURATION_SEC`, `DUCK_RELEASE_SEC` |
 | Double jump cost | the whole energy bar | `JUMP_ENERGY_COST` = `MAX_ENERGY` = 100 |
 | Energy refill while grounded | 3.3 sec | `ENERGY_REGEN`, time-based |
-| Stage length | 180 sec | `STAGE_DURATION_SECONDS` |
+| Stage length | 180 / 174 / 176 / 178 sec for stages 1–4: each ends when its music does | `durationSec` in `stages.ts` |
 
 ---
 
@@ -138,7 +138,14 @@ A short intensity list per track (warm-up, waves, breather, finale) that scales 
 - **Stage arcs** for stages 2–4 (§1).
 - **Sunset Beach:** sea and sand clearly different colours, waves washing up the sand, a slow
   twinkle on the water, palms set back from the surf.
-- **Neon City:** the lights linger into the sunrise (start going out at 2:30, last ones at the finish).
+- **Neon City:** the lights linger into the sunrise (start going out at 2:30, last ones at the
+  finish), and go out building by building at scattered times rather than all at once.
+- **Sunset Beach:** the hills became low cloud streaks (bumpy-topped nearer ones, flat stripes by
+  the horizon), and the light on the water is as wide as the sun showing above the sea.
+- **Stage length matches the music.** Every track is 3:00 long but most end in a few seconds of
+  fade or silence, so each stage now ends where its music does (§3).
+- **CONTINUE goes straight to the next stage** (no second-long glimpse of the old one).
+- **Home screen icon** redrawn: a white runner in a full sprint with speed streaks.
 
 **Web and iPhone**
 - The web `Aborted()` crashes were a memory leak in Skia's web renderer; fixed with a patch. See
@@ -161,7 +168,13 @@ Home Screen. It opens full screen, edge to edge, with its own icon and name.
 - Phone browsers fill the screen (desktop keeps a 600×350 preview), use one touch handler for tap
   and swipe, keep the score and health clear of the notch, and ask you to turn the phone sideways
   when it's upright.
-- iPhone Safari only lets music start during a tap, so START starts it directly.
+- iPhone Safari only lets music start during a tap, so START, CONTINUE and PLAY AGAIN start it
+  directly. Other tracks are "unlocked" on later taps, never on the START tap itself (that made
+  stage 1 silent). If Safari still refuses, the next tap starts the music.
+- The game and its music **pause while the app is in the background** (another app, phone
+  locked) and carry on where they left off.
+- To pick up a new version, fully close the home screen app from the app switcher and reopen it.
+  Only a new icon needs the icon removing and re-adding.
 - Home screen apps can hold on to an old copy: if a change doesn't show, remove the icon and add it
   again.
 
