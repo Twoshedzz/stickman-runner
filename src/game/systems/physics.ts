@@ -1,4 +1,4 @@
-import { DUCK_DURATION_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
@@ -16,11 +16,15 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const scale = frameScale(deltaTimeSec);
 
     // Ducking runs down in real seconds, and is cancelled the moment the runner leaves the ground.
+    // While it's held the timer can't run out, so letting go leaves at least a moment's duck,
+    // and a quick swipe still gets the full duck.
     if (player.isDucking) {
         player.duckTimer -= deltaTimeSec;
+        if (player.duckHeld) player.duckTimer = Math.max(player.duckTimer, DUCK_RELEASE_SEC);
         if (player.duckTimer <= 0 || !player.isGrounded) {
             player.isDucking = false;
             player.duckTimer = 0;
+            player.duckHeld = false;
         }
     }
 
@@ -102,12 +106,22 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     state.obstacles = obstacles.filter(obs => obs.x + shapeFor(obs.role).width > OFFSCREEN_LEFT_X);
 };
 
-/** Duck under an overhead bar. Grounded only, and free: it must not compete with the double jump. */
-export const startDuck = (state: GameState) => {
+/**
+ * Duck under an overhead bar. Grounded only, and free: it must not compete with the double jump.
+ * With `hold`, the runner stays down until releaseDuck() — for a finger kept on the screen
+ * after a swipe, or the ↓ key held down — so two bars in a row can be ducked in one go.
+ */
+export const startDuck = (state: GameState, hold = false) => {
     const { player } = state;
     if (!player.isGrounded) return;
     player.isDucking = true;
     player.duckTimer = DUCK_DURATION_SEC;
+    player.duckHeld = hold;
+};
+
+/** The finger lifted or the key came up: stand up shortly, rather than straight away. */
+export const releaseDuck = (state: GameState) => {
+    state.player.duckHeld = false;
 };
 
 export const jump = (state: GameState) => {
@@ -117,6 +131,7 @@ export const jump = (state: GameState) => {
     if (isGrounded) {
         state.player.isDucking = false; // can't be crouched and airborne at once
         state.player.duckTimer = 0;
+        state.player.duckHeld = false;
         state.player.dy = JUMP_FORCE;
         state.player.isGrounded = false;
         state.player.jumpCount = 1;

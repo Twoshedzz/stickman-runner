@@ -5,12 +5,12 @@
  * any timing of taps and swipes that gets past without a hit. If it finds none, the
  * pattern or spacing is impossible and the test fails.
  */
-import { MAX_ENERGY, PLAYER_SIZE, PLAYER_X, STAGE_DURATION_SECONDS } from '../constants';
+import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, STAGE_DURATION_SECONDS } from '../constants';
 import { PATTERNS } from '../patterns';
 import { remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
-import { applyPhysics, jump, startDuck } from '../systems/physics';
+import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
 import { spawnObstacle } from '../systems/spawn';
 
 const DT = 1 / 60;
@@ -222,5 +222,41 @@ describe('the finish line', () => {
                 expect(Math.abs(travelled - predicted)).toBeLessThan(stage.speed[1] / 120);
             }
         }
+    });
+});
+
+describe('holding a duck', () => {
+    const ducksFor = (holdSec: number) => {
+        const sim = freshSim();
+        startDuck(sim.state, holdSec > 0);
+        let frames = 0;
+        while (sim.state.player.isDucking && frames < 600) {
+            if (frames === Math.round(holdSec * 60)) releaseDuck(sim.state);
+            applyPhysics(sim.state, DT);
+            frames++;
+        }
+        return frames / 60;
+    };
+
+    it('a quick swipe still gives the full duck', () => {
+        expect(ducksFor(0)).toBeCloseTo(DUCK_DURATION_SEC, 1);
+        expect(ducksFor(0.05)).toBeCloseTo(DUCK_DURATION_SEC, 1);
+    });
+
+    it('stays down while held, and stands up shortly after letting go', () => {
+        const total = ducksFor(2);
+        expect(total).toBeGreaterThan(2);
+        expect(total).toBeLessThan(2 + DUCK_RELEASE_SEC + 0.05);
+    });
+
+    it('two bars in a row can be ducked with one held swipe', () => {
+        const arrivals = patternArrivals([{ role: 'overhead', at: 0 }, { role: 'overhead', at: 0.9 }], 300);
+        const sim = freshSim(300);
+        let hit = false;
+        for (let f = 0; f < 240 && !hit; f++) {
+            if (f === 70) startDuck(sim.state, true); // well before the first bar arrives
+            hit = step(sim, arrivals);
+        }
+        expect(hit).toBe(false);
     });
 });

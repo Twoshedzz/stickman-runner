@@ -11,6 +11,8 @@ export const PLAYER_SIZE = 40;
 export const PLAYER_DUCK_HEIGHT = 22;
 /** How long one duck lasts. An overhead bar covers the runner for about 0.4s, so this clears it. */
 export const DUCK_DURATION_SEC = 0.55;
+/** When a held duck is let go (finger lifted, key released), the runner stands this long after. */
+export const DUCK_RELEASE_SEC = 0.15;
 export const PLAYER_X = 50;
 export const OBSTACLE_SIZE = 40;
 export const OBSTACLE_SIZE_SMALL = 28; // Small yellow block (Neon City)

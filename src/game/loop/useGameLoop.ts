@@ -6,7 +6,7 @@ import { updateParticles } from '../particles';
 import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
-import { applyPhysics, jump, startDuck } from '../systems/physics';
+import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
 import { resetSpawner, spawnObstacle } from '../systems/spawn';
 
 /** One run in the score table. */
@@ -259,10 +259,15 @@ export const useGameLoop = () => {
         setRenderTrigger(prev => prev + 1);
     }, []);
 
-    const onDuck = useCallback(() => {
+    /** `hold`: stay down until onDuckRelease (finger kept on the screen, or the key held). */
+    const onDuck = useCallback((hold = false) => {
         const state = stateRef.current;
         if (state.gameOver || !state.gameStarted) return;
-        startDuck(state);
+        startDuck(state, hold);
+    }, []);
+
+    const onDuckRelease = useCallback(() => {
+        releaseDuck(stateRef.current);
     }, []);
 
     // Toggle Debug Mode
@@ -306,6 +311,7 @@ export const useGameLoop = () => {
         gameMetrics,
         onJump,
         onDuck,
+        onDuckRelease,
         restartGame,
         onContinue,
         toggleDebugMode,

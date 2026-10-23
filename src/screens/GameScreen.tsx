@@ -27,7 +27,7 @@ const instructionsFor = (keyboard: boolean) => [
     { colour: '#00ffff', text: keyboard ? 'SPACE OR \u2191 TO JUMP' : 'TAP TO JUMP' },
     { colour: '#00ffff', text: keyboard ? 'AGAIN IN THE AIR TO DOUBLE JUMP' : 'TAP AGAIN IN THE AIR TO DOUBLE JUMP' },
     { colour: '#00ffff', text: 'DOUBLE JUMP NEEDS A FULL ENERGY BAR \u26A1' },
-    { colour: '#7df5ff', text: keyboard ? '\u2193 OR S TO DUCK' : 'SWIPE DOWN TO DUCK' },
+    { colour: '#7df5ff', text: keyboard ? '\u2193 OR S TO DUCK \u00B7 HOLD TO STAY DOWN' : 'SWIPE DOWN TO DUCK \u00B7 HOLD TO STAY DOWN' },
     { colour: '#ffff00', text: 'JUMP BLOCKS AND BALLS \u00B7 DUCK UNDER BARS' },
     { colour: '#ff4d4d', text: 'WIDE BLOCKS NEED A DOUBLE JUMP' },
     { colour: '#FF1493', text: 'HOT PINK BALLS RESTORE HEALTH \u2764\uFE0F' },
@@ -61,7 +61,7 @@ export const GameScreen = () => {
     /** Phones can't be locked sideways from a web page, so ask the player to turn it. */
     const needsRotate = isTouchWeb && windowDim.height > windowDim.width;
 
-    const { gameState, gameMetrics, onJump, onDuck, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
+    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
@@ -125,17 +125,17 @@ export const GameScreen = () => {
         }
     }, [gameState.gameOver, gameState.showContinue, stopMusic]);
 
-    // Swipe down to duck. Tap still jumps, so nothing about the old input changes.
+    // Swipe down to duck, and keep the finger down to stay ducked. Tap still jumps.
     const duckGesture = useMemo(
         () => Gesture.Pan()
             .runOnJS(true)
             .minDistance(12)
-            .onEnd((e) => {
-                const fastEnough = e.velocityY > 350;
-                const mostlyDownward = Math.abs(e.velocityY) > Math.abs(e.velocityX);
-                if (fastEnough && mostlyDownward) onDuck();
-            }),
-        [onDuck]
+            .onUpdate((e) => {
+                const mostlyDownward = e.translationY > Math.abs(e.translationX);
+                if (e.translationY > SWIPE_DUCK_PX && mostlyDownward) onDuck(true);
+            })
+            .onFinalize(() => onDuckRelease()),
+        [onDuck, onDuckRelease]
     );
 
     // A new run always starts at stage 1, so start stage 1's music - not the music of the
@@ -180,10 +180,11 @@ export const GameScreen = () => {
         if (!start || start.ducked || !t) return;
         const dx = t.pageX - start.x;
         const dy = t.pageY - start.y;
-        // Duck the moment the finger has clearly moved down, rather than waiting for it to lift.
+        // Duck the moment the finger has clearly moved down, rather than waiting for it to lift,
+        // and stay down for as long as the finger stays on the screen.
         if (dy > SWIPE_DUCK_PX && dy > Math.abs(dx)) {
             start.ducked = true;
-            if (!gameState.gameOver && !gameState.showContinue) onDuck();
+            if (!gameState.gameOver && !gameState.showContinue) onDuck(true);
         }
     }, [onDuck, gameState.gameOver, gameState.showContinue]);
     const onTouchEnd = useCallback((e: GestureResponderEvent) => {
@@ -191,18 +192,21 @@ export const GameScreen = () => {
         touchRef.current = null;
         // Stops the browser also sending a mouse click for this touch.
         e.preventDefault();
-        if (start && !start.ducked) handleInteraction();
-    }, [handleInteraction]);
+        if (start?.ducked) onDuckRelease();
+        else if (start) handleInteraction();
+    }, [handleInteraction, onDuckRelease]);
 
     // Web Keyboard: capture phase so we handle Space/Up before React (no synthetic click on Pressable)
     const gameStateRef = React.useRef(gameState);
     gameStateRef.current = gameState;
     const onJumpRef = React.useRef(onJump);
     const onDuckRef = React.useRef(onDuck);
+    const onDuckReleaseRef = React.useRef(onDuckRelease);
     const playMusicRef = React.useRef(playMusic);
     const restartGameRef = React.useRef(restartGame);
     onJumpRef.current = onJump;
     onDuckRef.current = onDuck;
+    onDuckReleaseRef.current = onDuckRelease;
     playMusicRef.current = playMusic;
     restartGameRef.current = restartGame;
     useEffect(() => {
@@ -220,15 +224,22 @@ export const GameScreen = () => {
                 if (e.code === 'ArrowDown' || e.code === 'KeyS') {
                     e.preventDefault();
                     if (state.gameOver || state.showContinue) return;
-                    onDuckRef.current();
+                    onDuckRef.current(true); // held until the key comes up
                 }
                 if (state.gameOver && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
                     playMusicRef.current(STAGES[0].audio?.musicTrack || 'music_city');
                     restartGameRef.current();
                 }
             };
+            const handleKeyUp = (e: KeyboardEvent) => {
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') onDuckReleaseRef.current();
+            };
             window.addEventListener('keydown', handleKeyDown, true);
-            return () => window.removeEventListener('keydown', handleKeyDown, true);
+            window.addEventListener('keyup', handleKeyUp, true);
+            return () => {
+                window.removeEventListener('keydown', handleKeyDown, true);
+                window.removeEventListener('keyup', handleKeyUp, true);
+            };
         }
     }, []);
 

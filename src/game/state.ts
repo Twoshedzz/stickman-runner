@@ -34,6 +34,8 @@ export interface GameState {
         isDucking: boolean;
         /** Seconds of ducking left. Counts down in real time, like everything else. */
         duckTimer: number;
+        /** Finger still down after a swipe (or the ↓ key held): stay ducked until it's let go. */
+        duckHeld: boolean;
         health: number;
         maxHealth: number;
     };
@@ -80,6 +82,7 @@ export const createInitialState = (): GameState => ({
         jumpCount: 0,
         isDucking: false,
         duckTimer: 0,
+        duckHeld: false,
         health: MAX_HEALTH,
         maxHealth: MAX_HEALTH,
     },
