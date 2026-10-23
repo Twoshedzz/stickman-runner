@@ -1,6 +1,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GestureResponderEvent, Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
@@ -77,10 +78,14 @@ export const GameScreen = () => {
      * start screen and keeps them locked together.
      */
     const [musicReady, setMusicReady] = useState(false);
+    /** How much of the first track has arrived, 0-100, for the loading screen. */
+    const [musicPercent, setMusicPercent] = useState(0);
     useEffect(() => {
         let cancelled = false;
         const stage = STAGES.find((s) => s.id === gameState.stageId) || STAGES[0];
-        preloadTrack(stage.audio?.musicTrack || 'music_city').finally(() => {
+        preloadTrack(stage.audio?.musicTrack || 'music_city', (fraction) => {
+            if (!cancelled) setMusicPercent(Math.floor(fraction * 100));
+        }).finally(() => {
             if (!cancelled) setMusicReady(true);
         });
         return () => { cancelled = true; };
@@ -88,12 +93,40 @@ export const GameScreen = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [preloadTrack]);
 
-    /** Get the next stage's track in while the player is on the Stage Clear screen. */
+    /**
+     * Web: once the first track is in, fetch the other stages' music in the background, one at
+     * a time, so each later stage can start straight away. (The phone app has it built in.)
+     */
+    useEffect(() => {
+        if (!musicReady || Platform.OS !== 'web') return;
+        let cancelled = false;
+        (async () => {
+            for (const stage of STAGES) {
+                if (cancelled) return;
+                await preloadTrack(stage.audio?.musicTrack || 'music_city');
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [musicReady, preloadTrack]);
+
+    /**
+     * On the Stage Clear screen, make sure the next stage's music is in before CONTINUE is
+     * offered. Usually it already is, from the background fetch above.
+     */
+    const [nextMusicPercent, setNextMusicPercent] = useState(100);
     useEffect(() => {
         if (!gameState.showContinue) return;
         const index = STAGES.findIndex((s) => s.id === gameState.stageId);
         const next = STAGES[index + 1];
-        if (next) preloadTrack(next.audio?.musicTrack || 'music_city');
+        if (!next) return;
+        let cancelled = false;
+        setNextMusicPercent(0);
+        preloadTrack(next.audio?.musicTrack || 'music_city', (fraction) => {
+            if (!cancelled) setNextMusicPercent(Math.floor(fraction * 100));
+        }).finally(() => {
+            if (!cancelled) setNextMusicPercent(100);
+        });
+        return () => { cancelled = true; };
     }, [gameState.showContinue, gameState.stageId, preloadTrack]);
 
     const readyToStart = assetsReady && musicReady;
@@ -101,6 +134,10 @@ export const GameScreen = () => {
     // View width: on mobile when viewport is wide, draw wider so obstacles have longer run-in; focus stays left 600.
     const viewWidth = fixedPreview ? LOGICAL_WIDTH : Math.max(LOGICAL_WIDTH, LOGICAL_HEIGHT * (viewportWidth / viewportHeight));
     const viewHeight = LOGICAL_HEIGHT;
+
+    // The game fills the whole screen, notch included; the score and health bars stay clear of
+    // the notch and rounded corners. Insets are in screen points, so divide by the game's scale.
+    const insets = useSafeAreaInsets();
 
     // Single uniform scale → no stretch (aspect ratio preserved). Scale to fill viewport.
     const scale = Math.max(viewportWidth / viewWidth, viewportHeight / viewHeight);
@@ -288,7 +325,14 @@ export const GameScreen = () => {
                     {/* Loading: hide black block until assets ready */}
                     {!readyToStart && (
                         <View style={styles.countdownOverlay}>
-                            <RNText style={styles.countdownText}>Get ready...</RNText>
+                            <RNText style={styles.countdownText}>
+                                {musicReady ? 'GET READY...' : `LOADING MUSIC ${musicPercent}%`}
+                            </RNText>
+                            {!musicReady && (
+                                <View style={styles.loadingTrack}>
+                                    <View style={[styles.loadingFill, { width: `${musicPercent}%` }]} />
+                                </View>
+                            )}
                         </View>
                     )}
                     {/* Start Screen - only after assets loaded so scene is fully drawn */}
@@ -313,14 +357,19 @@ export const GameScreen = () => {
 
                     {/* HUD - Only show if playing or Game Over */}
                     {(gameState.gameStarted || gameState.gameOver) && (
-                        <React.Fragment>
+                        <View
+                            style={[
+                                styles.hudArea,
+                                fixedPreview ? null : { left: insets.left / scale, right: insets.right / scale },
+                            ]}
+                        >
                             <HealthBar health={gameMetrics.health} maxHealth={gameMetrics.maxHealth} />
                             <EnergyBar energy={gameMetrics.energy} />
                             <ScoreDisplay
                                 score={gameMetrics.score}
                                 stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
                             />
-                        </React.Fragment>
+                        </View>
                     )}
 
                     {/* Finished: every stage cleared */}
@@ -451,10 +500,12 @@ export const GameScreen = () => {
                             <RNText style={styles.gameOverTitle}>STAGE CLEAR</RNText>
                             <RNText style={styles.gameOverScore}>Next Stage Ready</RNText>
                             <Pressable
-                                style={[styles.restartButton, styles.startButton]}
-                                onPress={onContinue}
+                                style={[styles.restartButton, styles.startButton, nextMusicPercent < 100 && styles.buttonWaiting]}
+                                onPress={nextMusicPercent < 100 ? undefined : onContinue}
                             >
-                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>CONTINUE?</RNText>
+                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>
+                                    {nextMusicPercent < 100 ? `LOADING MUSIC ${nextMusicPercent}%` : 'CONTINUE?'}
+                                </RNText>
                             </Pressable>
                         </View>
                     )}
@@ -480,6 +531,10 @@ const styles = StyleSheet.create({
     containerWeb: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    hudArea: {
+        ...StyleSheet.absoluteFillObject,
+        pointerEvents: 'box-none',
     },
     rotateOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -541,6 +596,21 @@ const styles = StyleSheet.create({
         color: '#00ffff',
         fontWeight: 'bold',
         letterSpacing: 4,
+    },
+    loadingTrack: {
+        width: 260,
+        height: 8,
+        marginTop: 16,
+        borderRadius: 4,
+        backgroundColor: 'rgba(0, 255, 255, 0.15)',
+        overflow: 'hidden',
+    },
+    loadingFill: {
+        height: '100%',
+        backgroundColor: '#ff00cc',
+    },
+    buttonWaiting: {
+        opacity: 0.5,
     },
     gameOverContainer: {
         backgroundColor: 'rgba(15, 12, 41, 0.95)', // Deep Purple

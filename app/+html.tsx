@@ -16,8 +16,10 @@ export default function Root({ children }: PropsWithChildren) {
                 <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
                 <meta
                     name="viewport"
-                    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+                    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
                 />
+                {/* viewport-fit=cover: run edge to edge on iPhones, instead of leaving bars either
+                    side of the notch. The score and health bars are kept clear of it in GameScreen. */}
                 <title>Stickman Runner</title>
 
                 {/* Home screen: icon, name, and opening full screen like an app */}

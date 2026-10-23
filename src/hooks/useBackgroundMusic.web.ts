@@ -6,6 +6,35 @@ import { Asset } from 'expo-asset';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_TRACK, MUSIC_TRACKS } from './musicTracks';
 
+interface TrackLoad {
+    progress: number;
+    listeners: Set<(fraction: number) => void>;
+    promise: Promise<void>;
+}
+
+/** Fetches a file, reporting how much has arrived, and hands back an in-memory address for it. */
+async function downloadWithProgress(uri: string, report: (fraction: number) => void): Promise<string> {
+    const response = await fetch(uri);
+    if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+    const total = Number(response.headers.get('content-length')) || 0;
+    const type = response.headers.get('content-type') || 'audio/mpeg';
+    if (!response.body || !total) {
+        // No size given, so no progress to show; just wait for all of it.
+        return URL.createObjectURL(await response.blob());
+    }
+    const reader = response.body.getReader();
+    const chunks: BlobPart[] = [];
+    let received = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        report(Math.min(0.99, received / total));
+    }
+    return URL.createObjectURL(new Blob(chunks, { type }));
+}
+
 export const useBackgroundMusic = () => {
     const [musicStatus, setMusicStatus] = useState<string>('Ready');
     const loadingRef = useRef(false);
@@ -56,43 +85,62 @@ export const useBackgroundMusic = () => {
         };
     }, []);
 
+    /** Downloads in progress or done, by track, so several callers share one download. */
+    const loadsRef = useRef<Map<string, TrackLoad>>(new Map());
+
     /**
-     * Fetches and buffers a track without playing it.
+     * Downloads a track in full, without playing it, reporting progress (0 to 1) as it goes.
      *
-     * Each track is about 4MB. Starting a stage before it has loaded puts the music
-     * permanently behind the visuals for the whole three minutes, and the tracks are cut
-     * to match the stage exactly, so that drift matters.
+     * Each track is about 4MB. Starting a stage before its music has arrived leaves the music
+     * behind the visuals for the whole three minutes. iPhone Safari won't even start fetching
+     * an audio file until it's played, so instead the whole file is downloaded here and played
+     * from memory, which also lets the loading screen show how far along it is.
      *
      * Always resolves, even on failure: a missing track must not stop the game starting.
      */
-    const preloadTrack = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
-        if (preloadedRef.current.has(trackKey)) return;
-        try {
-            const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
-            const asset = Asset.fromModule(source);
-            if (!asset.localUri && !asset.uri) await asset.downloadAsync();
-            const uri = asset.localUri ?? asset.uri;
-            if (!uri) return;
-
-            const audio = new Audio(uri) as HTMLAudioElement & { __trackKey?: string };
-            audio.__trackKey = trackKey;
-            audio.loop = true;
-            audio.preload = 'auto';
-            audio.load();
-
-            await new Promise<void>((resolve) => {
-                let settled = false;
-                const done = () => { if (!settled) { settled = true; resolve(); } };
-                if (audio.readyState >= 3) return done();
-                audio.addEventListener('canplaythrough', done, { once: true });
-                audio.addEventListener('error', done, { once: true });
-                setTimeout(done, 6000); // never block the game on a slow or broken file
-            });
-
-            preloadedRef.current.set(trackKey, audio);
-        } catch {
-            // Leave it unpreloaded; playMusic still works, just with the old delay.
+    const preloadTrack = useCallback((trackKey: string = DEFAULT_TRACK, onProgress?: (fraction: number) => void) => {
+        const existing = loadsRef.current.get(trackKey);
+        if (existing) {
+            if (onProgress) {
+                onProgress(existing.progress);
+                existing.listeners.add(onProgress);
+            }
+            return existing.promise;
         }
+
+        const load: TrackLoad = { progress: 0, listeners: new Set(onProgress ? [onProgress] : []), promise: Promise.resolve() };
+        const report = (fraction: number) => {
+            load.progress = fraction;
+            load.listeners.forEach((listener) => listener(fraction));
+        };
+        load.promise = (async () => {
+            try {
+                const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
+                const asset = Asset.fromModule(source);
+                const uri = asset.uri ?? asset.localUri;
+                if (!uri) return;
+
+                const audio = new Audio(await downloadWithProgress(uri, report)) as HTMLAudioElement & { __trackKey?: string };
+                audio.__trackKey = trackKey;
+                audio.loop = true;
+                audio.preload = 'auto';
+                audio.load();
+                await new Promise<void>((resolve) => {
+                    // It's already in memory, so this is quick; the timeout is only a safety net.
+                    if (audio.readyState >= 3) return resolve();
+                    audio.addEventListener('canplaythrough', () => resolve(), { once: true });
+                    audio.addEventListener('error', () => resolve(), { once: true });
+                    setTimeout(resolve, 3000);
+                });
+                preloadedRef.current.set(trackKey, audio);
+            } catch {
+                // Leave it unpreloaded; playMusic will stream it instead.
+            } finally {
+                report(1);
+            }
+        })();
+        loadsRef.current.set(trackKey, load);
+        return load.promise;
     }, []);
 
     const playMusic = useCallback(async (trackKey: string = DEFAULT_TRACK) => {

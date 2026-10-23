@@ -41,8 +41,12 @@ export const useBackgroundMusic = () => {
      *
      * Always resolves, even on failure: a missing track must not stop the game starting.
      */
-    const preloadTrack = useCallback(async (trackKey: string = DEFAULT_TRACK) => {
-        if (preloadedRef.current.has(trackKey)) return;
+    const preloadTrack = useCallback(async (trackKey: string = DEFAULT_TRACK, onProgress?: (fraction: number) => void) => {
+        // The music is built into the app, so there's no download to track: just report done.
+        if (preloadedRef.current.has(trackKey)) {
+            onProgress?.(1);
+            return;
+        }
         try {
             const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
             const player = createAudioPlayer(source, {});
@@ -58,6 +62,8 @@ export const useBackgroundMusic = () => {
             preloadedRef.current.set(trackKey, player);
         } catch {
             // Leave it unpreloaded; playMusic still works, just with the old delay.
+        } finally {
+            onProgress?.(1);
         }
     }, []);
 
