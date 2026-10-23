@@ -1,7 +1,11 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GestureResponderEvent, Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
+import { useFonts } from 'expo-font';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HowToPlayScreen } from '../components/menu/HowToPlayScreen';
+import { MENU_FONT_FILES } from '../components/menu/menuStyle';
+import { TitleScreen } from '../components/menu/TitleScreen';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
@@ -22,17 +26,6 @@ const formatDate = (iso: string) => {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? '' : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
-
-/** How to play, worded for whatever the player is actually holding. */
-const instructionsFor = (keyboard: boolean) => [
-    { colour: '#00ffff', text: keyboard ? 'SPACE OR \u2191 TO JUMP' : 'TAP TO JUMP' },
-    { colour: '#00ffff', text: keyboard ? 'AGAIN IN THE AIR TO DOUBLE JUMP' : 'TAP AGAIN IN THE AIR TO DOUBLE JUMP' },
-    { colour: '#00ffff', text: 'DOUBLE JUMP NEEDS A FULL ENERGY BAR \u26A1' },
-    { colour: '#7df5ff', text: keyboard ? '\u2193 OR S TO DUCK \u00B7 HOLD TO STAY DOWN' : 'SWIPE DOWN TO DUCK \u00B7 HOLD TO STAY DOWN' },
-    { colour: '#ffff00', text: 'JUMP BLOCKS AND BALLS \u00B7 DUCK UNDER BARS' },
-    { colour: '#ff4d4d', text: 'WIDE BLOCKS NEED A DOUBLE JUMP' },
-    { colour: '#FF1493', text: 'HOT PINK BALLS RESTORE HEALTH \u2764\uFE0F' },
-];
 
 const LOGICAL_WIDTH = SCREEN_WIDTH;   // 600 – game logic (spawn, player, focus) stays in this width
 const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
@@ -69,6 +62,8 @@ export const GameScreen = () => {
     const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
     const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
+    // The menu lettering. Until it arrives, text shows in the system font rather than waiting.
+    useFonts(MENU_FONT_FILES);
 
     // Loading overlay: hide black block until building strip (and other assets) are ready.
     const [assetsReady, setAssetsReady] = useState(false);
@@ -339,24 +334,14 @@ export const GameScreen = () => {
                             )}
                         </View>
                     )}
-                    {/* Start Screen - only after assets loaded so scene is fully drawn */}
+                    {/* Title screen - only after assets loaded so the game is ready behind it */}
                     {readyToStart && !gameState.gameStarted && !gameState.gameOver && !showInstructions && (
-                        <View style={styles.startScreenContainer}>
-                            <RNText style={styles.titleText}>STICKMAN</RNText>
-                            <RNText style={styles.titleSubText}>RUNNER</RNText>
-                            <Pressable
-                                style={[styles.restartButton, styles.startButton]}
-                                onPress={startGame}
-                            >
-                                <RNText style={[styles.restartButtonText, styles.startButtonText]}>START GAME</RNText>
-                            </Pressable>
-                            <Pressable
-                                style={[styles.instructionsButton]}
-                                onPress={() => setShowInstructions(true)}
-                            >
-                                <RNText style={styles.instructionsButtonText}>HOW TO PLAY</RNText>
-                            </Pressable>
-                        </View>
+                        <TitleScreen
+                            hiScore={highScore}
+                            scoreTable={scoreTable}
+                            onStart={startGame}
+                            onHowToPlay={() => setShowInstructions(true)}
+                        />
                     )}
 
                     {/* Stage name: shown for the first few seconds of each stage, then fades */}
@@ -449,25 +434,9 @@ export const GameScreen = () => {
                         </View>
                     )}
 
-                    {/* Instructions Modal */}
+                    {/* How to play: its own screen */}
                     {showInstructions && (
-                        <View style={styles.instructionsContainer}>
-                            <RNText style={styles.instructionsTitle}>HOW TO PLAY</RNText>
-
-                            {instructionsFor(fixedPreview).map((row) => (
-                                <View key={row.text} style={styles.instructionRow}>
-                                    <View style={[styles.instructionDot, { backgroundColor: row.colour }]} />
-                                    <RNText style={styles.instructionText}>{row.text}</RNText>
-                                </View>
-                            ))}
-
-                            <Pressable
-                                style={styles.closeButton}
-                                onPress={() => setShowInstructions(false)}
-                            >
-                                <RNText style={styles.closeButtonText}>GOT IT</RNText>
-                            </Pressable>
-                        </View>
+                        <HowToPlayScreen keyboard={fixedPreview} onBack={() => setShowInstructions(false)} />
                     )}
                     {/* DEBUG HUD */}
                     {gameState.debugMode && (
