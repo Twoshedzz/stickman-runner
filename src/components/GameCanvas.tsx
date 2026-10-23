@@ -187,7 +187,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
 
     // 1 just as a beat lands, easing to 0 before the next. Only while actually running.
     const playing = gameState.gameStarted && !gameState.gameOver && gameState.stageStatus === 'playing';
-    const beatPulse = playing ? Math.pow(1 - beatPhase(currentStage, gameState.elapsedSecInStage), 3) : 0;
+    const beatPulse = playing ? Math.pow(1 - beatPhase(currentStage, gameState.elapsedSecInStage), 2) : 0;
 
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
@@ -267,14 +267,26 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 />
                 {/* The ground line pulses on every beat of the music, fading before the next. */}
                 {beatPulse > 0.02 && (
-                    <Rect
-                        x={0}
-                        y={SCREEN_HEIGHT - GROUND_HEIGHT - 3}
-                        width={viewWidth}
-                        height={8}
-                        color={safeColor(currentStage.theme?.groundColor)}
-                        opacity={0.55 * beatPulse}
-                    />
+                    <Group>
+                        {/* A wide glow in the stage's colour... */}
+                        <Rect
+                            x={0}
+                            y={SCREEN_HEIGHT - GROUND_HEIGHT - 7}
+                            width={viewWidth}
+                            height={16}
+                            color={safeColor(currentStage.theme?.groundColor)}
+                            opacity={0.85 * beatPulse}
+                        />
+                        {/* ...and a white-hot core along the line itself. */}
+                        <Rect
+                            x={0}
+                            y={SCREEN_HEIGHT - GROUND_HEIGHT - 1}
+                            width={viewWidth}
+                            height={4}
+                            color="#ffffff"
+                            opacity={0.95 * beatPulse}
+                        />
+                    </Group>
                 )}
 
                 {/* 5 & 6. City / non-city: drawn after grid + ground line so buildings render on top (no clip; city content is already above grid). */}
