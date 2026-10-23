@@ -2,11 +2,11 @@
  * Stage 2 — Sunset Beach.
  *
  * Layout and colours are taken from assets/concepts/stage 2 - sunset beach.png: the sun
- * sits just above the waterline, distant headlands run along it, and palms stand on the
+ * sits just above the waterline, low cloud streaks run along it, and palms stand on the
  * sand in front.
  *
  * The sun, its banding, the water and its reflection are drawn as shapes, since they
- * either never move or need to shimmer. Only the headlands and palms are strips.
+ * either never move or need to shimmer. Only the palms are strips; the clouds on the horizon are drawn too.
  *
  * Same shape as the other scenery: numbers in, strips tiled by world position.
  */
@@ -25,6 +25,7 @@ const GRID_TOP_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 const SUN = { radius: 47, colour: "#fd943f" };
 /** The bands cut across the sun's lower half in the concept, like heat haze over the sea. */
 const SUN_BANDS = [0.34, 0.52, 0.70, 0.86];
+const BAND_TINT = "#6b2f7a";
 // Sea and sand are kept clearly apart: the sea cool and deep, the sand warm, catching the sunset.
 const OCEAN = "#221a52";
 const SAND_COLOUR = "#6e3657";
@@ -43,21 +44,14 @@ const SURF_RATE = 0.3;
 const REFLECTION = "#fd9e5d";
 
 /**
- * Sunrise: the sun's centre at the start (a sliver showing above the distant headlands) and
- * at the end (the whole disk just clear of the water). It climbs steadily between them.
+ * Sunrise: the sun's centre at the start (just a sliver above the sea) and at the end (the
+ * whole disk just clear of the water). It climbs steadily between them.
  */
-const SUN_START_Y = WATERLINE + SUN.radius - 18;
+const SUN_START_Y = WATERLINE + SUN.radius - 8;
 const SUN_END_Y = WATERLINE - SUN.radius - 4;
 
-const FAR = { width: 300, height: 40, rate: 0.08 };
 const PALMS = { width: 450, height: 170, rate: 0.45 };
 
-const FAR_SOURCES = [
-    require("../../../assets/beach/far_1.png"),
-    require("../../../assets/beach/far_2.png"),
-    require("../../../assets/beach/far_3.png"),
-    require("../../../assets/beach/far_4.png"),
-];
 const PALM_SOURCES = [
     require("../../../assets/beach/palms_1.png"),
     require("../../../assets/beach/palms_2.png"),
@@ -169,7 +163,7 @@ const TWINKLE_SEC = 2.4;
  * in and out on its own beat, and only moves to new spots while it's fully faded, so the
  * water sparkles gently instead of jumping. A few paths in all, to keep web drawing light.
  */
-function useReflection(viewWidth: number, seconds: number, rise: number) {
+function useReflection(viewWidth: number, seconds: number, rise: number, sunHalfWidth: number) {
     // Which fade each group is on. A group's glints are only re-laid out when this changes,
     // which is the moment that group is invisible.
     const cycles = Array.from({ length: TWINKLE_GROUPS }, (_, g) =>
@@ -187,8 +181,8 @@ function useReflection(viewWidth: number, seconds: number, rise: number) {
             const bands = REFLECTION_BANDS.map(() => '');
             for (let y = WATERLINE + 3; y < SAND; y += 3) {
                 const depth = (y - WATERLINE) / (SAND - WATERLINE);
-                // The light spreads wider across the water as the sun climbs.
-                const spread = (10 + depth * 46) * (0.35 + 0.8 * rise);
+                // As wide as the sun showing above the water, spreading a little wider nearer the viewer.
+                const spread = sunHalfWidth * (0.85 + 0.35 * depth);
                 // Nearer the horizon the light is brighter, so pick the band by depth.
                 const band = Math.min(REFLECTION_BANDS.length - 1, Math.floor(depth * REFLECTION_BANDS.length));
                 const length = spread * (0.3 + random() * 0.7);
@@ -209,14 +203,106 @@ function useReflection(viewWidth: number, seconds: number, rise: number) {
     });
 }
 
+/**
+ * Low cloud along the horizon, the classic 80s sunrise look. In perspective the streaks
+ * nearest the horizon are the furthest away, so those stay as thin flat stripes, slightly
+ * dimmer; the higher, nearer ones are a little thicker with a gently bumpy top. Both drift
+ * slowly and warm in colour as the sun comes up. Each layer is one shape: two draws in all.
+ */
+const CLOUD_TILE = 1200;
+const CLOUDS = {
+    // Higher up, so nearer: bumpy tops.
+    near: [
+        { x: 40, y: 184, length: 260, h: 6 }, { x: 380, y: 194, length: 190, h: 5 },
+        { x: 640, y: 180, length: 300, h: 7 }, { x: 1010, y: 190, length: 150, h: 5 },
+    ],
+    // Down by the horizon, so far away: plain thin stripes.
+    far: [
+        { x: 120, y: 205, length: 340, h: 3 }, { x: 560, y: 201, length: 220, h: 3 },
+        { x: 820, y: 209, length: 280, h: 4 }, { x: 0, y: 212, length: 90, h: 2 },
+    ],
+};
+/** Colours of each layer before sunrise and once the sun is up. */
+const CLOUD_COLOURS = {
+    near: ["#6e3570", "#ffa98a"],
+    far: ["#4a2a66", "#c97a8e"],
+};
+
+function mixColour(from: string, to: string, t: number): string {
+    const a = toRgb(from);
+    const b = toRgb(to);
+    const c = (i: number) => Math.round(a[i] + (b[i] - a[i]) * t);
+    return `rgb(${c(0)}, ${c(1)}, ${c(2)})`;
+}
+
+/** A long thin bar with rounded ends. */
+function streak(x: number, y: number, length: number, h: number): string {
+    const r = h / 2;
+    return `M${(x + r).toFixed(1)} ${y}h${(length - h).toFixed(1)}a${r} ${r} 0 0 1 0 ${h}h-${(length - h).toFixed(1)}a${r} ${r} 0 0 1 0 -${h}Z`;
+}
+
+/**
+ * The same bar with a softly billowing top: a row of small rounded bumps of uneven size.
+ * `seed` keeps each cloud's bumps the same from frame to frame.
+ */
+function bumpyStreak(x: number, y: number, length: number, h: number, seed: number): string {
+    const r = h / 2;
+    const left = x + r;
+    const right = x + length - r;
+    // Flat bottom, then round the right-hand end up to the top...
+    let d = `M${left.toFixed(1)} ${y + h}H${right.toFixed(1)}a${r} ${r} 0 0 0 0 -${h}`;
+    // ...then back along the top in bumps...
+    let at = right;
+    let i = 0;
+    while (at > left) {
+        const width = Math.min(at - left, 14 + ((seed * 7 + i * 13) % 11));
+        const lift = 1.5 + ((seed * 5 + i * 17) % 7) * 0.35;
+        const next = at - width;
+        d += `Q${(at - width / 2).toFixed(1)} ${(y - lift * 2).toFixed(1)} ${next.toFixed(1)} ${y}`;
+        at = next;
+        i++;
+    }
+    // ...and round the left-hand end back down.
+    return `${d}a${r} ${r} 0 0 0 0 ${h}Z`;
+}
+
+function useClouds(viewWidth: number, distance: number, seconds: number, rise: number) {
+    // Drift: a little with the scenery, a little on their own.
+    const drift = (distance * 0.04 + seconds * 3) % CLOUD_TILE;
+    const layer = (list: typeof CLOUDS.near, speed: number, bumpy: boolean) => {
+        let d = "";
+        const shift = drift * speed;
+        for (let copy = -1; copy <= Math.ceil(viewWidth / CLOUD_TILE); copy++) {
+            list.forEach((c, index) => {
+                const x = c.x + copy * CLOUD_TILE - (shift % CLOUD_TILE);
+                if (x > viewWidth || x + c.length < 0) return;
+                d += bumpy ? bumpyStreak(x, c.y, c.length, c.h, index + 1) : streak(x, c.y, c.length, c.h);
+            });
+        }
+        return d;
+    };
+    return {
+        far: layer(CLOUDS.far, 0.6, false),
+        near: layer(CLOUDS.near, 1, true),
+        farColour: mixColour(CLOUD_COLOURS.far[0], CLOUD_COLOURS.far[1], rise),
+        nearColour: mixColour(CLOUD_COLOURS.near[0], CLOUD_COLOURS.near[1], rise),
+    };
+}
+
 export const SunsetBeachBackground = ({ distance, seconds, progress, skyTop, skyMid, skyBottom, viewWidth: viewWidthProp }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
-    const far = useStripImages("beach-far", FAR_SOURCES);
     const palms = useStripImages("beach-palms", PALM_SOURCES);
     const rise = Math.max(0, Math.min(1, progress));
-    const reflection = useReflection(viewWidth, seconds, rise);
     const sunY = SUN_START_Y + (SUN_END_Y - SUN_START_Y) * rise;
+    // How wide the sun is where it meets the water: just a chord while it's still rising out
+    // of the sea, its full width once it's clear. The light on the water matches this.
+    const belowWater = sunY - WATERLINE;
+    const sunHalfWidth = belowWater <= 0
+        ? SUN.radius
+        : Math.sqrt(Math.max(0, SUN.radius * SUN.radius - belowWater * belowWater));
+    const reflection = useReflection(viewWidth, seconds, rise, sunHalfWidth);
     const sky: [string, string, string] = [skyTop, skyMid, skyBottom];
+    const clouds = useClouds(viewWidth, distance, seconds, rise);
 
     const sunX = viewWidth / 2;
 
@@ -234,13 +320,17 @@ export const SunsetBeachBackground = ({ distance, seconds, progress, skyTop, sky
                             key={at}
                             x={sunX - halfWidth} y={y}
                             width={halfWidth * 2} height={3}
-                            color={skyAt(y, sky)}
+                            // A touch deeper than the sky, so the bands still show once the sky
+                            // near the horizon has warmed to almost the sun's own orange.
+                            color={mixColour(skyAt(y, sky), BAND_TINT, 0.35)}
                         />
                     );
                 })}
             </Group>
 
-            {tileLayer(far, FAR, distance, viewWidth, WATERLINE - FAR.height, "beach-far", 0.85)}
+            {/* Low cloud on the horizon, in front of the rising sun. */}
+            <Path path={clouds.far} color={clouds.farColour} style="fill" opacity={0.75} />
+            <Path path={clouds.near} color={clouds.nearColour} style="fill" opacity={0.9} />
 
             {/* Water, then the light running across it. */}
             <Rect x={0} y={WATERLINE} width={viewWidth} height={SAND - WATERLINE} color={OCEAN} />

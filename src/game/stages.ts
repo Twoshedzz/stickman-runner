@@ -1,4 +1,4 @@
-import { COURSE_LENGTH, STAGE_DURATION_SECONDS } from './constants';
+import { COURSE_LENGTH } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
@@ -87,6 +87,11 @@ export interface StageConfig {
      */
     speed: [number, number];
     /**
+     * How long the stage lasts, in seconds. Matched to its track: each one is 3 minutes long
+     * but ends with a few seconds of fade or silence, so the stage ends when the music does.
+     */
+    durationSec: number;
+    /**
      * The length of the sky's dusk-to-dawn timeline (sun, moon, lights). Distance runs on
      * the clock rather than the speed, so this is a clock in disguise; it is not how far
      * the runner travels. For that, see GameState.scroll.
@@ -104,7 +109,7 @@ export const remainingScroll = (stage: StageConfig, progress: number) => {
     const [start, end] = stage.speed;
     const p = Math.min(Math.max(progress, 0), 1);
     // The area under a straight-line speed rise, from now to the end of the stage.
-    return STAGE_DURATION_SECONDS * (start * (1 - p) + ((end - start) * (1 - p * p)) / 2);
+    return stage.durationSec * (start * (1 - p) + ((end - start) * (1 - p * p)) / 2);
 };
 
 export const STAGES: StageConfig[] = [
@@ -138,6 +143,7 @@ export const STAGES: StageConfig[] = [
             hearts: { hurtBelow: 0.8, hurtEverySec: 6, topUpChance: 0.5, topUpEverySec: 12 },
         },
         speed: [260, 300],
+        durationSec: 180, // music plays to 179.5s
         courseLength: COURSE_LENGTH,
         // SECTIONS (7200 per 30s):
         // 1. 0–7200     : Sun in sky yellow→orange, moves down; sky dark at top by 7200
@@ -298,6 +304,7 @@ export const STAGES: StageConfig[] = [
             hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
         },
         speed: [280, 320],
+        durationSec: 174, // music plays to 173.5s
         courseLength: COURSE_LENGTH,
         // Sunrise: the sky lifts gently from deeper to lighter tones over the whole stage.
         // The sun and its light on the water rise with it (SunsetBeachBackground).
@@ -343,6 +350,7 @@ export const STAGES: StageConfig[] = [
             hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 25 },
         },
         speed: [300, 340],
+        durationSec: 176, // music plays to 175.5s
         courseLength: COURSE_LENGTH
     },
     {
@@ -376,6 +384,7 @@ export const STAGES: StageConfig[] = [
             hearts: { hurtBelow: 0.5, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 30 },
         },
         speed: [320, 360],
+        durationSec: 178, // music plays to 177.4s
         courseLength: COURSE_LENGTH,
         // Evening into night: a warm sunset sky deepens to navy by about 45% of the way,
         // then stays night to the finish (sun, street lights, fireworks and moon are in

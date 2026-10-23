@@ -5,7 +5,7 @@
  * any timing of taps and swipes that gets past without a hit. If it finds none, the
  * pattern or spacing is impossible and the test fails.
  */
-import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, STAGE_DURATION_SECONDS } from '../constants';
+import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, MAX_ENERGY, PLAYER_SIZE, PLAYER_X } from '../constants';
 import { PATTERNS } from '../patterns';
 import { remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -29,7 +29,8 @@ type Arrivals = Map<number, Obstacle[]>;
 
 const clone = (sim: Sim): Sim => ({ ...sim, state: JSON.parse(JSON.stringify(sim.state)) });
 
-const STAGE_FRAMES = STAGE_DURATION_SECONDS * 60;
+/** How many 60fps frames a stage lasts. Each stage's length is matched to its music. */
+const stageFrames = (stage: (typeof STAGES)[number]) => Math.round(stage.durationSec * 60);
 
 /** Small repeatable random numbers, kept in the sim so every branch of the search replays exactly. */
 const nextRandom = (sim: Sim) => {
@@ -47,7 +48,7 @@ const step = (sim: Sim, arrivals: Arrivals): boolean => {
         // The real spawner, running live, so it sees the real energy bar and health.
         const stage = STAGES[sim.stageIndex];
         const { state } = sim;
-        state.stageProgress = Math.min(sim.frame / STAGE_FRAMES, 1);
+        state.stageProgress = Math.min(sim.frame / stageFrames(stage), 1);
         state.elapsedSecInStage = sim.frame / 60;
         state.distance = state.stageProgress * stage.courseLength;
         state.speed = speedAt(stage, state.stageProgress);
@@ -202,7 +203,7 @@ describe('a whole stage of spawned obstacles can be cleared', () => {
                 sim.state.player.health = 5;
                 triesLeft = 300000;
                 deepest = { frame: -1, energy: 0, ahead: '' };
-                expect(solve(sim, new Map(), STAGE_FRAMES)).toBe(true);
+                expect(solve(sim, new Map(), stageFrames(stage))).toBe(true);
             });
         }
     });
@@ -214,10 +215,10 @@ describe('the finish line', () => {
             // Move the world frame by frame, the way the game loop does, from a few points in.
             for (const startFrame of [0, 3000, 9000]) {
                 let travelled = 0;
-                for (let frame = startFrame; frame < STAGE_FRAMES; frame++) {
-                    travelled += speedAt(stage, frame / STAGE_FRAMES) / 60;
+                for (let frame = startFrame; frame < stageFrames(stage); frame++) {
+                    travelled += speedAt(stage, frame / stageFrames(stage)) / 60;
                 }
-                const predicted = remainingScroll(stage, startFrame / STAGE_FRAMES);
+                const predicted = remainingScroll(stage, startFrame / stageFrames(stage));
                 // Within half a frame's movement.
                 expect(Math.abs(travelled - predicted)).toBeLessThan(stage.speed[1] / 120);
             }

@@ -3,8 +3,9 @@
  * web hook (useBackgroundMusic.web.ts) import this, so a new track is added once.
  *
  * Keys match `audio.musicTrack` in src/game/stages.ts.
- * Every track is 3 minutes, matching STAGE_DURATION_SECONDS, so the music and the end
- * of the stage arrive together.
+ * Every track is 3 minutes long, but most end with a few seconds of fade or silence, so
+ * each stage's `durationSec` (stages.ts) is set to where its music actually ends. Measured
+ * by decoding the files: city 179.5s, beach 173.5s, mountains 175.5s, victory 177.4s.
  */
 export const MUSIC_TRACKS: Record<string, number> = {
     music_city: require('../../assets/neoncity.mp3'),            // 1 Neon City

@@ -195,6 +195,21 @@ export const GameScreen = () => {
     }, [gameState.stageId, playMusic, handleInteraction]);
 
     /**
+     * CONTINUE on the Stage Clear screen. Like START, the next stage's music is started right
+     * here in the tap (iPhone Safari only allows music to start during one), and the stage
+     * itself starts at the same moment.
+     */
+    const continueToNextStage = useCallback(() => {
+        const index = STAGES.findIndex((st) => st.id === gameState.stageId);
+        const next = STAGES[index + 1];
+        if (next) {
+            musicStartedForRunRef.current = true;
+            playMusic(next.audio?.musicTrack || 'music_city');
+        }
+        onContinue();
+    }, [gameState.stageId, playMusic, onContinue]);
+
+    /**
      * Phone browsers: one handler decides, for each touch, whether it's a tap (jump) or a
      * downward swipe (duck). In a browser the gesture library and the tap button each saw
      * the same touch, so a swipe also jumped on release, and jumping cancels a duck.
@@ -459,7 +474,7 @@ export const GameScreen = () => {
                                 nextStageNumber={index + 2}
                                 nextStageName={next.name}
                                 nextMusicPercent={nextMusicPercent}
-                                onContinue={onContinue}
+                                onContinue={continueToNextStage}
                             />
                         );
                     })()}

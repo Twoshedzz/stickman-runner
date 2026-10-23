@@ -204,9 +204,12 @@ function drawBackdrop(CK) {
         [0, HORIZON], [0, H], [col('#1a0533'), col('#06020f')], [0, 1], CK.TileMode.Clamp
     ))));
 
-    // Neon grid: lines fanning out from the vanishing point, and rungs bunched towards the horizon
+    // Neon grid: lines fanning out from the vanishing point, and rungs bunched towards the horizon.
+    // Enough fan lines to reach the far ends of the horizon (W / 2 / 12 = 80 each side), so the
+    // grid has no empty wedges at the left and right. This is only the menu picture; the
+    // in-game grid draws far fewer lines on purpose.
     const grid = new CK.Path();
-    for (let i = -24; i <= 24; i++) {
+    for (let i = -84; i <= 84; i++) {
         grid.moveTo(W / 2 + i * 12, HORIZON);
         grid.lineTo(W / 2 + i * 220, H);
     }

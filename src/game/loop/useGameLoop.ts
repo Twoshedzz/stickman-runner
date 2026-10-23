@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MAX_HEALTH, STAGE_DURATION_SECONDS, TIME_CYCLE_DURATION } from '../constants';
+import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { frameScale } from '../frame';
 import { updateParticles } from '../particles';
 import { speedAt, STAGES } from '../stages';
@@ -103,7 +103,7 @@ export const useGameLoop = () => {
                 if (state.stageStartTime <= 0) state.stageStartTime = nowSec;
                 const elapsedSec = nowSec - state.stageStartTime;
                 state.elapsedSecInStage = elapsedSec;
-                state.stageProgress = Math.min(elapsedSec / STAGE_DURATION_SECONDS, 1);
+                state.stageProgress = Math.min(elapsedSec / currentStage.durationSec, 1);
                 state.distance = state.stageProgress * currentStage.courseLength;
                 state.speed = speedAt(currentStage, state.stageProgress);
 
@@ -282,28 +282,27 @@ export const useGameLoop = () => {
         if (!state.showContinue) return;
 
         state.showContinue = false;
-        state.stageStatus = 'victory';
 
-        // Brief delay before loading next stage for visual polish
-        setTimeout(() => {
-            const nextIndex = STAGES.findIndex(s => s.id === state.stageId) + 1;
-            const nextStage = STAGES[nextIndex];
+        // Straight into the next stage. (There used to be a one-second pause here, which
+        // showed the finished stage again for a moment after the Stage Clear screen went.)
+        const nextIndex = STAGES.findIndex(s => s.id === state.stageId) + 1;
+        const nextStage = STAGES[nextIndex];
 
-            if (nextStage) {
-                state.stageId = nextStage.id;
-                state.distance = 0;
-                state.scroll = 0;
-                state.stageStatus = 'playing';
-                state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
-                state.obstacles = [];
-                resetSpawner(state);
-            } else {
-                // No stage after this one. The loop normally catches the last stage before
-                // Continue is ever offered; this is only a safety net.
-                state.gameComplete = true;
-                state.gameOver = true;
-            }
-        }, 1000);
+        if (nextStage) {
+            state.stageId = nextStage.id;
+            state.distance = 0;
+            state.scroll = 0;
+            state.stageStatus = 'playing';
+            state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
+            state.obstacles = [];
+            resetSpawner(state);
+        } else {
+            // No stage after this one. The loop normally catches the last stage before
+            // Continue is ever offered; this is only a safety net.
+            state.gameComplete = true;
+            state.gameOver = true;
+        }
+        setRenderTrigger(prev => prev + 1);
     }, []);
 
     return {
