@@ -71,9 +71,8 @@ const styles = StyleSheet.create({
         textShadowRadius: 8,
     },
     streak: {
-        fontSize: 10,
-        fontWeight: 'bold',
+        fontSize: 11,
+        fontWeight: '900',
         letterSpacing: 2,
-        opacity: 0.85,
     },
 });
