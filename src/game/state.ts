@@ -36,6 +36,10 @@ export interface GameState {
         duckTimer: number;
         /** Finger still down after a swipe (or the ↓ key held): stay ducked until it's let go. */
         duckHeld: boolean;
+        /** Seconds left on a tap made just before landing; it jumps the moment the feet touch down. */
+        jumpBuffer: number;
+        /** Seconds of safety left after a hit. The runner blinks and can't be hurt meanwhile. */
+        hurtTimer: number;
         health: number;
         maxHealth: number;
     };
@@ -83,6 +87,8 @@ export const createInitialState = (): GameState => ({
         isDucking: false,
         duckTimer: 0,
         duckHeld: false,
+        jumpBuffer: 0,
+        hurtTimer: 0,
         health: MAX_HEALTH,
         maxHealth: MAX_HEALTH,
     },

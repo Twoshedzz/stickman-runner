@@ -47,7 +47,7 @@ export const HowToPlayScreen = ({ keyboard, onBack }: { keyboard: boolean; onBac
                 <RNText style={styles.heading}>CONTROLS</RNText>
                 <Row keyText={keyboard ? 'SPACE / ↑' : 'TAP'} text="JUMP" />
                 <Row keyText={keyboard ? 'AGAIN' : 'TAP AGAIN'} text="DOUBLE JUMP IN THE AIR" />
-                <Row keyText={'⚡'} text="DOUBLE JUMP NEEDS A FULL ENERGY BAR" />
+                <Row keyText={'⚡'} text="EACH DOUBLE JUMP USES HALF THE ENERGY BAR" />
                 <Row keyText={keyboard ? '↓ / S' : 'SWIPE ↓'} text="DUCK · HOLD TO STAY DOWN" />
             </View>
 

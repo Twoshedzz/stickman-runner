@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { HEART_HEAL, OVERHEAD_TOP_OFFSET, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
+import { HEART_HEAL, HIT_GRACE_SEC, OVERHEAD_TOP_OFFSET, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
@@ -73,6 +73,10 @@ export const checkCollisions = (state: GameState) => {
                 i--;
                 continue;
             }
+
+            // Just been hit: safe for a moment, so pass straight through.
+            if (state.player.hurtTimer > 0) continue;
+            state.player.hurtTimer = HIT_GRACE_SEC;
 
             // 1. Deal Damage (Unless Debug Mode)
             if (!state.debugMode) {

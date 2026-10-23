@@ -1,4 +1,4 @@
-import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, ENERGY_REGEN, GRAVITY, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, ENERGY_REGEN, GRAVITY, JUMP_BUFFER_SEC, JUMP_ENERGY_COST, JUMP_FORCE, MAX_ENERGY, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
@@ -14,6 +14,9 @@ const OFFSCREEN_LEFT_X = -300;
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
     const scale = frameScale(deltaTimeSec);
+
+    player.jumpBuffer = Math.max(0, player.jumpBuffer - deltaTimeSec);
+    player.hurtTimer = Math.max(0, player.hurtTimer - deltaTimeSec);
 
     // Ducking runs down in real seconds, and is cancelled the moment the runner leaves the ground.
     // While it's held the timer can't run out, so letting go leaves at least a moment's duck,
@@ -56,6 +59,12 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
         player.dy = 0;
         player.isGrounded = true;
         player.jumpCount = 0; // Reset jumps
+
+        // A tap made just before landing jumps now, rather than being lost.
+        if (player.jumpBuffer > 0) {
+            player.jumpBuffer = 0;
+            jump(state);
+        }
 
         // Energy Regen
         state.energy = Math.min(state.energy + ENERGY_REGEN * scale, MAX_ENERGY);
@@ -141,6 +150,7 @@ export const jump = (state: GameState) => {
 
     // 2. Air Jump (Double Jump - Costs Energy)
     if (jumpCount < 2 && state.energy >= JUMP_ENERGY_COST) {
+        state.player.jumpBuffer = 0;
         state.player.dy = JUMP_FORCE;
         state.player.jumpCount += 1;
         state.energy -= JUMP_ENERGY_COST;
@@ -155,5 +165,9 @@ export const jump = (state: GameState) => {
             undefined,
             { x: -3, y: 0 } // Drift Left
         );
+        return;
     }
+
+    // 3. Can't jump again in the air: remember the tap, and jump the moment we land.
+    state.player.jumpBuffer = JUMP_BUFFER_SEC;
 };

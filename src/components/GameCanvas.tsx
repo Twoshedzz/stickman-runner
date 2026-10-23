@@ -3,7 +3,7 @@ import { Canvas, Circle, Group, LinearGradient, Mask, Rect, vec } from "@shopify
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-    BASE_SPEED, COLOR_HP_DEEP, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
+    BASE_SPEED, COLOR_HP_DEEP, HIT_GRACE_SEC, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
     GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
@@ -57,6 +57,9 @@ const lerpColor = (color1: string, color2: string, factor: number) => {
 
     return `rgb(${r}, ${g}, ${b})`;
 };
+
+/** How long the pink flash lasts when the runner is hit. */
+const HIT_FLASH_SEC = 0.18;
 
 const getTheme = (distance: number, stage: StageConfig) => {
     // Stage 1 complete: always use day theme so background never resets to night on Continue screen
@@ -373,7 +376,8 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                 })}
 
                 {/* 10. Player (Stickman) - left of 600 zone; visual y -5 so feet align with obstacles */}
-                <Stickman
+                {/* Blinks during the safe moment after a hit (hidden every other tenth of a second). */}
+                {!(player.hurtTimer > 0 && Math.floor(player.hurtTimer * 10) % 2 === 1) && <Stickman
                     x={PLAYER_X + gameOffsetX}
                     y={player.y + RUNNER_VISUAL_Y_OFFSET}
                     size={PLAYER_SIZE}
@@ -383,7 +387,15 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     isDucking={player.isDucking}
                     isRunning={gameState.gameStarted && !gameState.gameOver}
                     status={gameState.stageStatus}
-                />
+                />}
+                {/* A short pink flash as the hit lands. */}
+                {player.hurtTimer > HIT_GRACE_SEC - HIT_FLASH_SEC && (
+                    <Rect
+                        x={0} y={0} width={viewWidth} height={SCREEN_HEIGHT}
+                        color="#ff00cc"
+                        opacity={0.3 * (player.hurtTimer - (HIT_GRACE_SEC - HIT_FLASH_SEC)) / HIT_FLASH_SEC}
+                    />
+                )}
 
                 {/* The finish line's near post passes in front of the runner. */}
                 {showFinish && <FinishLineFront lineX={finishX} viewWidth={viewWidth} />}

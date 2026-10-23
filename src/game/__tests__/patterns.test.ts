@@ -5,7 +5,8 @@
  * any timing of taps and swipes that gets past without a hit. If it finds none, the
  * pattern or spacing is impossible and the test fails.
  */
-import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, MAX_ENERGY, PLAYER_SIZE, PLAYER_X } from '../constants';
+import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, JUMP_ENERGY_COST, MAX_ENERGY, MAX_HEALTH, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
+import { ROLE_SHAPES } from '../obstacleCatalogue';
 import { PATTERNS } from '../patterns';
 import { remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -259,5 +260,45 @@ describe('holding a duck', () => {
             hit = step(sim, arrivals);
         }
         expect(hit).toBe(false);
+    });
+});
+
+describe('feel and forgiveness', () => {
+    const runFrames = (sim: Sim, frames: number, arrivals: Arrivals = new Map()) => {
+        let hits = 0;
+        for (let f = 0; f < frames; f++) if (step(sim, arrivals)) hits++;
+        return hits;
+    };
+
+    it('a tap just before landing jumps on landing', () => {
+        const sim = freshSim();
+        sim.state.energy = 0; // so the tap can't be a double jump
+        jump(sim.state);
+        // Play on until a few frames before touching down, then tap.
+        while (sim.state.player.dy < 0 || sim.state.player.y < RUNNER_GROUND_Y - PLAYER_SIZE - 25) step(sim, new Map());
+        jump(sim.state);
+        let landedAndJumped = false;
+        for (let f = 0; f < 20; f++) {
+            step(sim, new Map());
+            if (sim.state.player.dy < 0 && sim.state.player.jumpCount === 1) landedAndJumped = true;
+        }
+        expect(landedAndJumped).toBe(true);
+    });
+
+    it('a full energy bar gives two double jumps', () => {
+        const sim = freshSim();
+        jump(sim.state); jump(sim.state); // jump, then double jump
+        expect(sim.state.energy).toBe(MAX_ENERGY - JUMP_ENERGY_COST);
+        runFrames(sim, 120); // land
+        jump(sim.state); jump(sim.state);
+        expect(sim.state.player.jumpCount).toBe(2);
+    });
+
+    it('after a hit, the next obstacle within a second can not hurt', () => {
+        const sim = freshSim();
+        const arrivals = patternArrivals([{ role: 'small', at: 0 }, { role: 'small', at: 0.4 }], 260);
+        const hits = runFrames(sim, 240, arrivals);
+        expect(hits).toBe(1);
+        expect(sim.state.player.health).toBe(MAX_HEALTH - ROLE_SHAPES.small.damage);
     });
 });

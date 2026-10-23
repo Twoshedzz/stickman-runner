@@ -98,7 +98,12 @@ export const COLOR_ENERGY = "#00ffff"; // Cyan
 // Energy
 // Energy
 export const MAX_ENERGY = 100;
-export const JUMP_ENERGY_COST = 100; // Depletes full bar
+/** Half the bar, so a full bar gives two double jumps. */
+export const JUMP_ENERGY_COST = 50;
+/** A tap this soon before landing (when a double jump isn't possible) jumps on landing. */
+export const JUMP_BUFFER_SEC = 0.12;
+/** After a hit, the runner can't be hurt again for this long, so one slip can't chain. */
+export const HIT_GRACE_SEC = 1;
 export const ENERGY_REGEN = 0.5;
 
 // Stage timing: each stage = 3 minutes real time (keeps audio in sync on slow devices)
