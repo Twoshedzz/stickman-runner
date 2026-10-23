@@ -42,6 +42,8 @@ export const useBackgroundMusic = () => {
     const currentTrackRef = useRef<string | null>(null);
     /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
     const playGenerationRef = useRef(0);
+    /** Music has been asked to play and not asked to stop: used to restart it if it was refused. */
+    const wantPlayingRef = useRef(false);
     /** Tracks already fetched and buffered, so starting them is instant. */
     const preloadedRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
@@ -68,6 +70,13 @@ export const useBackgroundMusic = () => {
     useEffect(() => {
         const unlocked = new WeakSet<HTMLAudioElement>();
         const unlock = () => {
+            // Safety net: if music should be playing but iPhone Safari refused to start it,
+            // this tap (players tap all the time to jump) is allowed to start it, so it comes in
+            // a moment late rather than not at all.
+            const current = webAudioRef.current;
+            if (wantPlayingRef.current && current && current.paused) {
+                current.play()?.catch(() => {});
+            }
             preloadedRef.current.forEach((audio) => {
                 if (unlocked.has(audio) || audio === webAudioRef.current) return;
                 unlocked.add(audio);
@@ -149,6 +158,7 @@ export const useBackgroundMusic = () => {
 
             // Tell any in-flight fade-out to leave the audio alone from here on.
             playGenerationRef.current += 1;
+            wantPlayingRef.current = true;
 
             const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
             const prev = webAudioRef.current;
@@ -227,6 +237,7 @@ export const useBackgroundMusic = () => {
         const generation = playGenerationRef.current;
         const overtaken = () => playGenerationRef.current !== generation || webAudioRef.current !== audio;
         try {
+            wantPlayingRef.current = false;
             setMusicStatus('Stopping...');
             for (let i = 20; i >= 0; i--) {
                 if (overtaken()) return;
