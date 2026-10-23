@@ -35,6 +35,15 @@ export interface StagePacing {
      * 0.5 = halfway). Obstacles not listed never appear. Hearts are always available.
      */
     unlocks: Partial<Record<ObstacleRole, number>>;
+    /** How readily hearts turn up. Generous early on balances a harder start. */
+    hearts: {
+        /** Below this share of health, a heart comes at every chance, at most every `hurtEverySec`. */
+        hurtBelow: number;
+        hurtEverySec: number;
+        /** Only a little hurt: this chance of a heart in each rest, at most every `topUpEverySec`. */
+        topUpChance: number;
+        topUpEverySec: number;
+    };
 }
 
 export interface StageConfig {
@@ -121,11 +130,12 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_city'
         },
-        // New obstacles arrive every 30 seconds or so, as they always have.
+        // Duck bars from the first few seconds, a quicker ramp, and plenty of hearts to balance it.
         pacing: {
-            budget: [1, 3.5],
-            rest: [1.6, 0.9],
-            unlocks: { small: 0, large: 0.17, mover: 0.33, overhead: 0.5, huge: 0.83 },
+            budget: [1.5, 4],
+            rest: [1.2, 0.8],
+            unlocks: { small: 0, overhead: 0.05, large: 0.1, mover: 0.25, huge: 0.6 },
+            hearts: { hurtBelow: 0.8, hurtEverySec: 6, topUpChance: 0.5, topUpEverySec: 12 },
         },
         speed: [260, 300],
         courseLength: COURSE_LENGTH,
@@ -284,6 +294,7 @@ export const STAGES: StageConfig[] = [
             budget: [2, 4],
             rest: [1.3, 0.8],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0 },
+            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
         },
         speed: [280, 320],
         courseLength: COURSE_LENGTH
@@ -316,6 +327,7 @@ export const STAGES: StageConfig[] = [
             budget: [2.5, 4.5],
             rest: [1.2, 0.75],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0.2 },
+            hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 25 },
         },
         speed: [300, 340],
         courseLength: COURSE_LENGTH
@@ -348,6 +360,7 @@ export const STAGES: StageConfig[] = [
             budget: [3, 5],
             rest: [1.1, 0.7],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0 },
+            hearts: { hurtBelow: 0.5, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 30 },
         },
         speed: [320, 360],
         courseLength: COURSE_LENGTH

@@ -20,7 +20,7 @@ const REST_JITTER = 0.25;
 /** A wide block needs the whole energy bar, which takes 3.3 sec on the ground to refill. */
 const HUGE_COOLDOWN_SEC = 6;
 /** A heart only goes in a rest at least this long, so it never crowds an obstacle. */
-const HEART_MIN_REST = 1.1;
+const HEART_MIN_REST = 0.9;
 
 const blend = ([start, end]: [number, number], progress: number) =>
     start + (end - start) * progress;
@@ -115,12 +115,13 @@ export const spawnObstacle = (
     const rest = blend(pacing.rest, progress) + pattern.cost * REST_PER_COST + random() * REST_JITTER;
 
     // Hearts go in the middle of a long enough rest: always when you're badly hurt,
-    // sometimes when you're only a little hurt.
+    // sometimes when you're only a little hurt. Each stage sets how generous that is.
     const { health, maxHealth } = state.player;
+    const { hearts } = pacing;
     const sinceHeart = nowSec - spawner.lastHeartSec;
     const wantHeart =
-        (health <= maxHealth * 0.6 && sinceHeart >= 8) ||
-        (health < maxHealth && sinceHeart >= 20 && random() < 0.3);
+        (health <= maxHealth * hearts.hurtBelow && sinceHeart >= hearts.hurtEverySec) ||
+        (health < maxHealth && sinceHeart >= hearts.topUpEverySec && random() < hearts.topUpChance);
     if (wantHeart && rest >= HEART_MIN_REST) {
         state.obstacles.push({
             x: endX + (rest / 2) * speed - shapeFor('heart').width / 2,
