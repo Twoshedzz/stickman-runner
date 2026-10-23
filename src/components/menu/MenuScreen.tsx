@@ -1,5 +1,6 @@
 import React, { PropsWithChildren, useRef } from 'react';
 import { GestureResponderEvent, Image, StyleSheet, View } from 'react-native';
+import { MenuBackdropFx } from './MenuBackdropFx';
 
 const BACKDROP = require('../../../assets/images/menu-backdrop.jpg');
 
@@ -14,7 +15,8 @@ interface MenuScreenProps {
 /**
  * A full screen of its own, for everything that isn't the game itself: title, how to play,
  * and so on. Opaque, so the game doesn't show through - these are separate views, not
- * pop-ups over the game. The backdrop is drawn by scripts/generate-menu-art.js.
+ * pop-ups over the game. The backdrop is drawn by scripts/generate-menu-art.js, with
+ * twinkling stars and a grid pulse laid over it by MenuBackdropFx.
  */
 export const MenuScreen = ({ children, onSwipe }: PropsWithChildren<MenuScreenProps>) => {
     const start = useRef<{ x: number; y: number } | null>(null);
@@ -42,6 +44,7 @@ export const MenuScreen = ({ children, onSwipe }: PropsWithChildren<MenuScreenPr
             onTouchEnd={onSwipe ? onTouchEnd : undefined}
         >
             <Image source={BACKDROP} style={styles.backdrop} resizeMode="cover" />
+            <MenuBackdropFx />
             <View style={styles.content}>{children}</View>
         </View>
     );

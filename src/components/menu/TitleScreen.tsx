@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import type { ScoreEntry } from '../../game/loop/useGameLoop';
 import type { WorldEntry } from '../../scoreboard/rules';
 import { RNText } from '../RNText';
@@ -7,11 +7,9 @@ import { ArcadeMenu } from './ArcadeMenu';
 import { BestRuns } from './BestRuns';
 import { MenuScreen } from './MenuScreen';
 import { FONT, glow, NEON } from './menuStyle';
+import { ShinyLogo } from './ShinyLogo';
 import { WorldBoard } from './WorldBoard';
 
-const LOGO = require('../../../assets/images/logo.png');
-/** The logo image is 1500x470 (drawn by scripts/generate-menu-art.js). */
-const LOGO_ASPECT = 1500 / 470;
 /** Attract mode: how long the logo and each table stay up. */
 const ATTRACT_LOGO_MS = 7000;
 const ATTRACT_SCORES_MS = 5000;
@@ -55,7 +53,7 @@ export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowT
                 ) : feature === 'best' ? (
                     <BestRuns entries={scoreTable} />
                 ) : (
-                    <Image source={LOGO} style={styles.logo} resizeMode="contain" />
+                    <ShinyLogo width={420} />
                 )}
             </View>
 
@@ -97,9 +95,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 6,
         marginBottom: 6,
-    },
-    logo: {
-        width: 420,
-        height: 420 / LOGO_ASPECT,
     },
 });
