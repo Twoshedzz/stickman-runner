@@ -152,6 +152,18 @@ export const GameScreen = () => {
     }, [onJump, gameState.gameOver, gameState.showContinue]);
 
     /**
+     * START. The music is started right here, inside the tap, as well as when the run begins:
+     * iPhone Safari only lets music start during a tap, and won't download it ahead of time,
+     * so on a first visit the track isn't ready yet. Started from the tap, it plays as soon
+     * as it arrives; starting the same track again later does nothing.
+     */
+    const startGame = useCallback(() => {
+        const stage = STAGES.find((st) => st.id === gameState.stageId) || STAGES[0];
+        playMusic(stage.audio?.musicTrack || 'music_city');
+        handleInteraction();
+    }, [gameState.stageId, playMusic, handleInteraction]);
+
+    /**
      * Phone browsers: one handler decides, for each touch, whether it's a tap (jump) or a
      * downward swipe (duck). In a browser the gesture library and the tap button each saw
      * the same touch, so a swipe also jumped on release, and jumping cancels a duck.
@@ -275,7 +287,7 @@ export const GameScreen = () => {
                             <RNText style={styles.titleSubText}>RUNNER</RNText>
                             <Pressable
                                 style={[styles.restartButton, styles.startButton]}
-                                onPress={handleInteraction}
+                                onPress={startGame}
                             >
                                 <RNText style={[styles.restartButtonText, styles.startButtonText]}>START GAME</RNText>
                             </Pressable>

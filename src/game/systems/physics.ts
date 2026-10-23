@@ -4,6 +4,12 @@ import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { GameState } from '../state';
 
+/**
+ * Where obstacles are dropped, in play-area pixels. The widest screens (about 3:1) show
+ * roughly 225px to the left of the play area; this leaves room to spare.
+ */
+const OFFSCREEN_LEFT_X = -300;
+
 /** deltaTimeSec: seconds since last frame (used so movement stays in sync with real time) */
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
@@ -90,8 +96,10 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
         }
     });
 
-    // Remove off-screen obstacles
-    state.obstacles = obstacles.filter(obs => obs.x + shapeFor(obs.role).width > 0);
+    // Remove obstacles once they're off the screen. On a wide phone the screen reaches well
+    // to the left of the 600px play area, so wait until they're past even the widest one;
+    // removing them at 0 made them vanish in plain sight.
+    state.obstacles = obstacles.filter(obs => obs.x + shapeFor(obs.role).width > OFFSCREEN_LEFT_X);
 };
 
 /** Duck under an overhead bar. Grounded only, and free: it must not compete with the double jump. */
