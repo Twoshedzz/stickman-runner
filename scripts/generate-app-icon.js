@@ -39,20 +39,26 @@ function segmentDistance(px, py, ax, ay, bx, by) {
     return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-// The runner, mid-stride: head, then limbs as line segments.
-const HEAD = { x: 0.5, y: 0.6, r: 0.045 };
+// The runner, flat out: leaning into the sprint, front knee driven high, back leg fully
+// stretched behind, arms pumping. Head, then limbs as line segments with rounded ends.
+const HEAD = { x: 0.575, y: 0.52, r: 0.045 };
 const LIMBS = [
-    [0.5, 0.645, 0.48, 0.77],   // body
-    [0.49, 0.68, 0.42, 0.73],   // back arm
-    [0.42, 0.73, 0.4, 0.68],
-    [0.49, 0.68, 0.57, 0.7],    // front arm
-    [0.57, 0.7, 0.6, 0.64],
-    [0.48, 0.77, 0.4, 0.83],    // back leg
-    [0.4, 0.83, 0.34, 0.82],
-    [0.48, 0.77, 0.56, 0.84],   // front leg
-    [0.56, 0.84, 0.55, 0.92],
+    [0.55, 0.575, 0.475, 0.735],  // body, leaning forward
+    [0.54, 0.6, 0.605, 0.67],     // front arm: elbow forward, hand up by the chin
+    [0.605, 0.67, 0.655, 0.6],
+    [0.54, 0.6, 0.465, 0.6],      // back arm: elbow swung back, hand down behind
+    [0.465, 0.6, 0.425, 0.675],
+    [0.475, 0.735, 0.585, 0.74],  // front leg: knee driven high
+    [0.585, 0.74, 0.565, 0.845],
+    [0.475, 0.735, 0.41, 0.83],   // back leg: pushing off behind
+    [0.41, 0.83, 0.31, 0.875],
 ];
-const LIMB_WIDTH = 0.022;
+const LIMB_WIDTH = 0.04;
+
+/** Faint cyan speed streaks trailing behind the runner: [y, start x, end x]. */
+const STREAKS = [[0.6, 0.12, 0.36], [0.69, 0.06, 0.33], [0.78, 0.14, 0.34]];
+const STREAK_WIDTH = 0.012;
+const CYAN = hex('#00ffff');
 
 function colourAt(x, y) {
     // Runner in front of everything
@@ -60,7 +66,17 @@ function colourAt(x, y) {
     for (const [ax, ay, bx, by] of LIMBS) {
         if (segmentDistance(x, y, ax, ay, bx, by) < LIMB_WIDTH / 2) return RUNNER;
     }
+    // Speed streaks over the background, fading out towards the tail.
+    const bg = backgroundAt(x, y);
+    for (const [sy, x0, x1] of STREAKS) {
+        if (x >= x0 && x <= x1 && Math.abs(y - sy) < STREAK_WIDTH / 2) {
+            return mix(bg, CYAN, 0.85 * Math.pow((x - x0) / (x1 - x0), 1.5));
+        }
+    }
+    return bg;
+}
 
+function backgroundAt(x, y) {
     if (y < HORIZON) {
         // Sun, with the classic stripes cut out of its lower half, widening towards the bottom
         const inSun = Math.hypot(x - SUN.x, y - SUN.y) < SUN.r;
