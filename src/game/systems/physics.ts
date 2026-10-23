@@ -10,6 +10,9 @@ import { GameState } from '../state';
  */
 const OFFSCREEN_LEFT_X = -300;
 
+/** How long the grid glow under the runner takes to fade after landing. */
+const LAND_GLOW_SEC = 0.5;
+
 /** deltaTimeSec: seconds since last frame (used so movement stays in sync with real time) */
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     const { player, obstacles } = state;
@@ -17,6 +20,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
 
     player.jumpBuffer = Math.max(0, player.jumpBuffer - deltaTimeSec);
     player.hurtTimer = Math.max(0, player.hurtTimer - deltaTimeSec);
+    player.landGlow = Math.max(0, player.landGlow - deltaTimeSec / LAND_GLOW_SEC);
 
     // Ducking runs down in real seconds, and is cancelled the moment the runner leaves the ground.
     // While it's held the timer can't run out, so letting go leaves at least a moment's duck,
@@ -42,6 +46,9 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     if (player.y >= groundY) {
         // Landing Event
         if (!player.isGrounded) {
+            // The grid lights up under his feet. Obstacles arrive on the beat, so landings
+            // tend to fall on it too, and the grid pulses in time with the music.
+            player.landGlow = 1;
             // More particles, slower speed for cloud effect, drifting left
             state.particles = spawnParticles(
                 state.particles,

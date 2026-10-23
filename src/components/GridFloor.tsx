@@ -1,4 +1,4 @@
-import { Group, Path, Rect } from "@shopify/react-native-skia";
+import { Group, Path, Rect, rect, rrect } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 import { GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH } from "../game/constants";
 import { GameState } from "../game/state";
@@ -21,6 +21,10 @@ interface GridFloorProps {
     /** Neon colour of the grid lines. Defaults to stage 1's pink. Colour only: the line
      *  count, spacing and perspective are the same on every stage. */
     gridColor?: string;
+    /** Landing glow under the runner: where his feet are, and how strong (1 just landed, 0 none). */
+    glowX?: number;
+    glowY?: number;
+    glow?: number;
 }
 
 /**
@@ -29,7 +33,7 @@ interface GridFloorProps {
  * Vertical lines: perspective (toward vanishing point) but they SCROLL horizontally
  * at the bottom instead of rotating - gives smooth motion without angle changes.
  */
-export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)" }: GridFloorProps) => {
+export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)", glowX = 0, glowY = 0, glow = 0 }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const vanishX = viewWidth / 2;
     const isMoving =
@@ -77,8 +81,14 @@ export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridC
         }
         lines.push(...linesOut);
 
-        return { lines };
+        // All the lines as one shape too, for drawing the landing glow cheaply.
+        return { lines, all: lines.join(' ') };
     }, [scrollOffset, tick, viewWidth, vanishX]);
+
+    // The glow spreads out as it fades, like a ripple, flattened to the grid's perspective.
+    const spread = 1 - glow;
+    const rx = 48 + 46 * spread;
+    const ry = 9 + 8 * spread;
 
     return (
         <Group>
@@ -98,6 +108,13 @@ export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridC
                     color={gridColor}
                 />
             ))}
+            {/* Landing glow: just the grid lines near his feet, brighter for a moment. */}
+            {glow > 0.02 && (
+                <Group clip={rrect(rect(glowX - rx, glowY - ry, rx * 2, ry * 2), rx, ry)}>
+                    <Path path={content.all} style="stroke" strokeWidth={3} color={gridColor} opacity={glow} />
+                    <Path path={content.all} style="stroke" strokeWidth={1} color="#ffffff" opacity={0.6 * glow} />
+                </Group>
+            )}
         </Group>
     );
 };

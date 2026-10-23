@@ -40,6 +40,8 @@ export interface GameState {
         jumpBuffer: number;
         /** Seconds of safety left after a hit. The runner blinks and can't be hurt meanwhile. */
         hurtTimer: number;
+        /** 1 the moment the runner lands, fading to 0: lights up the grid under his feet. */
+        landGlow: number;
         health: number;
         maxHealth: number;
     };
@@ -89,6 +91,7 @@ export const createInitialState = (): GameState => ({
         duckHeld: false,
         jumpBuffer: 0,
         hurtTimer: 0,
+        landGlow: 0,
         health: MAX_HEALTH,
         maxHealth: MAX_HEALTH,
     },
