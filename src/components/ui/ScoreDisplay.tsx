@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { multiplierFor, PICKUP_COLOUR } from '../../game/pickups';
+import { multiplierFor } from '../../game/pickups';
 import { RNText } from '../RNText';
 
 interface ScoreDisplayProps {
@@ -8,12 +8,14 @@ interface ScoreDisplayProps {
     stageNumber?: number;
     /** Obstacles cleared in a row. Shows the multiplier it's earned, and the count once it's going. */
     streak?: number;
+    /** The stage's pickup glow, so the multiplier matches what you're collecting. */
+    colour?: string;
 }
 
 /** The streak count only shows once it's worth noticing. */
 const SHOW_STREAK_FROM = 3;
 
-export const ScoreDisplay = React.memo(({ score, stageNumber, streak = 0 }: ScoreDisplayProps) => {
+export const ScoreDisplay = React.memo(({ score, stageNumber, streak = 0, colour = '#ff00cc' }: ScoreDisplayProps) => {
     const multiplier = multiplierFor(streak);
     return (
         <View style={styles.scoreContainer}>
@@ -23,17 +25,18 @@ export const ScoreDisplay = React.memo(({ score, stageNumber, streak = 0 }: Scor
             <RNText style={styles.scoreLabel}>SCORE</RNText>
             <RNText style={styles.scoreValue}>{score}</RNText>
             {multiplier > 1 && (
-                <RNText style={styles.multiplier}>×{multiplier}</RNText>
+                <RNText style={[styles.multiplier, { color: colour, textShadowColor: colour }]}>×{multiplier}</RNText>
             )}
             {streak >= SHOW_STREAK_FROM && (
-                <RNText style={styles.streak}>STREAK {streak}</RNText>
+                <RNText style={[styles.streak, { color: colour }]}>STREAK {streak}</RNText>
             )}
         </View>
     );
 }, (prevProps, nextProps) => {
     return prevProps.score === nextProps.score &&
         prevProps.stageNumber === nextProps.stageNumber &&
-        prevProps.streak === nextProps.streak;
+        prevProps.streak === nextProps.streak &&
+        prevProps.colour === nextProps.colour;
 });
 
 const styles = StyleSheet.create({
@@ -64,15 +67,12 @@ const styles = StyleSheet.create({
     multiplier: {
         fontSize: 20,
         fontWeight: '900',
-        color: PICKUP_COLOUR,
         marginTop: -4,
-        textShadowColor: PICKUP_COLOUR,
         textShadowRadius: 8,
     },
     streak: {
         fontSize: 10,
         fontWeight: 'bold',
-        color: PICKUP_COLOUR,
         letterSpacing: 2,
         opacity: 0.85,
     },

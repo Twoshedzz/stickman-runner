@@ -1,52 +1,89 @@
 /**
  * Neon pickups and the streak multiplier: something to do between obstacles.
  *
- * Pickups come in trails, placed by the spawner alongside each pattern:
- * - along the ground, in the rest after a pattern, where the runner is running anyway;
- * - tracing a jump's arc over a block, so a well-timed jump sweeps up the whole arc and an
- *   early or late one only catches some of it.
- * They are silent (decision 7): collecting one sends a little burst flying to the score.
+ * Pickups come in trails, placed by the spawner alongside each pattern, and get more
+ * demanding stage by stage (`pacing.pickups` in stages.ts):
+ * - ARCS trace a jump over a block, so a well-timed jump sweeps up the whole arc and an
+ *   early or late one only catches some of it. Every stage.
+ * - TRAILS run along the ground in the rest after a pattern. Every stage.
+ * - HOPS float in mid-air in a rest: an extra jump between obstacles, which still lands in
+ *   time for the next one. From stage 2.
+ * - DOUBLE arcs trace a jump and double jump over a block. A plain jump only reaches the
+ *   bottom of one; the top costs half the energy bar. From stage 3.
+ * They are silent (decision 7): collecting one sends a few sparks flying to the score.
  *
  * Every obstacle cleared without a hit adds one to the streak, and a hit resets it. The
  * streak sets a multiplier on everything that scores.
  *
- * Like the patterns, placement is in SECONDS converted to pixels at the current speed, so a
- * jump arc matches the real jump at any speed. src/game/__tests__/pickups.test.ts checks it.
+ * The paths are traced from the runner's real jump physics, frame by frame, so they match
+ * the jump exactly at any speed. src/game/__tests__/pickups.test.ts plays them to check.
  */
 import { GRAVITY, JUMP_FORCE, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from './constants';
 import { ObstacleRole, shapeFor } from './obstacleCatalogue';
 import { spawnParticles } from './particles';
+import { STAGES, StagePacing } from './stages';
 import { GameState } from './state';
 
-/** Neon green: no stage uses it for anything else, so it always reads as "collect me". */
-export const PICKUP_COLOUR = '#39ff14';
-export const PICKUP_GLOW = '#b6ff9e';
-/** Half the width of the diamond a pickup is drawn as. */
-export const PICKUP_RADIUS = 6;
+/** Half the height of the diamond a pickup is drawn as. Small; the glow does the rest. */
+export const PICKUP_RADIUS = 3.5;
 /** How far outside the runner's box a pickup still counts as collected. Generous on purpose. */
-const COLLECT_REACH = 6;
+const COLLECT_REACH = 8;
+
+/** The stage's pickup colours. */
+export const pickupColours = (stageId: string) =>
+    (STAGES.find((s) => s.id === stageId) ?? STAGES[0]).theme.pickupColors;
 
 /** Seconds between pickups along a ground trail. */
 const TRAIL_SPACING_SEC = 0.15;
-/** A ground trail starts this long after the last obstacle, once the runner is back down... */
-const TRAIL_AFTER_SEC = 0.4;
+/** A trail or hop starts this long after the last obstacle, once the runner is back down... */
+const AFTER_SEC = 0.4;
 /** ...or longer after the wide block, whose double jump stays in the air for longer. */
-const TRAIL_AFTER_HUGE_SEC = 0.75;
+const AFTER_HUGE_SEC = 0.75;
 /** And ends this long before the next pattern could arrive, before the runner jumps for it. */
-const TRAIL_BEFORE_SEC = 0.4;
+const BEFORE_SEC = 0.4;
 /** Fewer than this isn't worth a trail. */
 const TRAIL_MIN_PICKUPS = 3;
 const TRAIL_CHANCE = 0.6;
-
-/** Seconds either side of the top of the jump that an arc's pickups sit at. */
-const ARC_OFFSETS_SEC = [-0.2, -0.1, 0, 0.1, 0.2];
 const ARC_CHANCE = 0.5;
 /** Blocks closer together than this are cleared by one jump, so they share one arc. */
 const ONE_JUMP_SEC = 0.3;
+/** A hop can start sooner than a trail: the runner can take off again the moment he lands. */
+const HOP_AFTER_SEC = 0.3;
+/** A hop needs at least this much choice in when to take off, so it's not a frame-perfect trick. */
+const HOP_SLACK_SEC = 0.1;
 
-/** A plain jump: how long it lasts and how high it goes, from the same physics the runner uses. */
-const JUMP_HALF_SEC = -JUMP_FORCE / GRAVITY / 60;
-const JUMP_PEAK = (JUMP_FORCE * JUMP_FORCE) / (2 * GRAVITY);
+const FPS = 60;
+/** The double jump in a double arc comes this many frames after taking off, on the way up. */
+const DOUBLE_AFTER_FRAMES = 10;
+/** Frames after take-off that the pickups sit at. A plain jump peaks at frame 20. */
+const ARC_FRAMES = [8, 14, 20, 26, 32];
+const DOUBLE_FRAMES = [14, 20, 26, 32, 38, 44];
+/** Arcs are lined up so a plain jump peaks over the block: take-off is this many frames before. */
+const PEAK_FRAME = 20;
+
+/**
+ * Height above standing, frame by frame after take-off, until landing. The same steps as
+ * applyPhysics and jump(), so the path is exactly where the runner goes.
+ */
+const flightPath = (doubleAt?: number) => {
+    const heights: number[] = [];
+    let dy = JUMP_FORCE;
+    let h = 0;
+    for (let frame = 1; frame < 200; frame++) {
+        dy += GRAVITY;
+        h -= dy;
+        if (h <= 0) break;
+        heights[frame] = h;
+        if (frame === doubleAt) dy = JUMP_FORCE;
+    }
+    return heights;
+};
+const JUMP = flightPath();
+const DOUBLE_JUMP = flightPath(DOUBLE_AFTER_FRAMES);
+/** Seconds from take-off to landing. */
+const JUMP_SEC = JUMP.length / FPS;
+/** Seconds from a double arc's block centre to landing again. */
+const DOUBLE_LANDS_SEC = (DOUBLE_JUMP.length - PEAK_FRAME) / FPS;
 
 /** Where the middle of the runner is when standing. Ground trails sit here. */
 const RUNNER_MID_Y = RUNNER_GROUND_Y - PLAYER_SIZE / 2;
@@ -63,12 +100,22 @@ export const multiplierFor = (streak: number) =>
 
 let nextId = 0;
 
-/** Height above the runner's standing position, `sec` seconds from the top of a plain jump. */
-export const jumpHeightAt = (sec: number) =>
-    Math.max(0, JUMP_PEAK * (1 - (sec / JUMP_HALF_SEC) ** 2));
+const blend = ([start, end]: [number, number], progress: number) =>
+    start + (end - start) * progress;
 
 /** Blocks a plain jump clears. Not the purple sphere (it wobbles) or the wide block (double jump). */
 const arcsOver = (role: ObstacleRole | undefined) => role === 'small' || role === 'large';
+
+/** Pickups along a flight path, for a jump that peaks (or would peak) over `peakX`. */
+const placeAlong = (state: GameState, path: number[], frames: number[], peakX: number) => {
+    for (const frame of frames) {
+        state.pickups.push({
+            id: nextId++,
+            x: peakX + ((frame - PEAK_FRAME) / FPS) * state.speed,
+            y: RUNNER_MID_Y - path[frame],
+        });
+    }
+};
 
 /**
  * Lay trails for a pattern the spawner has just placed.
@@ -79,6 +126,7 @@ const arcsOver = (role: ObstacleRole | undefined) => role === 'small' || role ==
  */
 export const placePickups = (
     state: GameState,
+    pacing: StagePacing,
     placed: GameState['obstacles'],
     endX: number,
     restSec: number,
@@ -86,6 +134,8 @@ export const placePickups = (
     random: () => number
 ) => {
     const speed = state.speed;
+    const progress = state.stageProgress;
+    const restEndX = endX + restSec * speed;
 
     // Arcs over the blocks you jump, one per jump.
     if (random() < ARC_CHANCE) {
@@ -98,28 +148,46 @@ export const placePickups = (
             else groups.push([centre]);
         }
         for (const centres of groups) {
-            // The top of the jump goes over the middle of what it clears.
+            // The top of a plain jump goes over the middle of what it clears.
             const peakX = (centres[0] + centres[centres.length - 1]) / 2;
-            for (const sec of ARC_OFFSETS_SEC) {
-                state.pickups.push({
-                    id: nextId++,
-                    x: peakX + sec * speed,
-                    y: RUNNER_MID_Y - jumpHeightAt(sec),
-                });
-            }
+            // A double jump stays up longer: only where nothing comes before it's down again
+            // and could jump or duck the next thing.
+            const nextX = Math.min(
+                restEndX,
+                ...placed.filter((o) => o.x > centres[centres.length - 1]).map((o) => o.x)
+            );
+            const roomSec = (nextX - peakX) / speed;
+            const double =
+                random() < blend(pacing.pickups.double, progress) &&
+                roomSec >= DOUBLE_LANDS_SEC + BEFORE_SEC;
+            if (double) placeAlong(state, DOUBLE_JUMP, DOUBLE_FRAMES, peakX);
+            else placeAlong(state, JUMP, ARC_FRAMES, peakX);
         }
     }
 
-    // A line along the ground through the rest that follows.
-    if (heartPlaced || random() >= TRAIL_CHANCE) return;
-    const lastRole = placed[placed.length - 1]?.role;
-    const after = lastRole === 'huge' ? TRAIL_AFTER_HUGE_SEC : TRAIL_AFTER_SEC;
-    const count = Math.floor((restSec - after - TRAIL_BEFORE_SEC) / TRAIL_SPACING_SEC) + 1;
+    if (heartPlaced) return;
+    const afterHuge = placed[placed.length - 1]?.role === 'huge';
+
+    // A hop: an arc in mid-air through the rest, for an extra jump. Taking off anywhere in
+    // the window still lands before the next pattern needs you.
+    const hopAfterSec = afterHuge ? AFTER_HUGE_SEC : HOP_AFTER_SEC;
+    const hopWindowSec = restSec - hopAfterSec - JUMP_SEC - BEFORE_SEC;
+    if (hopWindowSec >= HOP_SLACK_SEC && random() < blend(pacing.pickups.hop, progress)) {
+        const takeOffX = endX + (hopAfterSec + hopWindowSec / 2) * speed;
+        placeAlong(state, JUMP, ARC_FRAMES, takeOffX + (PEAK_FRAME / FPS) * speed);
+        return;
+    }
+
+    // Otherwise maybe a line along the ground.
+    const afterSec = afterHuge ? AFTER_HUGE_SEC : AFTER_SEC;
+    const freeSec = restSec - afterSec - BEFORE_SEC;
+    if (random() >= TRAIL_CHANCE) return;
+    const count = Math.floor(freeSec / TRAIL_SPACING_SEC) + 1;
     if (count < TRAIL_MIN_PICKUPS) return;
     for (let i = 0; i < count; i++) {
         state.pickups.push({
             id: nextId++,
-            x: endX + (after + i * TRAIL_SPACING_SEC) * speed,
+            x: endX + (afterSec + i * TRAIL_SPACING_SEC) * speed,
             y: RUNNER_MID_Y,
         });
     }
@@ -135,13 +203,13 @@ export const clearedObstacle = (state: GameState) => {
     const before = multiplierFor(state.streak);
     state.streak += 1;
     addScore(state);
-    // A new multiplier: a burst of green from the runner, since there's no sound for it.
+    // A new multiplier: a burst from the runner, since there's no sound for it.
     if (multiplierFor(state.streak) > before) {
         state.particles = spawnParticles(
             state.particles,
             PLAYER_X + PLAYER_SIZE / 2,
             state.player.y + PLAYER_SIZE / 2,
-            PICKUP_COLOUR,
+            pickupColours(state.stageId).glow,
             12,
             5
         );
@@ -174,7 +242,7 @@ export const collectPickups = (state: GameState) => {
             state.particles,
             p.x,
             p.y,
-            PICKUP_COLOUR,
+            pickupColours(state.stageId).glow,
             3,
             3,
             { x: SCREEN_WIDTH - 60, y: 40 },

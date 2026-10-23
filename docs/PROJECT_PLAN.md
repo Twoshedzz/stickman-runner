@@ -30,8 +30,8 @@ The names stay as they are, even though stage 2 is now a sunrise and stage 4 end
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the gameplay pass (§4). Steps 0–4 and 6 are done (step 4 still to be tried on
-the phone); step 5 is next.
+**Current focus:** the gameplay pass (§4). Steps 0–4 and 6 are done (step 4's rework still to be
+tried on the phone); step 5 is next.
 
 ---
 
@@ -102,23 +102,32 @@ heart generosity (`pacing.hearts`): stage 1 the most generous, stage 4 the least
   second of a tight pair, which is deliberately close behind the first. A test checks this.
 - The ground line pulses on every beat.
 
-**Step 4 — something to do between obstacles.** ✅ Done, not yet tried on the phone.
-All in `src/game/pickups.ts`; the spawner lays the trails as it places each pattern.
-- **Neon green diamonds**, a colour no stage uses for anything else. Silent: collecting one sends
-  a few sparks to the score.
-- **Jump arcs:** half the patterns get five pickups tracing a jump over each block (not over the
-  purple sphere, which wobbles, or the wide block). A well-timed jump collects the whole arc;
-  running underneath collects none. Two blocks one jump clears share one arc.
-- **Ground trails:** in most rests long enough, a line along the ground every 0.15 sec, starting
-  after the runner has landed and ending before the next pattern. Not when a heart is in the rest.
-- About 300–400 pickups a stage, against about 130 obstacles.
+**Step 4 — something to do between obstacles.** ✅ Done; reworked 23 October after the first
+phone test. All in `src/game/pickups.ts`; the spawner lays the trails as it places each pattern.
+- **Small glowing diamonds in each stage's colours**: a pale core in the stage's horizon colour
+  (`pickupColors` in `stages.ts`). The glow is two see-through circles, not a blur, which is
+  heavy on web. Silent: collecting one sends a few sparks to the score.
+- **Every stage:** arcs tracing a jump over a block (a well-timed jump collects the whole arc,
+  running underneath none), and trails along the ground in the rests.
+- **Stage 2 on — hops:** some rests get an arc floating in mid-air instead of a ground trail,
+  for an extra jump between obstacles. Only where there's room to land in time for the next one.
+- **Stage 3 on — double arcs:** some block arcs trace a jump and double jump, so a plain jump
+  only reaches the bottom and the top costs half the energy bar. Only where nothing comes
+  before the runner is down again.
+- How often each turns up is `pacing.pickups` in `stages.ts`. Stage 1 has none of either; in
+  stages 2–4 roughly 15–19 hops a stage, and in stages 3–4 roughly 10–15 double arcs.
+- Every path is traced from the real jump physics frame by frame, so it matches the jump
+  exactly at any speed.
 - **Streak:** every obstacle cleared without a hit adds one; a hit resets it (in debug mode
   too). ×2 / ×3 / ×4 at 10 / 25 / 50, applied to everything that scores. The multiplier and
-  streak count show under the score, and a green burst marks each new level.
+  streak count show under the score in the stage's pickup colour, and a burst marks each new level.
 - Small changes to scoring: a missed heart no longer scores a point, and an obstacle brushed
   during the safe second after a hit doesn't count.
 - **Scores are much bigger now** (pickups score, and the multiplier), so best runs from before
   are easy to beat.
+- **How to Play is two pages** (controls and obstacles, then pickups and streak). Turn the page
+  with the cyan arrows, a sideways swipe on a phone, or ← → on a keyboard.
+- To check on the phone: stage 4's pink diamonds against the lit city windows.
 - To tune: `TRAIL_SPACING_SEC`, `ARC_CHANCE`, `TRAIL_CHANCE` and `STREAK_LEVELS` in `pickups.ts`.
 
 **Step 5 — calm and busy sections that follow the music.** Not started.
@@ -131,12 +140,13 @@ A short intensity list per track (warm-up, waves, breather, finale) that scales 
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (111 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (121 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
-- `pickups.test.ts` checks a good jump collects a whole arc at every speed, running collects a
-  trail, no pickup sits inside an obstacle across whole stages, and the streak rules.
+- `pickups.test.ts` plays the arcs, hops and double arcs with timing a little early and late at
+  every speed, checks none of them costs a hit, that no pickup sits inside an obstacle across
+  whole stages, and the streak rules.
 - Then played on the phone — Pete and his son are the real test.
 
 ---

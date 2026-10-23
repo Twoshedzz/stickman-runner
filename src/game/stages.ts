@@ -44,6 +44,16 @@ export interface StagePacing {
         topUpChance: number;
         topUpEverySec: number;
     };
+    /**
+     * How much the neon pickups ask of you (src/game/pickups.ts). Both are chances.
+     * Stage 1 keeps them easy: arcs over blocks and trails along the ground.
+     */
+    pickups: {
+        /** A rest gets an arc floating in mid-air instead of a ground trail: an extra jump to reach. */
+        hop: [number, number];
+        /** A block's arc traces a double jump, so the top of it costs energy. */
+        double: [number, number];
+    };
 }
 
 export interface StageConfig {
@@ -59,8 +69,8 @@ export interface StageConfig {
         gridColor?: string;
         /**
          * Hazard colours for this stage. The shapes are deliberately abstract, so colour is
-         * what ties them to the scenery. Pickups are deliberately NOT here: hearts stay pink
-         * on every stage so "this one helps you" always reads the same.
+         * what ties them to the scenery. Hearts are deliberately NOT here: they stay pink on
+         * every stage so "this one helps you" always reads the same.
          */
         obstacleColors?: {
             block: string;      // standard, small and boulder
@@ -72,6 +82,8 @@ export interface StageConfig {
             overhead: string;   // the bar you duck under
             overheadGlow: string;
         };
+        /** The neon pickups: a pale core in the stage's horizon colour glow. */
+        pickupColors: { core: string; glow: string };
     };
     assets: {
         backgroundType: 'city' | 'beach' | 'mountains' | 'city_victory';
@@ -144,7 +156,8 @@ export const STAGES: StageConfig[] = [
                 red: '#ff0040', redGlow: '#ff4d4d',
                 purple: '#bf55ec', purpleGlow: '#e056fd',
                 overhead: '#00ffff', overheadGlow: '#7df5ff',
-            }
+            },
+            pickupColors: { core: '#ffd6f5', glow: '#ff00cc' },
         },
         assets: {
             backgroundType: 'city'
@@ -158,6 +171,7 @@ export const STAGES: StageConfig[] = [
             rest: [1.2, 0.8],
             unlocks: { small: 0, overhead: 0.05, large: 0.1, mover: 0.25, huge: 0.6 },
             hearts: { hurtBelow: 0.8, hurtEverySec: 6, topUpChance: 0.5, topUpEverySec: 12 },
+            pickups: { hop: [0, 0], double: [0, 0] },
         },
         speed: [260, 300],
         durationSec: 180, // music plays to 179.5s
@@ -317,7 +331,8 @@ export const STAGES: StageConfig[] = [
                 red: '#ff4f81', redGlow: '#ff85a8',
                 purple: '#c86090', purpleGlow: '#e58bb4',
                 overhead: '#ffd79a', overheadGlow: '#ff9e5e',
-            }
+            },
+            pickupColors: { core: '#fff1c1', glow: '#ffb347' },
         },
         assets: {
             backgroundType: 'beach'
@@ -330,6 +345,8 @@ export const STAGES: StageConfig[] = [
             rest: [1.3, 0.8],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0 },
             hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
+            // Introduces the extra jump between obstacles.
+            pickups: { hop: [0.3, 0.6], double: [0, 0] },
         },
         speed: [280, 320],
         durationSec: 174, // music plays to 173.5s
@@ -364,7 +381,8 @@ export const STAGES: StageConfig[] = [
                 red: '#ff6b9d', redGlow: '#ffa3c4',
                 purple: '#a78bfa', purpleGlow: '#c4b5fd',
                 overhead: '#e0fbff', overheadGlow: '#7df5ff',
-            }
+            },
+            pickupColors: { core: '#ffffff', glow: '#7df5ff' },
         },
         assets: {
             backgroundType: 'mountains'
@@ -377,6 +395,8 @@ export const STAGES: StageConfig[] = [
             rest: [1.2, 0.75],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0.2 },
             hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 25 },
+            // Adds double-jump arcs, which compete with the wide block for the energy bar.
+            pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
         },
         speed: [300, 340],
         durationSec: 176, // music plays to 175.5s
@@ -399,7 +419,8 @@ export const STAGES: StageConfig[] = [
                 red: '#ff2fb9', redGlow: '#ff7ad9',
                 purple: '#9b5de5', purpleGlow: '#c77dff',
                 overhead: '#00e5ff', overheadGlow: '#7df5ff',
-            }
+            },
+            pickupColors: { core: '#ffe0f4', glow: '#ff2fb9' },
         },
         assets: {
             backgroundType: 'city_victory'
@@ -412,6 +433,7 @@ export const STAGES: StageConfig[] = [
             rest: [1.1, 0.7],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0 },
             hearts: { hurtBelow: 0.5, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 30 },
+            pickups: { hop: [0.5, 0.7], double: [0.4, 0.6] },
         },
         speed: [320, 360],
         durationSec: 178, // music plays to 177.4s

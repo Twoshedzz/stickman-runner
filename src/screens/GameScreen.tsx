@@ -384,6 +384,7 @@ export const GameScreen = () => {
                                 score={gameMetrics.score}
                                 stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
                                 streak={gameMetrics.streak}
+                                colour={(STAGES.find(s => s.id === gameState.stageId) ?? STAGES[0]).theme.pickupColors.glow}
                             />
                         </View>
                     )}

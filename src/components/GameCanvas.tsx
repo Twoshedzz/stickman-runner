@@ -8,7 +8,7 @@ import {
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { shapeFor } from "../game/obstacleCatalogue";
-import { PICKUP_COLOUR, PICKUP_GLOW, PICKUP_RADIUS } from "../game/pickups";
+import { PICKUP_RADIUS } from "../game/pickups";
 import { remainingScroll, STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
 import { Stickman } from "./Stickman";
@@ -185,6 +185,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         purple: '#bf55ec', purpleGlow: '#e056fd',
         overhead: '#00ffff', overheadGlow: '#7df5ff',
     };
+    const pickupColors = currentStage.theme.pickupColors;
 
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
@@ -381,15 +382,24 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     );
                 })}
 
-                {/* 9b. Pickups: small neon diamonds, a square turned on its corner. */}
+                {/* 9b. Pickups: a small pale diamond in a soft glow of the stage's horizon colour.
+                    The glow is two see-through circles rather than a blur, which is heavy on web. */}
                 {gameState.pickups.map(p => {
                     const cx = p.x + gameOffsetX;
                     if (cx > viewWidth + 10 || cx < -10) return null;
                     const r = PICKUP_RADIUS;
+                    // A slow shimmer, each one a little out of step with its neighbours.
+                    const shimmer = 0.75 + 0.25 * Math.sin(gameState.elapsedSecInStage * 6 + p.id);
+                    const side = r * Math.SQRT2;
                     return (
-                        <Group key={p.id} origin={vec(cx, p.y)} transform={[{ rotate: Math.PI / 4 }]}>
-                            <Rect x={cx - r - 2} y={p.y - r - 2} width={2 * r + 4} height={2 * r + 4} color={PICKUP_GLOW} opacity={0.35} />
-                            <Rect x={cx - r * 0.7} y={p.y - r * 0.7} width={r * 1.4} height={r * 1.4} color={PICKUP_COLOUR} />
+                        <Group key={p.id}>
+                            <Circle cx={cx} cy={p.y} r={r * 3} color={safeColor(pickupColors.glow)} opacity={0.18 * shimmer} />
+                            <Circle cx={cx} cy={p.y} r={r * 1.8} color={safeColor(pickupColors.glow)} opacity={0.45 * shimmer} />
+                            <Rect
+                                x={cx - side / 2} y={p.y - side / 2} width={side} height={side}
+                                color={safeColor(pickupColors.core)}
+                                origin={vec(cx, p.y)} transform={[{ rotate: Math.PI / 4 }]}
+                            />
                         </Group>
                     );
                 })}

@@ -159,7 +159,7 @@ export const spawnObstacle = (
     }
 
     // Something to collect: arcs over the blocks, and a trail through the rest.
-    placePickups(state, placed, endX, rest, heartPlaced, random);
+    placePickups(state, pacing, placed, endX, rest, heartPlaced, random);
 
     spawner.endX = endX;
     spawner.restSec = rest;
