@@ -235,12 +235,24 @@ export const STAGES: StageConfig[] = [
                 trigger: { start: 21600, end: -1 },
                 values: { startY: 400, endY: 400, opacity: 0 }
             },
-            // --- Lights dwindle in reverse order (night_lights_dwindle 0→1), lingering into the sunrise:
-            //     they start going out at 2:30 and the last ones switch off right at the finish. ---
+            // --- Lights go out uniformly across the city, group by group in the reverse of how they
+            //     came on, from 2:15 to the finish. The three phases mirror the switch-on above
+            //     (which took 70s) in reverse, scaled to 45s: last on, first off. Dwindle 0.5 =
+            //     half the city's light level gone, and so on. ---
             {
                 type: 'night_lights_dwindle',
-                trigger: { start: 36000, end: 43000 },
-                values: { startOpacity: 0, endOpacity: 1 }
+                trigger: { start: 32400, end: 35920 },
+                values: { startOpacity: 0, endOpacity: 0.5 }
+            },
+            {
+                type: 'night_lights_dwindle',
+                trigger: { start: 35920, end: 40520 },
+                values: { startOpacity: 0.5, endOpacity: 0.75 }
+            },
+            {
+                type: 'night_lights_dwindle',
+                trigger: { start: 40520, end: 43200 },
+                values: { startOpacity: 0.75, endOpacity: 1 }
             },
             {
                 type: 'night_lights_dwindle',

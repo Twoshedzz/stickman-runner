@@ -86,20 +86,6 @@ interface Props {
     onAssetsReady?: () => void;
 }
 
-/**
- * How much each building's lights are spread out in time. With every building following the
- * city-wide light level exactly, a whole group of windows across the city went dark at once,
- * like a power cut. Instead each building runs a little ahead of or behind the others, so the
- * lights come on - and go off, in reverse order - building by building.
- */
-const STAGGER = 0.4;
-
-/** A steady 0-1 value per building, so its timing doesn't change as it scrolls past. */
-function buildingOffset(tileIndex: number, layerSeed: number) {
-    const h = Math.imul((tileIndex * 31 + layerSeed) ^ 0x27d4eb2d, 0x165667b1);
-    return ((h >>> 8) & 0xffff) / 0xffff;
-}
-
 /** Scatters variants along the run without an obvious 1-2-3-4 repeat. */
 function variantFor(tileIndex: number) {
     const h = Math.imul(tileIndex ^ 0x9e3779b9, 0x85ebca6b);
@@ -126,17 +112,12 @@ function tiles(
     // Scaling by LEVELS (not LEVELS - 1) means the very first group fades in from nothing
     // too: at a light level just above zero, overlay 0 is drawn at a sliver of opacity
     // rather than snapping straight to full.
-    const cityLevel = Math.max(0, Math.min(1, lightLevel));
-    const layerSeed = keyPrefix.length * 977;
+    const position = Math.max(0, Math.min(1, lightLevel)) * LEVELS;
+    const step = Math.min(LEVELS - 1, Math.floor(position));
+    const fade = Math.min(1, position - step);
 
     return Array.from({ length: count }, (_, i) => {
         const tileIndex = firstTile + i;
-        // This building's own light level: the city's, shifted by its offset. At full the
-        // whole city is lit and at zero it's all dark; in between, buildings differ.
-        const level = Math.max(0, Math.min(1, (cityLevel - buildingOffset(tileIndex, layerSeed) * STAGGER) / (1 - STAGGER)));
-        const position = level * LEVELS;
-        const step = Math.min(LEVELS - 1, Math.floor(position));
-        const fade = Math.min(1, position - step);
         const variant = variantFor(tileIndex) % bases.length;
         const x = tileIndex * width - worldX;
         const litIndex = variant * LEVELS;
