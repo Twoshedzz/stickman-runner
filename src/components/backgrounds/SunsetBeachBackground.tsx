@@ -25,8 +25,11 @@ const GRID_TOP_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 const SUN = { y: 163, radius: 47, colour: "#fd943f" };
 /** The bands cut across the sun's lower half in the concept, like heat haze over the sea. */
 const SUN_BANDS = [0.34, 0.52, 0.70, 0.86];
-const OCEAN = "#31153e";
-const SAND_COLOUR = "#3a1a44";
+// Sea and sand are kept clearly apart: the sea cool and deep, the sand warm, catching the sunset.
+const OCEAN = "#221a52";
+const SAND_COLOUR = "#6e3657";
+/** A thin line of surf where the water meets the sand. */
+const SURF = "#f7a8c4";
 const REFLECTION = "#fd9e5d";
 
 /** Matches the stage's skyColors, so the sun's bands blend into the sky behind them. */
@@ -171,6 +174,7 @@ export const SunsetBeachBackground = ({ distance, viewWidth: viewWidthProp }: Pr
 
             {/* Sand, then the palms standing on it. */}
             <Rect x={0} y={SAND} width={viewWidth} height={GRID_TOP_Y - SAND} color={SAND_COLOUR} />
+            <Rect x={0} y={SAND - 1} width={viewWidth} height={2} color={SURF} opacity={0.55} />
             {tileLayer(palms, PALMS, distance, viewWidth, SAND - PALMS.height + 8, "beach-palms")}
         </>
     );
