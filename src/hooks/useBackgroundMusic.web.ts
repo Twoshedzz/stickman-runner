@@ -102,6 +102,22 @@ export const useBackgroundMusic = () => {
     const loadsRef = useRef<Map<string, TrackLoad>>(new Map());
 
     /**
+     * Pause the music while the game is in the background (another app, or the phone locked)
+     * and pick it up again on return. If iPhone won't restart it without a tap, the safety
+     * net above starts it on the first tap back in the game.
+     */
+    useEffect(() => {
+        const onVisibility = () => {
+            const current = webAudioRef.current;
+            if (!current) return;
+            if (document.hidden) current.pause();
+            else if (wantPlayingRef.current) current.play()?.catch(() => {});
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => document.removeEventListener('visibilitychange', onVisibility);
+    }, []);
+
+    /**
      * Downloads a track in full, without playing it, reporting progress (0 to 1) as it goes.
      *
      * Each track is about 4MB. Starting a stage before its music has arrived leaves the music
