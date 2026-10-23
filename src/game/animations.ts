@@ -62,12 +62,20 @@ export const RUN_POSES: Pose[] = [
     },
 ];
 
+/** On the way up: a sprinter's leap, front knee tucked high, arms pumping. */
 export const JUMP_POSE: Pose = {
-    // Jump: Dynamic leap forward (Arms Raised)
-    rLeg: { upper: 0.8, lower: -0.5 },  // Right knee driving up/forward
-    lLeg: { upper: -0.5, lower: -1.0 }, // Left leg trailing
-    rArm: { upper: 2.0, lower: 0.5 },   // Right arm reaching forward/up
-    lArm: { upper: -2.0, lower: -0.5 }  // Left arm reaching back/up (raised)
+    rLeg: { upper: 1.35, lower: -1.7 }, // front knee driven high, shin tucked under
+    lLeg: { upper: -0.55, lower: -1.25 }, // back leg trailing, heel kicked up
+    rArm: { upper: -0.9, lower: 1.4 },  // arm swung back
+    lArm: { upper: 1.3, lower: 1.0 },   // arm driven forward
+};
+
+/** On the way down: the front leg reaches to land, arms out for balance. */
+export const FALL_POSE: Pose = {
+    rLeg: { upper: 0.55, lower: -0.25 }, // front leg reaching down and forward
+    lLeg: { upper: -0.2, lower: -0.9 },  // back leg following
+    rArm: { upper: 1.1, lower: 0.5 },
+    lArm: { upper: -0.9, lower: 0.7 },
 };
 
 export const STAND_POSE: Pose = {

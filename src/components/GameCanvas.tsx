@@ -390,6 +390,8 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     animationTimeSec={gameState.scroll / (BASE_SPEED * 60)}
                     isGrounded={player.isGrounded}
                     isDucking={player.isDucking}
+                    verticalSpeed={player.dy}
+                    landing={player.landGlow}
                     isRunning={gameState.gameStarted && !gameState.gameOver}
                     status={gameState.stageStatus}
                 />}

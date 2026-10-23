@@ -1,6 +1,6 @@
 import { Circle, Group, Line } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
-import { DUCK_POSE, EXHAUSTED_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
+import { DUCK_POSE, EXHAUSTED_POSE, FALL_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
 
 interface StickmanProps {
     x: number;
@@ -13,7 +13,37 @@ interface StickmanProps {
     isDucking?: boolean;
     size: number;
     status?: 'playing' | 'exhausted' | 'victory';
+    /** Vertical speed (negative = rising): blends the leap into the reach for the ground. */
+    verticalSpeed?: number;
+    /** 1 the moment he lands, fading to 0: drives the knee-bend that absorbs the landing. */
+    landing?: number;
 }
+
+/** Blend two poses: t = 0 is `a`, 1 is `b`. */
+const mixLimb = (a: Limb, b: Limb, t: number): Limb => ({
+    upper: a.upper + (b.upper - a.upper) * t,
+    lower: a.lower + (b.lower - a.lower) * t,
+});
+const mixPose = (a: Pose, b: Pose, t: number): Pose => ({
+    lLeg: mixLimb(a.lLeg, b.lLeg, t),
+    rLeg: mixLimb(a.rLeg, b.rLeg, t),
+    lArm: mixLimb(a.lArm, b.lArm, t),
+    rArm: mixLimb(a.rArm, b.rArm, t),
+});
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+/** Eases in and out, so blends start and finish gently. */
+const smooth = (t: number) => t * t * (3 - 2 * t);
+
+/**
+ * A smooth curve through the key poses (Catmull-Rom). Straight-line blends between poses
+ * made every limb change direction with a jolt at each one, which is what read as stiff.
+ */
+const curve = (p0: number, p1: number, p2: number, p3: number, t: number) =>
+    0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+const curveLimb = (a: Limb, b: Limb, c: Limb, d: Limb, t: number): Limb => ({
+    upper: curve(a.upper, b.upper, c.upper, d.upper, t),
+    lower: curve(a.lower, b.lower, c.lower, d.lower, t),
+});
 
 // Mirror function to generate the other half of the cycle
 const getMirroredPose = (p: Pose): Pose => ({
@@ -29,7 +59,7 @@ const FULL_CYCLE: Pose[] = [
     ...RUN_POSES.map(getMirroredPose)
 ];
 
-export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDucking = false, size, status = 'playing' }: StickmanProps) => {
+export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDucking = false, size, status = 'playing', verticalSpeed = 0, landing = 0 }: StickmanProps) => {
     // Synthwave Stickman: White with Neon Glow
     const color = "white";
     const strokeWidth = 5; // Thicker for pictogram style
@@ -42,8 +72,14 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     const limbLen2 = 10 * scale;
     const foreArmLen = limbLen2 * 0.8; // Shorter forearms per user request
 
-    // Lean: Head/Shoulders are ahead of hips (Only when running)
-    const leanOffset = isRunning && isGrounded && status === 'playing' ? 6 * scale : 0;
+    // Lean: Head/Shoulders are ahead of hips while running, in the air too, so the body
+    // doesn't snap upright on take-off.
+    const leanOffset = isRunning && status === 'playing' ? 6 * scale : 0;
+
+    const cycleSpeed = 18; // Run cycle units per real second (so animation speed is independent of frame rate)
+    const frameIndex = (animationTimeSec * cycleSpeed) % FULL_CYCLE.length;
+    // 1 just after landing, easing to 0: how much the knees bend to absorb it.
+    const absorb = isGrounded && isRunning && !isDucking && status === 'playing' ? smooth(clamp01((landing - 0.6) / 0.4)) : 0;
 
     // Interpolate Poses
     const pose = useMemo(() => {
@@ -51,30 +87,39 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
         if (status === 'victory') return STAND_POSE;
 
         if (isDucking) return DUCK_POSE;
-        if (!isGrounded) return JUMP_POSE;
         if (!isRunning) return STAND_POSE;
 
-        const cycleSpeed = 18; // Run cycle units per real second (so animation speed is independent of frame rate)
-        const frameIndex = (animationTimeSec * cycleSpeed) % FULL_CYCLE.length;
-        const currentFrame = Math.floor(frameIndex);
-        const nextFrame = (currentFrame + 1) % FULL_CYCLE.length;
-        const progress = frameIndex - currentFrame;
-
-        const interpolateLimb = (l1: Limb, l2: Limb): Limb => ({
-            upper: l1.upper + (l2.upper - l1.upper) * progress,
-            lower: l1.lower + (l2.lower - l1.lower) * progress
-        });
-
-        const p1 = FULL_CYCLE[currentFrame];
-        const p2 = FULL_CYCLE[nextFrame];
-
-        return {
-            lLeg: interpolateLimb(p1.lLeg, p2.lLeg),
-            rLeg: interpolateLimb(p1.rLeg, p2.rLeg),
-            lArm: interpolateLimb(p1.lArm, p2.lArm),
-            rArm: interpolateLimb(p1.rArm, p2.rArm),
+        // The run, as a smooth curve through the key poses.
+        const n = FULL_CYCLE.length;
+        const i = Math.floor(frameIndex);
+        const t = frameIndex - i;
+        const [a, b, c, d] = [i - 1, i, i + 1, i + 2].map((k) => FULL_CYCLE[((k % n) + n) % n]);
+        const run: Pose = {
+            lLeg: curveLimb(a.lLeg, b.lLeg, c.lLeg, d.lLeg, t),
+            rLeg: curveLimb(a.rLeg, b.rLeg, c.rLeg, d.rLeg, t),
+            lArm: curveLimb(a.lArm, b.lArm, c.lArm, d.lArm, t),
+            rArm: curveLimb(a.rArm, b.rArm, c.rArm, d.rArm, t),
         };
-    }, [animationTimeSec, isGrounded, isRunning, isDucking, status]);
+
+        if (!isGrounded) {
+            // In the air: from the leap on the way up to reaching for the ground on the way
+            // down, eased in over the first moments after take-off so it doesn't snap.
+            const air = mixPose(JUMP_POSE, FALL_POSE, smooth(clamp01((verticalSpeed + 4) / 10)));
+            const takeOff = smooth(clamp01((verticalSpeed + 12) / 3));
+            return mixPose(run, air, takeOff);
+        }
+
+        // Just landed: bend the knees to absorb it, then ease back into the stride.
+        if (absorb <= 0) return run;
+        const bent = (leg: Limb): Limb => ({ upper: leg.upper + 0.35, lower: leg.lower - 0.8 });
+        const crouch: Pose = { ...run, lLeg: bent(run.lLeg), rLeg: bent(run.rLeg) };
+        return mixPose(run, mixPose(FALL_POSE, crouch, 0.6), absorb);
+    }, [frameIndex, isGrounded, isRunning, isDucking, status, verticalSpeed, absorb]);
+
+    // A runner's bounce: lowest as each foot takes the weight, highest between strides.
+    const running = isRunning && isGrounded && !isDucking && status === 'playing';
+    const stride = (frameIndex % 4) / 4;
+    const bounce = running ? 1.6 * Math.cos(2 * Math.PI * (stride - 0.25)) * (size / 40) : 0;
 
     if (!pose) {
         return null;
@@ -133,10 +178,12 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     // down until the lowest foot sits where straight legs would touch the ground.
     const groundY = anchorY + headRadius + bodyLength + limbLen1 + limbLen2;
     const lowestFoot = Math.max(lFoot.y, rFoot.y);
-    const plantShift = isDucking ? Math.max(0, groundY - lowestFoot) : 0;
+    // Landing does the same, so the bent knees lower the body instead of lifting the feet.
+    const plantShift = isDucking ? Math.max(0, groundY - lowestFoot)
+        : absorb > 0 ? Math.max(0, groundY - lowestFoot) * absorb : 0;
 
     return (
-        <Group transform={[{ translateX: x }, { translateY: y + plantShift }]}>
+        <Group transform={[{ translateX: x }, { translateY: y + plantShift + bounce }]}>
             {/* Render Back Limbs First (Left side usually, depends on direction) */}
             <Group>
                 <Line p1={hip} p2={lKnee} color={color} strokeWidth={strokeWidth} strokeCap="round" />
