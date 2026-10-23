@@ -40,6 +40,10 @@ const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
 /** Desktop web: fixed size for preview/feedback; no filling the browser. */
 const WEB_VIEWPORT = { width: 600, height: 350 };
 
+/** The stage name shows for this long at the start of each stage, then fades over the next bit. */
+const STAGE_BANNER_SEC = 5;
+const STAGE_BANNER_FADE_SEC = 0.8;
+
 /** How far a finger has to move down, in screen points, to count as a swipe to duck. */
 const SWIPE_DUCK_PX = 24;
 
@@ -355,6 +359,28 @@ export const GameScreen = () => {
                         </View>
                     )}
 
+                    {/* Stage name: shown for the first few seconds of each stage, then fades */}
+                    {gameState.gameStarted && gameState.stageStatus === 'playing' && !gameState.gameOver &&
+                        gameState.elapsedSecInStage < STAGE_BANNER_SEC + STAGE_BANNER_FADE_SEC && (
+                        <View
+                            style={[
+                                styles.stageBanner,
+                                {
+                                    opacity: Math.min(1, Math.max(0,
+                                        (STAGE_BANNER_SEC + STAGE_BANNER_FADE_SEC - gameState.elapsedSecInStage) / STAGE_BANNER_FADE_SEC
+                                    )),
+                                },
+                            ]}
+                        >
+                            <RNText style={styles.stageBannerNumber}>
+                                STAGE {STAGES.findIndex(s => s.id === gameState.stageId) + 1}
+                            </RNText>
+                            <RNText style={styles.stageBannerName}>
+                                {(STAGES.find(s => s.id === gameState.stageId) || STAGES[0]).name}
+                            </RNText>
+                        </View>
+                    )}
+
                     {/* HUD - Only show if playing or Game Over */}
                     {(gameState.gameStarted || gameState.gameOver) && (
                         <View
@@ -531,6 +557,34 @@ const styles = StyleSheet.create({
     containerWeb: {
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    stageBanner: {
+        position: 'absolute',
+        top: '24%',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        pointerEvents: 'none',
+    },
+    stageBannerNumber: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 6,
+        color: '#00ffff',
+        textShadowColor: '#00ffff',
+        textShadowRadius: 8,
+        textShadowOffset: { width: 0, height: 0 },
+    },
+    stageBannerName: {
+        marginTop: 4,
+        fontSize: 34,
+        fontWeight: '900',
+        fontStyle: 'italic',
+        letterSpacing: 4,
+        color: '#ffffff',
+        textShadowColor: '#ff00cc',
+        textShadowRadius: 12,
+        textShadowOffset: { width: 0, height: 0 },
     },
     hudArea: {
         ...StyleSheet.absoluteFillObject,

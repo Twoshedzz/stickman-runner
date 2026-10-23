@@ -268,7 +268,7 @@ export const STAGES: StageConfig[] = [
     },
     {
         id: 'stage_2_beach',
-        name: 'SYNTHWAVE BEACH',
+        name: 'SUNSET BEACH',
         description: 'Dodge obstacles on the retro coast.',
         theme: {
             // Sampled from assets/concepts/stage 2 - sunset beach.png
@@ -301,7 +301,7 @@ export const STAGES: StageConfig[] = [
     },
     {
         id: 'stage_3_landscape',
-        name: 'DIGITAL PEAKS',
+        name: 'MIDNIGHT MOUNTAINS',
         description: 'Navigate the wireframe mountains.',
         // Colours sampled from assets/concepts/stage 3 - midnight mountains.png
         theme: {
@@ -334,7 +334,7 @@ export const STAGES: StageConfig[] = [
     },
     {
         id: 'stage_4_victory',
-        name: 'VICTORY LAP',
+        name: 'VICTORY DAWN',
         description: 'The final sprint to glory.',
         theme: {
             // Sampled from assets/concepts/stage 4 - victory lap.png
