@@ -9,28 +9,29 @@ game works today see [ARCHITECTURE.md](./ARCHITECTURE.md); for why it's shaped t
 
 **Work in step order.** Each step is small enough to test on the phone before moving on.
 
-*Last updated 22 October 2026.*
+*Last updated 23 October 2026.*
 
 ---
 
 ## 1. Where we are
 
-All four stages are playable end to end, each with its own scenery, music and colours, and the game
-has a proper ending.
+All four stages are playable end to end. Each has its own scenery, music, colours and a slow
+3-minute arc of its own, and the game has a full set of 80s-arcade menu screens.
 
-| Stage | Scenery | Music | Time of day |
-|-------|---------|-------|-------------|
-| 1 Neon City | ✅ city strips, windows light up and fade | ✅ `neoncity.mp3` | dusk → dawn |
-| 2 Sunset Beach | ✅ sea, palms, sun reflection | ✅ `synthwavebeach.mp3` | sunset |
-| 3 Midnight Mountains | ✅ ridges, pines, moon | ✅ `midnightmountains.mp3` | midnight |
-| 4 Victory Dawn | ✅ city at sunrise, animated fireworks | ✅ `victorydawn.mp3` | dawn |
+| Stage | Scenery | Its arc over 3 minutes |
+|-------|---------|-------------|
+| 1 Neon City | city strips, windows light up and fade | dusk → night → dawn; lights linger into the sunrise |
+| 2 Sunset Beach | sea, palms, waves washing the sand | sunrise: the sun climbs from a sliver, its light on the water widens |
+| 3 Midnight Mountains | ridges, pines, moon | a mountain pass: peaks rise to a summit mid-stage, the moon crosses the sky |
+| 4 Victory Dawn | city, street lamps, fireworks | evening into night: sunset, lamps at dusk, fireworks, moonrise at the finish |
 
-Also working: jump, double jump, **duck** (swipe down, or ↓/S on web), overhead bars, a perspective
-finish line, a **FINISHED** screen after stage 4 with a best-runs table, and accurate HOW TO PLAY
-instructions.
+The names stay as they are, even though stage 2 is now a sunrise and stage 4 ends at night
+(Pete, 23 October).
 
-**Current focus: the gameplay pass (§4).** The game looks finished; the job now is making it *play*
-well — a casual, lean-back synthwave runner with more pace and more to do.
+**Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
+
+**Current focus:** the gameplay pass (§4). Steps 0–2 are done; step 3, putting obstacles on the
+beat, is next.
 
 ---
 
@@ -38,18 +39,21 @@ well — a casual, lean-back synthwave runner with more pace and more to do.
 
 Don't re-open these without a reason — a lot depends on them.
 
-1. **Duck = swipe down.** Tap anywhere still jumps.
+1. **Duck = swipe down, and hold to stay down.** Tap anywhere jumps. On a keyboard, ↓ or S ducks
+   and holding the key keeps you down.
 2. **World speed rises gently through each stage**, and each stage starts a little faster than the
-   last. *(Changed 22 October 2026 — it used to be fixed. Agreed with Pete as part of the gameplay
-   pass.)* Stages still end on the 3-minute clock, so music and sky stay in sync whatever the speed.
-3. **Art = silhouette + lit overlay.** A dark shape per scenery strip, plus a matching lit layer faded
-   on top.
-4. **Each stage is its own time-of-day vignette.** Only stage 1 runs dusk → dawn.
-5. **Obstacles stay abstract** — blocks, spheres and bars, coloured per stage. The drawn obstacle art
-   is parked (see §7).
+   last. Stages still end on the 3-minute clock, so music and sky stay in sync.
+3. **Art = silhouette + lit overlay** for scenery strips.
+4. **Every stage has its own slow arc** over its 3 minutes (§1), more subtle than stage 1's
+   dusk-to-dawn.
+5. **Obstacles stay abstract** — blocks, spheres and bars, coloured per stage. Drawn obstacle art is
+   parked (§7).
 6. **Casual, not manic.** Engagement comes from rhythm and rewards, not from making it harder.
 7. **No new sound effects.** The soundtrack is the only audio — pickups and feedback are visual.
-8. **The game ends after stage 4** with a win screen and best-runs table (no endless loop for now).
+8. **The game ends after stage 4** with a win screen and best-runs table.
+9. **Menus are screens of their own**, not pop-ups over the game, in an 80s arcade style: chrome
+   and neon logo, Tron-style grid, arcade menu items with blinking arrows. Lettering is Audiowide
+   (headings) and Orbitron (smaller text). The colour palette stays as it is.
 
 ---
 
@@ -60,12 +64,10 @@ Don't re-open these without a reason — a lot depends on them.
 | World speed | 260→300 / 280→320 / 300→340 / 320→360 px/sec for stages 1–4 | `speed` in `stages.ts` |
 | Jump airtime | 0.67 sec | `JUMP_FORCE` −12, `GRAVITY` 0.6 |
 | Jump peak height | 120 px | |
-| Duck length | 0.55 sec | `DUCK_DURATION_SEC` |
+| Duck | 0.55 sec for a quick swipe; held, it lasts until 0.15 sec after letting go | `DUCK_DURATION_SEC`, `DUCK_RELEASE_SEC` |
 | Double jump cost | the whole energy bar | `JUMP_ENERGY_COST` = `MAX_ENERGY` = 100 |
 | Energy refill while grounded | 3.3 sec | `ENERGY_REGEN`, time-based |
 | Stage length | 180 sec | `STAGE_DURATION_SECONDS` |
-
-For comparison, Chrome's dinosaur game starts at 360 px/sec — our fastest point.
 
 ---
 
@@ -73,163 +75,129 @@ For comparison, Chrome's dinosaur game starts at 360 px/sec — our fastest poin
 
 ### What the research said
 
-Pete asked for research into running/jumping/ducking games to see what we were missing. The common
-thread for a **casual** runner: engagement comes from **rhythm and rewards**, not danger.
-
-| Game | What it does well | What we take |
-|---|---|---|
-| Chrome Dino | Speed creeps up to a cap; gaps grow with speed | Gentle speed rise; gaps timed in seconds |
-| Canabalt | One button, forgiving timing | Accept a tap slightly early |
-| Alto's Adventure | Relaxing *and* engaging: pickup trails, simple combos, gentle failure | Optional things to do, not more danger |
-| Bit.Trip Runner | Obstacles placed on the beat | Obstacles arrive on the beat |
-| Sayonara Wild Hearts | Challenge follows the song; failure never breaks the rhythm | Calm and busy sections follow the track |
-| Melody's Escape | Quiet music = calm, loud = intense | An intensity map per track |
-| Subway Surfers | Pickup trails show you the path | Trails that trace the jump arc |
-
-### Before the pass, the game had
-
-- A flat 240 px/sec, slower than the dinosaur game's *starting* speed.
-- One obstacle every ~2.3 sec at the start of stage 1, and no ramp at all in stages 2–4.
-- Nothing to do between obstacles, and a score that barely varied between players.
-- Obstacles at random moments, ignoring the music.
+The common thread for a **casual** runner: engagement comes from **rhythm and rewards**, not
+danger. Chrome Dino (speed creeps up), Canabalt (forgiving timing), Alto's Adventure (pickup
+trails, gentle failure), Bit.Trip Runner (obstacles on the beat), Sayonara Wild Hearts and
+Melody's Escape (calm and busy sections follow the music), Subway Surfers (trails show the path).
 
 ### The steps
 
 **Step 0 — finish the work in progress.** ✅ Done.
-Duck pose planted on the ground, perspective finish line, win screen and best-runs table, accurate
-instructions.
 
 **Step 1 — obstacle patterns and difficulty budget.** ✅ Done.
-Obstacles now come as ~14 hand-made patterns (`src/game/patterns.ts`): "bar then block", "three
-hops", "two blocks close enough for one jump", and so on. Each stage has a **budget** that rises
-through the three minutes, a **rest** after each pattern, and a point where each obstacle first
-**unlocks** (`pacing` in `stages.ts`). Gaps are in seconds, so they stay fair at any speed. Hearts are
-placed when you're hurt rather than at random. The wide block only appears when the energy bar is
-full.
+~14 hand-made patterns (`src/game/patterns.ts`), a budget that rises through each stage, rests
+between patterns, and per-obstacle unlock points (`pacing` in `stages.ts`). Gaps are in seconds,
+so they stay fair at any speed.
 
-Result: stage 1 now runs 32 → 45 obstacles a minute (was 26 → 40); stages 2–4 run 45–51 with harder
-combinations mixed in (was a flat 37).
+*Tuned 23 October:* stage 1 is harder sooner — duck bars from about 11 seconds in, a faster ramp,
+42 → 50 obstacles a minute — balanced by **more hearts early on**. Each stage now sets its own
+heart generosity (`pacing.hearts`): stage 1 the most generous, stage 4 the least.
 
 **Step 2 — a gentle speed rise.** ✅ Done.
-See decision 2 and §3. Grid, scenery, obstacles and the runner's legs all speed up together; the sky
-and music still follow the clock. The finish line still meets the runner as the music ends.
 
 **Step 3 — put the obstacles on the beat.** ⏭️ Next.
-- Measure each track's tempo and first beat once (decoding the MP3s in a browser — no new tools), and
-  store them in `src/hooks/musicTracks.ts`.
-- Schedule each pattern so its obstacles **reach the runner on a beat**; write pattern spacing in
-  beats rather than seconds.
-- The pink grid line brightens briefly on each beat (`GridFloor.tsx`).
+- Measure each track's tempo and first beat once and store them in `src/hooks/musicTracks.ts`.
+- Schedule each pattern so its obstacles reach the runner on a beat; spacing written in beats.
+- The pink grid line brightens briefly on each beat.
 
 **Step 4 — something to do between obstacles.** Not started.
-- **Neon pickups** in short trails along the ground and in arcs that trace a jump. Collecting one is
-  **silent** — a sparkle and a pulse of the counter.
-- **Streak multiplier:** ×2 / ×3 / ×4 at 10 / 25 / 50 obstacles cleared without a hit; a hit resets
-  it. Shown next to the score.
-- Score = pickups + obstacles passed, × the multiplier, so the best-runs table is worth chasing.
+Silent neon pickups in trails (along the ground and tracing jump arcs), and a streak multiplier
+(×2 / ×3 / ×4 at 10 / 25 / 50 clean obstacles; a hit resets it).
 
 **Step 5 — calm and busy sections that follow the music.** Not started.
-A short list per track of `{ from, to, intensity }` — warm-up, waves, a breather, the finale.
-Intensity scales the step 1 budget: breathers are pickups only. Authored by ear against each track.
+A short intensity list per track (warm-up, waves, breather, finale) that scales the step 1 budget.
 
 **Step 6 — feel and forgiveness.** Not started.
-- **Jump buffering:** a tap up to 0.12 sec before landing still jumps on landing.
-- **Double jump costs half the bar** (50), so it's usable two or three times a stage. This also
-  removes the one remaining unfairness: using a double jump just before a wide block arrives.
-- **Hit feedback:** a brief flash and a short safe window after a hit.
-- Small visual pops for clean passes and streak milestones.
+- Jump buffering: a tap up to 0.12 sec before landing still jumps on landing.
+- Double jump costs half the bar, so it's usable two or three times a stage.
+- Hit feedback: a brief flash and a short safe window after a hit.
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing.
-- `npm test` runs a bot that plays the real jump and duck physics, with human-sized timing (each move
-  must also work 0.05 sec early and late). It checks every pattern at the slowest, middle and fastest
-  speeds, and full generated 3-minute runs of every stage. If a change makes anything impossible, it
-  fails.
-- Then played on the phone — Pete and his son are the real test of "does this feel better".
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (83 tests).
+- `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
+  against every pattern at the slowest, middle and fastest speeds and full generated runs of
+  every stage. It also checks the held duck and that the finish line arrives on time.
+- Then played on the phone — Pete and his son are the real test.
 
 ---
 
-## 5. Also fixed along the way
+## 5. Done since the gameplay pass began
 
-- **Web `Aborted()` crashes: found and fixed.** They were a memory leak in Skia's web renderer, not
-  general web flakiness — memory hit its 2GB ceiling after ~7 minutes. A patch now frees each frame's
-  objects; a full four-stage game levels off at ~460MB. See
+**Controls and feel**
+- Swipe down **and hold** to stay ducked; keyboard ↓/S the same.
+- The stage name ("STAGE 1 · NEON CITY") shows for 5 seconds at the start of each stage, then fades.
+
+**Look**
+- **New menu screens** (decision 9): title with attract mode (logo and best runs take turns) and
+  HI-SCORE, How to Play with each obstacle drawn as its real shape, Stage Clear, Game Over (with
+  NEW HI-SCORE!), Finished with the best-runs table, and a loading screen with ZX Spectrum
+  loading stripes. All in `src/components/menu/`.
+- The logo and menu backdrop are drawn by `scripts/generate-menu-art.js`; re-run it after changing
+  colours or layout.
+- **Stage arcs** for stages 2–4 (§1).
+- **Sunset Beach:** sea and sand clearly different colours, waves washing up the sand, a slow
+  twinkle on the water, palms set back from the surf.
+- **Neon City:** the lights linger into the sunrise (start going out at 2:30, last ones at the finish).
+
+**Web and iPhone**
+- The web `Aborted()` crashes were a memory leak in Skia's web renderer; fixed with a patch. See
   [WEB_PATCHES_AND_ARCHITECTURE.md](./WEB_PATCHES_AND_ARCHITECTURE.md).
-- Obstacles off the right edge of the screen are no longer drawn.
+- Music downloads in full before a stage starts, with a progress bar; later stages' music
+  downloads in the background, and CONTINUE waits for it.
+- Tap to jump works in browsers (the HUD layer was swallowing every tap).
+- Obstacles slide off the edge of wide screens instead of vanishing early.
 
 ---
 
-## 6. Earlier phases (complete)
+## 6. Playing on an iPhone
 
-Kept short; the detail is in git history and [HISTORY.md](./HISTORY.md).
+**Route 1 — home screen web app.** ✅ Working.
+Open **https://stickman-runner-twoshedzzs-projects.vercel.app** in Safari, then Share → Add to
+Home Screen. It opens full screen, edge to edge, with its own icon and name.
 
-| Phase | What | Status |
-|---|---|---|
-| 0 | Blocking fixes: stage 4 freeze, music fade on quick restart, one track list, derived course length, time-based energy/particles, platform detection | ✅ |
-| 1 | Ducking: swipe-down gesture, ↓/S on web, overhead bars, duck pose | ✅ |
-| 2 | Obstacle sequencing | ✅ Became step 1 of the gameplay pass |
-| 4 | Scenery for stages 2–4, built from generated strips with a shared loader (`useStripImages`); city lights as lit overlays | ✅ |
-| 5 | Music for all four stages, preloaded so it starts in sync | ✅ |
-| 6 | Ending after stage 4: win screen with best-runs table | ✅ |
+- Vercel Authentication (Deployment Protection) is **off** on the project, so the link opens
+  without a login. `stickman-runner.vercel.app` is someone else's project — don't use it.
+- Phone browsers fill the screen (desktop keeps a 600×350 preview), use one touch handler for tap
+  and swipe, keep the score and health clear of the notch, and ask you to turn the phone sideways
+  when it's upright.
+- iPhone Safari only lets music start during a tap, so START starts it directly.
+- Home screen apps can hold on to an old copy: if a change doesn't show, remove the icon and add it
+  again.
+
+**Route 2 — a real app via EAS.** Not started. Needs the Apple Developer Program ($99/year) to
+install via a link or TestFlight. Before building: a proper display name, icon and splash screen
+for the native app (still Expo's defaults), and the exact commands in `docs/RELEASE.md`.
 
 ---
 
 ## 7. Still to do after the gameplay pass
 
-### Sky timeline tidy-up (old phase 3)
+### Sky timeline tidy-up
 
-Stage 1's sky still runs on a long list of absolute distances in `stages.ts`, plus three
-stage-1-only special cases in `getTheme` (`GameCanvas.tsx`). It works, so this is tidying rather than
-a fix: express triggers as fractions of the stage (0–1) and fold the special cases in. It's the one
-change that could alter how stage 1 looks, so compare side by side before and after.
+Stage 1's sky runs on absolute distances plus stage-1-only special cases in `getTheme`
+(`GameCanvas.tsx`); stages 2–4 now use the same timeline plus their own scenery code. Tidying it
+into fractions of the stage is optional; compare stage 1 before and after if it's done.
 
 ### Drawn obstacles (parked)
 
-The line art in `assets/obstacle-art/` was built, then reverted to plain blocks and spheres. Two
-reasons: its line weight didn't match the grid's ~2.5px lines, and smaller objects (the dog
-especially) didn't stand out. The SVGs and `scripts/generate-obstacle-art.js` are kept, so it can come
-back without redrawing. Hearts are also still circles rather than heart shapes.
+The line art in `assets/obstacle-art/` was reverted to plain shapes: its line weight didn't match
+the grid, and small objects didn't stand out. The SVGs and generator are kept. Hearts are still
+circles, not heart shapes.
 
 ### Tuning
 
 | Area | What to check |
 |---|---|
 | Damage | Do 2–3 hits feel right? Should later stages hit harder? |
-| Health | `MAX_HEALTH` 10, `HEART_HEAL` 3 — right length for a 3-minute stage? |
-| Speed | Each stage's start and end speed are two numbers in `stages.ts` — easy to nudge after phone testing |
+| Speed | Each stage's start and end speed are two numbers in `stages.ts` |
+| Arcs | Timings in each scenery file (e.g. when stage 4's lamps and fireworks start) |
 | Colours | Stage 2's moving sphere (`#c86090`) is close to the heart pink |
 
-### UI and stickman
+### Stickman
 
-- Health and energy bars, messages and instructions: readable on a small phone?
-- **The run cycle reads as stiff** — better poses, more of them, or easing between them. Then
-  landing, hit, victory and idle poses. The skater pose idea for stage 2 is in the backlog too.
-
-### Installable app
-
-**Route 1 — home screen web app.** ✅ Built (22 October 2026), needs testing on Pete's iPhone.
-Open the Vercel site in Safari, then Share → Add to Home Screen. It opens full screen with its own
-icon and name. What makes it work:
-
-- Touch-screen browsers fill the screen like the phone app (desktop keeps the 600×350 preview), show
-  touch wording in HOW TO PLAY, and ask you to turn the phone sideways when it's upright — a web page
-  can't lock the orientation itself.
-- `app/+html.tsx`: home-screen icon, name, full-screen mode, and no page zoom, scroll or bounce.
-- `public/manifest.json` and the icons, drawn by `scripts/generate-app-icon.js` (sun, grid, runner).
-  Replace them with proper art any time by changing that script or the PNGs.
-- iPhone Safari only lets music start during a tap, so each track is silently started and stopped on
-  a tap to "unlock" it (`useBackgroundMusic.web.ts`).
-
-Worth checking on the phone: the swipe to duck, how long "Get ready…" takes (Safari may not load the
-music until the first tap), and that music plays.
-
-**Route 2 — a real app via EAS.** Not started. `eas.json` already has `development` / `preview` /
-`production` profiles and the app has its bundle identifiers. On iPhone this needs the Apple
-Developer Program ($99/year) to install via a link or TestFlight; the free alternative is installing
-from Xcode over a cable, which expires after 7 days. Before building: give the app a proper display
-name, icon and splash screen (both are still Expo's defaults), and write the exact commands into
-`docs/RELEASE.md`.
+The run cycle reads as stiff — better poses or easing between them. Then landing, hit, victory and
+idle poses.
 
 ---
 
@@ -237,20 +205,21 @@ name, icon and splash screen (both are still Expo's defaults), and write the exa
 
 Not urgent, but each one removes a trap:
 
-- [x] `DEBUG_ENABLED` tied to `__DEV__`, so the debug switch doesn't ship to players.
+- [x] `DEBUG_ENABLED` tied to `__DEV__`.
 - [x] One table of obstacle sizes, colours and damage (`obstacleCatalogue.ts`).
+- [x] The old pop-up menu styles in `GameScreen.tsx` removed with the menu redesign.
 - [ ] Delete dead scenery code: `NeonCityBackground.tsx`, `CityStripBackground.tsx` and
       `SynthwaveBeachBackground.tsx` are no longer used.
-- [ ] Delete the city PNGs only those dead files used: the old brightness strips
-      (`back_all_*`, `back_some*`, `front_all_*`, …) and the placeholders (`back_no`, `front_no`,
-      `placeholder`). The `*_none_*` strips and `assets/city/lights/` are still in use.
+- [ ] Delete the city PNGs only those dead files used: the old brightness strips (`back_all_*`,
+      `back_some*`, `front_all_*`, …) and placeholders (`back_no`, `front_no`, `placeholder`).
+      Keep the `*_none_*` strips and `assets/city/lights/`.
 - [ ] Remove unused packages: `expo-av`, `expo-haptics`, `expo-image`, `expo-symbols`,
-      `expo-web-browser`, `@react-navigation/bottom-tabs` (none are imported anywhere).
-- [ ] Fix the one lint error (missing display name in `ScoreDisplay.tsx`) and the 11 warnings.
+      `expo-web-browser`, `@react-navigation/bottom-tabs`.
+- [ ] Fix the one lint error (missing display name in `ScoreDisplay.tsx`) and the 10 warnings.
 - [ ] `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
 - [ ] The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
-- [ ] The game loop re-renders every frame even on the start and Game Over screens.
-- [ ] On web the scene is recorded twice per screen refresh; halving that would save work.
+- [ ] The game loop re-renders every frame even on menu screens.
+- [ ] On web the scene is recorded twice per screen refresh.
 
 ---
 
@@ -258,18 +227,17 @@ Not urgent, but each one removes a trap:
 
 | Area | Status |
 |---|---|
-| Four stages: scenery, music, colours | ✅ Done |
-| Duck mechanic | ✅ Done |
-| Ending: win screen and best runs | ✅ Done |
-| Gameplay step 1: obstacle patterns and budget | ✅ Done |
-| Gameplay step 2: speed rise | ✅ Done, needs phone testing |
+| Four stages: scenery, music, colours, each with its own arc | ✅ Done |
+| Duck mechanic, including hold to stay down | ✅ Done |
+| Menu screens: title, How to Play, Stage Clear, Game Over, Finished, loading | ✅ Done (80s arcade style) |
+| Gameplay step 1: obstacle patterns, budget, hearts | ✅ Done; stage 1 retuned |
+| Gameplay step 2: speed rise | ✅ Done |
 | Gameplay step 3: obstacles on the beat | ⏭️ Next |
 | Gameplay steps 4–6: pickups and streak, music sections, feel | Not started |
-| Web `Aborted()` crash | ✅ Fixed (Skia memory leak) |
-| Sky timeline tidy-up | Not started |
-| Tuning, UI, stickman poses | Not started |
-| Installable: home screen web app (route 1) | ✅ Built, needs iPhone test |
-| Installable: real app via EAS (route 2) | Not started |
+| Web `Aborted()` crash | ✅ Fixed |
+| iPhone: home screen web app | ✅ Working |
+| iPhone: real app via EAS | Not started |
+| Tuning, stickman poses | Not started |
 | Cleanup backlog | Partly done |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
