@@ -170,16 +170,22 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_city'
         },
-        // Something new every half minute or so, two-obstacle runs early, and hearts to balance it.
-        // Players found it too easy on 24 October, so it starts busier than it used to.
+        // Something new every half minute or so, and mostly runs that switch between ducking and
+        // jumping. Players found it too easy on 24 October, so it starts busier than it used to.
         pacing: {
-            budget: [2, 4],
+            budget: [2.5, 5],
             rest: [1.0, 0.65],
             // Holes come about 35 seconds in: on their own first, then in simple pairs.
             unlocks: { small: 0, overhead: 0.03, large: 0.06, mover: 0.15, hole: 0.2, huge: 0.45 },
             // The basics: the longer runs are saved for later stages.
-            favour: { 'bar-bar-hop': 0, 'pair-bar': 0, 'mover-bar': 0, 'hole-hole': 0, 'hole-hop-hole': 0 },
-            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.4, topUpEverySec: 14 },
+            favour: {
+                'bar-hop': 2, 'hop-bar': 2, 'bar-hole': 2, 'hole-bar': 2,
+                'bar-hop-bar': 2, 'hop-bar-hop': 2, weave: 2.5, zigzag: 2.5,
+                small: 0.4, large: 0.4, bar: 0.5,
+                'bar-bar-hop': 0, 'pair-bar': 0, 'mover-bar': 0, 'hole-hole': 0, 'hole-hop-hole': 0,
+                quad: 0, 'hole-bar-hole': 0, gauntlet: 0,
+            },
+            hearts: { hurtBelow: 0.65, hurtEverySec: 8, topUpChance: 0.35, topUpEverySec: 16 },
             pickups: { hop: [0, 0], double: [0, 0] },
         },
         speed: [260, 300],
@@ -355,10 +361,11 @@ export const STAGES: StageConfig[] = [
             // Holes, first met in stage 1, are this stage's speciality, combinations included.
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0 },
             favour: {
-                hole: 2, 'hole-hop': 2.5, 'bar-hole': 2, 'hole-bar': 2, 'hole-hole': 2, 'hole-hop-hole': 1.5,
-                small: 0.6, bar: 0.6, pair: 0.7,
+                hole: 1.2, 'hole-hop': 2.5, 'bar-hole': 2, 'hole-bar': 2, 'hole-hole': 2, 'hole-hop-hole': 1.5,
+                weave: 2.5, zigzag: 2.5,
+                small: 0.4, bar: 0.4, large: 0.5, pair: 0.7,
             },
-            hearts: { hurtBelow: 0.65, hurtEverySec: 7, topUpChance: 0.35, topUpEverySec: 16 },
+            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 18 },
             // Introduces the extra jump between obstacles.
             pickups: { hop: [0.3, 0.6], double: [0, 0] },
         },
@@ -411,7 +418,7 @@ export const STAGES: StageConfig[] = [
             // Moving spheres, the wide block and runs of three; the longest runs near the end.
             favour: {
                 mover: 1.5, 'mover-hop': 2, 'mover-bar': 2, huge: 2,
-                triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, quad: 1.5,
+                triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, quad: 1.5, weave: 1.5, zigzag: 1.5,
                 small: 0.5, bar: 0.5, large: 0.6, hole: 0.6,
             },
             hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
@@ -454,7 +461,7 @@ export const STAGES: StageConfig[] = [
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
             // The finale: everything, in the longest runs.
             favour: {
-                gauntlet: 2.5, quad: 2, 'hole-bar-hole': 2, 'hole-hop-hole': 1.5,
+                gauntlet: 2.5, quad: 2, 'hole-bar-hole': 2, 'hole-hop-hole': 1.5, weave: 2, zigzag: 2,
                 'bar-hop-bar': 1.5, 'hop-bar-hop': 1.5, 'bar-bar-hop': 1.5, 'pair-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, hole: 0.6, mover: 0.7,
             },

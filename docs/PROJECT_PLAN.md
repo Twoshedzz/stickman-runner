@@ -249,12 +249,18 @@ time, and stage 2 was barely busier than stage 1. Now:
   two-obstacle runs from the start, shorter rests and slightly fewer hearts. Stages 2–4 got
   shorter rests to stay ahead of it. Obstacles per stage: 137, 137, 144, 157 (stage 2 has the
   same number as stage 1 but more holes and combinations; its rests are at the fairness
-  minimum). From 20 runs each:
+  minimum).
+- **Switching runs** (24 October, still too easy, and players liked runs like duck, hole, duck,
+  jump, duck): two new patterns, *weave* (duck, hole, duck, jump, duck) and *zigzag* (jump, duck,
+  hole, duck). Stage 1 now leans on the runs that switch between ducking and jumping, with
+  single obstacles rarer; stages 2–4 use weave and zigzag too. Stage 1's hearts are a little
+  scarcer. From 20 runs each:
 
 | | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
 |---|---|---|---|---|
-| Beginner survives | 90% | 60% | 40% | 25% |
-| Average player's hits | 5.0 | 4.8 | 6.2 | 6.3 |
+| Beginner survives | 55% | 45% | 40% | 30% |
+| Average player survives (hits) | 95% (4.8) | 100% (4.7) | 95% (6.2) | 90% (5.8) |
+| Obstacles | 135 | 138 | 144 | 153 |
 
 Still to do in step 8: calm and busy sections that follow the music (below).
 

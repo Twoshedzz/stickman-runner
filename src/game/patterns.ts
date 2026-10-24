@@ -65,6 +65,9 @@ export const PATTERNS: Pattern[] = [
     { id: 'bar-bar-hop', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'overhead', at: 0.5 }, { role: 'small', at: 1.1 }] },
     { id: 'pair-bar', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'small', at: 0.15 }, { role: 'overhead', at: 1.15 }] },
     { id: 'hole-hop-hole', cost: 4, steps: [{ role: 'hole', at: 0 }, { role: 'small', at: 1.0 }, { role: 'hole', at: 2.0 }] },
+    // Switching between ducking and jumping, quick-fire: the runs players enjoy most
+    { id: 'weave', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'hole', at: 0.6 }, { role: 'overhead', at: 1.75 }, { role: 'small', at: 2.35 }, { role: 'overhead', at: 3.5 }] },
+    { id: 'zigzag', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'overhead', at: 1.1 }, { role: 'hole', at: 1.7 }, { role: 'overhead', at: 2.85 }] },
     { id: 'quad', cost: 5, steps: [{ role: 'small', at: 0 }, { role: 'large', at: 0.95 }, { role: 'small', at: 1.9 }, { role: 'large', at: 2.85 }] },
     { id: 'hole-bar-hole', cost: 5, steps: [{ role: 'hole', at: 0 }, { role: 'overhead', at: 1.15 }, { role: 'hole', at: 1.75 }] },
     { id: 'gauntlet', cost: 5, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'overhead', at: 1.75 }, { role: 'hole', at: 2.35 }] },
