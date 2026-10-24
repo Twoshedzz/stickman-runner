@@ -261,16 +261,17 @@ Still to do in step 8: calm and busy sections that follow the music (below).
 The floor's grid lines pulse in time with the music, and a runner on a lit line as the beat
 lands gets a bonus. It uses the grid that's already there, with no new shapes on screen (in
 keeping with the landing glow, 23 October).
-- **How it could look:** the grid's lines already scroll towards the runner with the world. Each
-  beat, the line that will be under his feet exactly on the beat lights up as it comes, getting
-  brighter as it nears him, and flashes as the beat lands. The beat times are already known for
-  every track (`beat` in `stages.ts`), and the music clock now follows the music closely.
+- **How it looks:** like the title screen's grid pulse (`MenuBackdropFx.tsx`): a wave of light
+  rolls along the floor's horizontal lines, one after another, from the front of the floor back
+  to the horizon. In the game it's timed so the wave passes under the runner's feet exactly on
+  the beat. The beat times are already known for every track (`beat` in `stages.ts`), and the
+  stage clock now follows the music closely, so the wave stays in time.
 - **What earns the bonus (to decide):**
-  - *On the ground on the beat:* the simplest, and what the idea says. Most beats would score
-    without trying, though, since the runner is on the ground most of the time.
-  - *Landing on the beat:* touching down within a short window of a lit line's beat. It takes
-    skill (timing jumps to come down on the beat) and suits a rhythm game. The landing glow
-    could flash brighter on a hit.
+  - *On the ground as the wave passes:* the simplest, and what the idea says. Most beats would
+    score without trying, though, since the runner is on the ground most of the time.
+  - *Landing on the beat:* touching down just as the wave passes under him. It takes skill
+    (timing jumps to come down on the beat) and suits a rhythm game. The landing glow could
+    flash brighter on a hit.
   - *A mix:* a small bonus for being on the ground on the beat, a bigger one for landing on it.
 - **The bonus (to decide):** points (with the streak multiplier), a sparkle at the feet, perhaps
   a count of beats hit shown at the end of the stage. Silent, like the pickups (decision 7).
