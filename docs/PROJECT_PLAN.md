@@ -217,9 +217,24 @@ healed, what hits most, and each obstacle's timing window. First findings:
   stages 3–4 25%. Mostly fewer hearts, not harder obstacles.
 - **Nothing is impossible:** no obstacle in any run had no way through. Timing windows are about
   0.4–0.5 sec for a jump, about 1 sec for a duck (it can be held), 0.7 sec for a double jump.
-- **The plan from here:** set a target per stage and skill (say, the average player loses about
-  1 heart's worth in stage 1, rising to 4 in stage 4; a beginner gets through stage 1 almost
-  always), then tune the levers below until the report matches, checking each change against it.
+- **Why the average player's line is flat:** nearly all its hits are moments of not reacting at
+  all, not mistimed presses (a jump's window is wide enough that ±0.07 sec timing almost never
+  misses). So for most players, how hard a stage feels comes down to how many obstacles it has.
+
+*First tuning* ✅ (24 October), against targets of a beginner surviving about 90% / 65% / 45% /
+33% of stages 1–4 and an average player being stretched by stage 4. Stage 1 unchanged; stages 2–4
+have shorter rests and a steeper budget, and hearts that thin out step by step instead of all at
+once after stage 1. From 12 runs each:
+
+| Survives | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
+|---|---|---|---|---|
+| Beginner, before | 92% | 42% | 25% | 25% |
+| Beginner, now | 92% | 83% | 42% | 33% |
+| Average, now (hits) | 100% (4.8) | 100% (4.9) | 100% (6.3) | 83% (6.1) |
+
+Still to do: stage 2 isn't yet any busier than stage 1 for an average player. The rests are now
+down at the minimum gaps the fairness rules allow, so the next lever is the patterns themselves
+(below): longer runs of obstacles in later stages, and each stage its own mix.
 - **Look first:** a script that lists, for each stage, which patterns come up, how often, what
   follows what, and how long the rests are, to see the sameness in numbers before changing it.
 - **Each stage its own character:** a few patterns it leans on, and something new to learn:
