@@ -281,7 +281,16 @@ follows the music closely (`musicSync.ts`), so the pulse stays in time all the w
 The game floor has only 5 horizontal lines, so a smooth band reads better than lighting them
 one by one as the title screen does.
 
-*The mechanic (decisions for Pete, recommendations first).*
+*Decided by Pete, 24 October:* the bonus is for **landing on the beat**; it gives **points and
+some energy**; the pulse rolls on **every beat in stages 1–2 and every other beat in 3–4**.
+
+*Part 1, the pulse alone* ✅ (24 October, to try on the phone): `src/game/beatPulse.ts` works out
+where the band is from the stage clock; `GridFloor.tsx` draws it (the grid lines brightened in a
+band, deeper at the front of the floor, thinner towards the horizon, with a faint wash). It
+takes half a second to roll up the floor and crosses the runner's line exactly on the beat.
+Hidden while paused. Tests in `beatPulse.test.ts`.
+
+*The options that were weighed:*
 1. **What earns it:** *landing* within a short window of the pulse crossing the runner's line
    (about ±0.1 sec to start with). It takes rhythm, so it rewards skill, and it works with the
    game rather than against it: obstacles already arrive on the music's beat grid, and the
@@ -493,7 +502,7 @@ Not urgent, but each one removes a trap:
 | Swipe up from a duck to jump | ✅ Done; to try on the phone |
 | Gameplay step 7: holes in the floor | ✅ Done; to try on the phone |
 | Gameplay step 8: obstacle sequencing and music sections | Mostly done; music sections next |
-| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Planned; decisions needed |
+| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Part 1 (the pulse) done; bonus next |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |

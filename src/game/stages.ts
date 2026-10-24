@@ -110,9 +110,10 @@ export interface StageConfig {
     durationSec: number;
     /**
      * The music's beat, measured by analysing the track: seconds per beat, and when the
-     * first beat falls. Obstacles are timed to reach the runner on this beat.
+     * first beat falls. Obstacles are timed to reach the runner on this beat. `pulseEvery`:
+     * the beat pulse on the floor (beatPulse.ts) rolls every this many beats (default 1).
      */
-    beat: { sec: number; firstSec: number };
+    beat: { sec: number; firstSec: number; pulseEvery?: number };
     /**
      * The length of the sky's dusk-to-dawn timeline (sun, moon, lights). Distance runs on
      * the clock rather than the speed, so this is a clock in disguise; it is not how far
@@ -427,7 +428,7 @@ export const STAGES: StageConfig[] = [
         },
         speed: [300, 340],
         durationSec: 176, // music plays to 175.5s
-        beat: { sec: 0.59865, firstSec: 0.025 }, // 100.2 BPM
+        beat: { sec: 0.59865, firstSec: 0.025, pulseEvery: 2 }, // 100.2 BPM: a pulse every other beat
         courseLength: COURSE_LENGTH
     },
     {
@@ -470,7 +471,7 @@ export const STAGES: StageConfig[] = [
         },
         speed: [320, 360],
         durationSec: 178, // music plays to 177.4s
-        beat: { sec: 0.5986, firstSec: 0.18 }, // 100.2 BPM
+        beat: { sec: 0.5986, firstSec: 0.18, pulseEvery: 2 }, // 100.2 BPM: a pulse every other beat
         courseLength: COURSE_LENGTH,
         // Evening into night: a warm sunset sky deepens to navy by about 45% of the way,
         // then stays night to the finish (sun, street lights, fireworks and moon are in

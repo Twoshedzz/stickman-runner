@@ -7,6 +7,7 @@ import {
     GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
+import { pulseBand } from "../game/beatPulse";
 import { shapeFor } from "../game/obstacleCatalogue";
 import { PICKUP_RADIUS } from "../game/pickups";
 import { remainingScroll, STAGES, StageConfig } from "../game/stages";
@@ -205,6 +206,10 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         overhead: '#00ffff', overheadGlow: '#7df5ff',
     };
     const pickupColors = currentStage.theme.pickupColors;
+    // The beat pulse rolls up the floor while a stage is being played (not paused or over).
+    const beatPulseBand = gameState.gameStarted && !gameState.gameOver && !gameState.paused && gameState.stageStatus === 'playing'
+        ? pulseBand(currentStage, gameState.elapsedSecInStage)
+        : null;
     const holeRx = shapeFor('hole').width / 2;
     const fallingInto = player.falling > 0 ? gameState.obstacles.find(o => o.id === player.fallHoleId) : undefined;
     const runnerClip = player.falling > 0
@@ -284,7 +289,8 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     tick={tick}
                     glow={player.landGlow}
                     glowX={PLAYER_X + PLAYER_SIZE / 2 + gameOffsetX}
-                    glowY={RUNNER_GROUND_Y} viewWidth={viewWidth} gridColor={currentStage.theme?.gridColor} />
+                    glowY={RUNNER_GROUND_Y} viewWidth={viewWidth} gridColor={currentStage.theme?.gridColor}
+                    pulse={beatPulseBand} />
                 <Rect
                     x={0}
                     y={SCREEN_HEIGHT - GROUND_HEIGHT}

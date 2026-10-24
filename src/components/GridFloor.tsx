@@ -25,6 +25,8 @@ interface GridFloorProps {
     glowX?: number;
     glowY?: number;
     glow?: number;
+    /** The beat pulse rolling up the floor (beatPulse.ts): where it is and how bright, if any. */
+    pulse?: { y: number; strength: number } | null;
 }
 
 /**
@@ -33,7 +35,7 @@ interface GridFloorProps {
  * Vertical lines: perspective (toward vanishing point) but they SCROLL horizontally
  * at the bottom instead of rotating - gives smooth motion without angle changes.
  */
-export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)", glowX = 0, glowY = 0, glow = 0 }: GridFloorProps) => {
+export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)", glowX = 0, glowY = 0, glow = 0, pulse = null }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const vanishX = viewWidth / 2;
     const isMoving =
@@ -108,6 +110,19 @@ export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridC
                     color={gridColor}
                 />
             ))}
+            {/* The beat pulse: the grid lines lit up in a band rolling back towards the horizon,
+                deeper at the front of the floor and thinner as it goes, like the floor itself. */}
+            {pulse && pulse.strength > 0.02 && (() => {
+                const depth = (pulse.y - GROUND_Y) / GRID_HEIGHT; // 0 at the horizon, 1 at the front
+                const half = 2 + 5 * depth;
+                return (
+                    <Group clip={rect(0, pulse.y - half, viewWidth, half * 2)}>
+                        <Rect x={0} y={pulse.y - half} width={viewWidth} height={half * 2} color={gridColor} opacity={0.18 * pulse.strength} />
+                        <Path path={content.all} style="stroke" strokeWidth={3} color={gridColor} opacity={pulse.strength} />
+                        <Path path={content.all} style="stroke" strokeWidth={1} color="#ffffff" opacity={0.7 * pulse.strength} />
+                    </Group>
+                );
+            })()}
             {/* Landing glow: just the grid lines near his feet, brighter for a moment. */}
             {glow > 0.02 && (
                 <Group clip={rrect(rect(glowX - rx, glowY - ry, rx * 2, ry * 2), rx, ry)}>
