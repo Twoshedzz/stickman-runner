@@ -268,28 +268,45 @@ Still to do in step 8: calm and busy sections that follow the music (below).
   waves, breather, finale) that scales the budget, so the hard stretches land on the music's
   big moments.
 
-**Step 9 — beat lines: a bonus for being on the beat.** Not started. Pete's idea (24 October).
-The floor's grid lines pulse in time with the music, and a runner on a lit line as the beat
-lands gets a bonus. It uses the grid that's already there, with no new shapes on screen (in
-keeping with the landing glow, 23 October).
-- **How it looks:** like the title screen's grid pulse (`MenuBackdropFx.tsx`): a wave of light
-  rolls along the floor's horizontal lines, one after another, from the front of the floor back
-  to the horizon. In the game it's timed so the wave passes under the runner's feet exactly on
-  the beat. The beat times are already known for every track (`beat` in `stages.ts`), and the
-  stage clock now follows the music closely, so the wave stays in time.
-- **What earns the bonus (to decide):**
-  - *On the ground as the wave passes:* the simplest, and what the idea says. Most beats would
-    score without trying, though, since the runner is on the ground most of the time.
-  - *Landing on the beat:* touching down just as the wave passes under him. It takes skill
-    (timing jumps to come down on the beat) and suits a rhythm game. The landing glow could
-    flash brighter on a hit.
-  - *A mix:* a small bonus for being on the ground on the beat, a bigger one for landing on it.
-- **The bonus (to decide):** points (with the streak multiplier), a sparkle at the feet, perhaps
-  a count of beats hit shown at the end of the stage. Silent, like the pickups (decision 7).
-- **How often:** every beat might be busy on the eye at 100 BPM; every other beat, or the first
-  beat of each bar, would read more clearly.
-- **Checks:** the pretend player can measure how often each skill level earns it, so it's a
-  reward for good rhythm rather than something everyone gets or nobody does.
+**Step 9 — the beat pulse: a bonus for landing on the beat.** Planned 24 October, from Pete's
+idea. The floor pulses in time with the music, and landing on the beat earns a reward. It uses
+the grid that's already there, with no new shapes on screen (in keeping with the landing glow).
+
+*How it looks.* Like the title screen's grid pulse (`MenuBackdropFx.tsx`), but on the game's
+floor: a band of light rolls up the floor from the front edge to the horizon, brightening the
+grid lines as it passes over them (the same trick as the landing glow: the lines redrawn
+brighter, clipped to the band). It's timed so the band crosses the runner's line exactly on the
+beat. The beat of every track is already known (`beat` in `stages.ts`) and the stage clock
+follows the music closely (`musicSync.ts`), so the pulse stays in time all the way through.
+The game floor has only 5 horizontal lines, so a smooth band reads better than lighting them
+one by one as the title screen does.
+
+*The mechanic (decisions for Pete, recommendations first).*
+1. **What earns it:** *landing* within a short window of the pulse crossing the runner's line
+   (about ±0.1 sec to start with). It takes rhythm, so it rewards skill, and it works with the
+   game rather than against it: obstacles already arrive on the music's beat grid, and the
+   hops between them are free jumps you can time. (Simply being on the ground as the pulse
+   passes would score almost every beat without trying.)
+2. **The reward:** points with the streak multiplier, *and* a little energy (say a quarter of
+   the bar), so good rhythm fuels double jumps. Feedback: the landing glow flashes white and
+   bright, a few sparks fly to the score, and the pulse itself flares as it passes. Silent
+   (decision 7).
+3. **How often:** a pulse on every beat in stages 1–2 (about 0.75–0.8 sec apart) and on every
+   other beat in stages 3–4, where the beat is faster (0.6 sec) and every beat would be busy.
+   Or every beat throughout with the first beat of each bar brighter and worth more.
+4. **A tally:** "ON THE BEAT: 23" on the Stage Clear and Game Over screens, so there's
+   something to beat next time.
+
+*Build order, each tried on the phone before the next.*
+1. **The pulse alone** (no scoring): the band, its timing, its brightness and how often. Check
+   by eye and ear that it feels on the beat, on every stage, after pauses too.
+2. **Landing on the beat:** the window check in the physics (where landing is already
+   detected), the reward, and the flash. Tests: a landing in the window scores, one just
+   outside doesn't, and it holds at every speed.
+3. **The tally** on the end-of-stage screens, and a line on How to Play.
+4. **Measure and tune** with the pretend player: how often each skill level earns it by luck,
+   and a rhythm-aware pretend player to see the most a good player can get. Tune the window
+   and the reward so it's worth chasing but not essential.
 
 ### How each step is checked
 
@@ -476,7 +493,7 @@ Not urgent, but each one removes a trap:
 | Swipe up from a duck to jump | ✅ Done; to try on the phone |
 | Gameplay step 7: holes in the floor | ✅ Done; to try on the phone |
 | Gameplay step 8: obstacle sequencing and music sections | Mostly done; music sections next |
-| Gameplay step 9: beat lines (a bonus for being on the beat) | Not started |
+| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Planned; decisions needed |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |
