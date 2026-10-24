@@ -169,5 +169,15 @@ export const useBackgroundMusic = () => {
         }
     }, []);
 
-    return { playMusic, stopMusic, pauseMusic, resumeMusic, preloadTrack, musicStatus };
+    /**
+     * Where the music is in `trackKey`, in seconds, while that track is actually playing;
+     * otherwise null. The game uses it to keep its stage clock on the music.
+     */
+    const musicPosition = useCallback((trackKey: string) => {
+        const player = playerRef.current;
+        if (!player || currentTrackRef.current !== trackKey || !player.playing) return null;
+        return player.currentTime;
+    }, []);
+
+    return { playMusic, stopMusic, pauseMusic, resumeMusic, musicPosition, preloadTrack, musicStatus };
 };

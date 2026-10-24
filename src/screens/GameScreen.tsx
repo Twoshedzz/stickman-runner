@@ -1,5 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GestureResponderEvent, Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
+import { AppState, GestureResponderEvent, Platform, Pressable, StyleSheet, Switch, useWindowDimensions, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,8 +60,8 @@ export const GameScreen = () => {
     /** Phones can't be locked sideways from a web page, so ask the player to turn it. */
     const needsRotate = isTouchWeb && windowDim.height > windowDim.width;
 
-    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle } = useGameLoop();
-    const { playMusic, stopMusic, pauseMusic, resumeMusic, preloadTrack } = useBackgroundMusic();
+    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle, setMusicClock } = useGameLoop();
+    const { playMusic, stopMusic, pauseMusic, resumeMusic, musicPosition, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
     /**
@@ -76,6 +76,23 @@ export const GameScreen = () => {
     const pauseRun = useCallback(() => {
         if (pauseGame()) pauseMusic();
     }, [pauseGame, pauseMusic]);
+    // Leaving the app mid-run pauses the run (in the game loop), so pause its music here and
+    // now too. Waiting for the screen to catch up let the music play for a moment on return,
+    // which put it a little out of step with the game.
+    const gameStateRef = useRef(gameState);
+    gameStateRef.current = gameState;
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', (next) => {
+            const state = gameStateRef.current;
+            if (next !== 'active' && (state.paused || canPause(state))) pauseMusic();
+        });
+        return () => subscription.remove();
+    }, [pauseMusic]);
+    // The stage clock follows the music (see src/game/musicSync.ts).
+    useEffect(() => {
+        setMusicClock(musicPosition);
+        return () => setMusicClock(null);
+    }, [setMusicClock, musicPosition]);
     // The music starts inside this tap: iPhone Safari won't start it any other way.
     const resumeRun = useCallback(() => {
         resumeMusic(RESUME_COUNTDOWN_SEC);
@@ -337,8 +354,6 @@ export const GameScreen = () => {
     }, [handleInteraction, onDuckRelease]);
 
     // Web Keyboard: capture phase so we handle Space/Up before React (no synthetic click on Pressable)
-    const gameStateRef = React.useRef(gameState);
-    gameStateRef.current = gameState;
     const onJumpRef = React.useRef(onJump);
     const onDuckRef = React.useRef(onDuck);
     const onDuckReleaseRef = React.useRef(onDuckRelease);

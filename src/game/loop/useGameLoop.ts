@@ -5,6 +5,7 @@ import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { frameScale } from '../frame';
 import { updateParticles } from '../particles';
 import { cancelResume, pauseRun, startResume, tickPause } from '../pause';
+import { musicNudge } from '../musicSync';
 import { collectPickups } from '../pickups';
 import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -54,6 +55,8 @@ export const useGameLoop = () => {
     }
     const requestRef = useRef<number | null>(null);
     const lastFrameTimeRef = useRef<number>(0);
+    /** Where the music is in a track, or null when it isn't playing it (see setMusicClock). */
+    const musicClockRef = useRef<((trackKey: string) => number | null) | null>(null);
 
     /**
      * Leaving the app (another app, or the phone locked) pauses a run that's going, so it
@@ -184,6 +187,10 @@ export const useGameLoop = () => {
                     const now = performance.now();
                     const deltaTimeSec = lastFrameTimeRef.current ? (now - lastFrameTimeRef.current) / 1000 : 1 / 60;
                     lastFrameTimeRef.current = now;
+                    // Keep the stage clock on the music, which drifts a little each time it
+                    // stops and starts (pauses, other apps). See musicSync.ts.
+                    const musicSec = musicClockRef.current?.(currentStage.audio?.musicTrack || 'music_city');
+                    if (musicSec != null) state.stageStartTime += musicNudge(elapsedSec, musicSec, deltaTimeSec);
                     // Same step the obstacles take, so the scenery and grid move with them.
                     state.scroll += (state.speed / 60) * frameScale(deltaTimeSec);
                     applyPhysics(state, deltaTimeSec);
@@ -275,6 +282,11 @@ export const useGameLoop = () => {
         };
         metricsRef.current = initialMetrics;
         setGameMetrics(initialMetrics);
+    }, []);
+
+    /** Tell the game where the music is, so the stage clock can follow it. */
+    const setMusicClock = useCallback((clock: ((trackKey: string) => number | null) | null) => {
+        musicClockRef.current = clock;
     }, []);
 
     /** Pause the run. False if there's nothing to pause (menus, Stage Clear, Game Over). */
@@ -398,6 +410,7 @@ export const useGameLoop = () => {
         onContinue,
         pauseGame,
         resumeGame,
+        setMusicClock,
         quitToTitle,
         toggleDebugMode,
         jumpToStage,
