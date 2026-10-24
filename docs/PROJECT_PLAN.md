@@ -257,6 +257,28 @@ Still to do in step 8: calm and busy sections that follow the music (below).
   waves, breather, finale) that scales the budget, so the hard stretches land on the music's
   big moments.
 
+**Step 9 — beat lines: a bonus for being on the beat.** Not started. Pete's idea (24 October).
+The floor's grid lines pulse in time with the music, and a runner on a lit line as the beat
+lands gets a bonus. It uses the grid that's already there, with no new shapes on screen (in
+keeping with the landing glow, 23 October).
+- **How it could look:** the grid's lines already scroll towards the runner with the world. Each
+  beat, the line that will be under his feet exactly on the beat lights up as it comes, getting
+  brighter as it nears him, and flashes as the beat lands. The beat times are already known for
+  every track (`beat` in `stages.ts`), and the music clock now follows the music closely.
+- **What earns the bonus (to decide):**
+  - *On the ground on the beat:* the simplest, and what the idea says. Most beats would score
+    without trying, though, since the runner is on the ground most of the time.
+  - *Landing on the beat:* touching down within a short window of a lit line's beat. It takes
+    skill (timing jumps to come down on the beat) and suits a rhythm game. The landing glow
+    could flash brighter on a hit.
+  - *A mix:* a small bonus for being on the ground on the beat, a bigger one for landing on it.
+- **The bonus (to decide):** points (with the streak multiplier), a sparkle at the feet, perhaps
+  a count of beats hit shown at the end of the stage. Silent, like the pickups (decision 7).
+- **How often:** every beat might be busy on the eye at 100 BPM; every other beat, or the first
+  beat of each bar, would read more clearly.
+- **Checks:** the pretend player can measure how often each skill level earns it, so it's a
+  reward for good rhythm rather than something everyone gets or nobody does.
+
 ### How each step is checked
 
 - `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (211 tests).
@@ -441,7 +463,8 @@ Not urgent, but each one removes a trap:
 | Gameplay step 6: feel and forgiveness | ✅ Done |
 | Swipe up from a duck to jump | ✅ Done; to try on the phone |
 | Gameplay step 7: holes in the floor | ✅ Done; to try on the phone |
-| Gameplay step 8: obstacle sequencing and music sections | ⏭️ Next |
+| Gameplay step 8: obstacle sequencing and music sections | Mostly done; music sections next |
+| Gameplay step 9: beat lines (a bonus for being on the beat) | Not started |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |
