@@ -16,3 +16,9 @@ export const MUSIC_TRACKS: Record<string, number> = {
 
 /** Used when a stage has no track, or an unknown key is passed. */
 export const DEFAULT_TRACK = 'music_city';
+
+/**
+ * The menu music: a 30-second loop for the title and info screens, before and after a game.
+ * Played on its own, apart from the stage music (see startMenuMusic in the music hooks).
+ */
+export const MENU_TRACK: number = require('../../assets/Start_Screen_Glide.mp3');

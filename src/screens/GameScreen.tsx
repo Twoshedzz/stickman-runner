@@ -23,6 +23,7 @@ import { STAGES } from '../game/stages';
 import { endSwipe, moveSwipe, startSwipe, Swipe } from '../game/swipe';
 import { BOARD_SIZE } from '../scoreboard/rules';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
+import { useMenuMusic } from '../hooks/useMenuMusic';
 import { SendOutcome, useWorldBoard } from '../scoreboard/worldBoard';
 
 // Lazy load GameCanvas to ensure Skia is initialized before import (on Web)
@@ -252,6 +253,18 @@ export const GameScreen = () => {
             stopMusic();
         }
     }, [gameState.gameOver, gameState.showContinue, stopMusic]);
+
+    // The menu loop: on the title and info screens before a run, and after one (Game Over,
+    // Finished, entering initials), where it fades in as the stage music fades away. Off
+    // during a run, Stage Clear and pauses included.
+    const { startMenuMusic, stopMenuMusic } = useMenuMusic();
+    const inRun = gameState.gameStarted && !gameState.gameOver;
+    const afterRun = gameState.gameOver;
+    useEffect(() => {
+        if (inRun) stopMenuMusic(0.6);
+        else if (afterRun) startMenuMusic(3, 1.5);
+        else startMenuMusic(1.5, 0);
+    }, [inRun, afterRun, startMenuMusic, stopMenuMusic]);
 
     // A new run always starts at stage 1, so start stage 1's music - not the music of the
     // stage the last run ended on.
