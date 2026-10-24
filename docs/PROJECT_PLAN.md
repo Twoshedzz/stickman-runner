@@ -9,7 +9,7 @@ game works today see [ARCHITECTURE.md](./ARCHITECTURE.md); for why it's shaped t
 
 **Work in step order.** Each step is small enough to test on the phone before moving on.
 
-*Last updated 23 October 2026 (evening).*
+*Last updated 24 October 2026.*
 
 ---
 
@@ -31,7 +31,8 @@ The names stay as they are, even though stage 2 is now a sunrise and stage 4 end
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
 **Current focus:** the gameplay pass (§4). Steps 0–4 and 6 are done (step 4's rework still to be
-tried on the phone); step 5 is next.
+tried on the phone). Next, from player feedback (24 October): a pause button (step 5), holes in
+the floor (step 7), then a rethink of how obstacles are sequenced (step 8).
 
 ---
 
@@ -46,8 +47,8 @@ Don't re-open these without a reason — a lot depends on them.
 3. **Art = silhouette + lit overlay** for scenery strips.
 4. **Every stage has its own slow arc** over its 3 minutes (§1), more subtle than stage 1's
    dusk-to-dawn.
-5. **Obstacles stay abstract** — blocks, spheres and bars, coloured per stage. Drawn obstacle art is
-   parked (§7).
+5. **Obstacles stay abstract** — blocks, spheres, bars and (step 7) holes, coloured per stage.
+   Drawn obstacle art is parked (§7).
 6. **Casual, not manic.** Engagement comes from rhythm and rewards, not from making it harder.
 7. **No new sound effects.** The soundtrack is the only audio — pickups and feedback are visual.
 8. **The game ends after stage 4** with a win screen and best-runs table.
@@ -56,6 +57,9 @@ Don't re-open these without a reason — a lot depends on them.
    (headings) and Orbitron (smaller text). The colour palette stays as it is.
 10. **One public world scoreboard**, arcade style: three initials, a score, the date. No accounts
     and nothing personal (children play this). The game works fine without it.
+11. **One running level.** The runner stays on the ground line: no platforms to land on, no
+    stairs, no climbing. A player suggested them; Pete prefers the one-level simplicity
+    (24 October). Holes in the floor (step 7) keep to this.
 
 ---
 
@@ -81,6 +85,21 @@ The common thread for a **casual** runner: engagement comes from **rhythm and re
 danger. Chrome Dino (speed creeps up), Canabalt (forgiving timing), Alto's Adventure (pickup
 trails, gentle failure), Bit.Trip Runner (obstacles on the beat), Sayonara Wild Hearts and
 Melody's Escape (calm and busy sections follow the music), Subway Surfers (trails show the path).
+
+### What players said (24 October)
+
+From a tester, with Pete's take on each:
+
+| Feedback | Pete's view | Where it went |
+|---|---|---|
+| Good fun | — | — |
+| Add a pause button | Important | Step 5, next up |
+| Harder sooner? The first two stages are samey | Valid | Step 8 |
+| More obstacle types: holes? | Yes: a circle in the grid | Step 7 |
+| Jump and land on things? Go higher? Maybe later | Not keen: likes the one level | Decision 11 |
+| Stairs? | Not keen, as above | Decision 11 |
+
+Pete also wants a proper look at how obstacles are sequenced (step 8).
 
 ### The steps
 
@@ -132,13 +151,55 @@ phone test. All in `src/game/pickups.ts`; the spawner lays the trails as it plac
 - To check on the phone: stage 4's pink diamonds against the lit city windows.
 - To tune: `TRAIL_SPACING_SEC`, `ARC_CHANCE`, `TRAIL_CHANCE` and `STREAK_LEVELS` in `pickups.ts`.
 
-**Step 5 — calm and busy sections that follow the music.** Not started.
-A short intensity list per track (warm-up, waves, breather, finale) that scales the step 1 budget.
+**Step 5 — a pause button.** Next up. The most important of the feedback.
+- A pause button in the HUD, placed clear of the notch. Tapping it must not also jump, since a
+  tap anywhere else jumps. On a keyboard, P or Esc.
+- Pausing stops everything: world, obstacles, the stage clock and the music. Use the same trick
+  as when the app goes to the background (move the stage's start time on by the time paused),
+  so the music and the sky stay in step.
+- A PAUSED screen in the arcade style, with RESUME, HOW TO PLAY and QUIT (back to the title,
+  run not recorded).
+- RESUME counts in 3-2-1 before play carries on, so nobody is thrown straight into an obstacle.
+- Coming back to the app after switching away should land on the PAUSED screen too, rather
+  than carrying straight on as it does now.
+- Not during Stage Clear, Game Over or the initials screen: only while running.
 
 **Step 6 — feel and forgiveness.** ✅ Done.
 - Jump buffering: a tap up to 0.12 sec before landing still jumps on landing.
 - Double jump costs half the bar, so a full bar gives two.
 - After a hit: the runner blinks, a short pink flash, and 1 sec safe from further hits.
+
+**Step 7 — holes in the floor.** Not started.
+A new obstacle: a circle cut into the grid, seen in perspective as a dark ellipse with a glowing
+rim in the stage's colours. Jump over it. It keeps to one running level (decision 11).
+- **What happens if you don't jump:** a hit, like any other obstacle (health lost, the blink and
+  the safe second), not a fall to your death. Casual, not manic (decision 6).
+- **How it's detected:** by the runner's feet being on the ground over the hole, not by boxes
+  overlapping like the other obstacles. Ducking doesn't help.
+- **Size:** set against the jump, like the blocks: up to about 90px is one jump. A wide hole
+  that needs a double jump could follow, the way the wide block does.
+- **Where it first appears:** stage 2, so that stage brings something new (step 8).
+- **Wiring:** a new role in `obstacleCatalogue.ts`, its own gap rules and patterns in
+  `patterns.ts` (a hole, hole then block, bar then hole, …), drawing in the grid's perspective,
+  pickup arcs over it, a row on How to Play, and the bot test proving every pattern can still
+  be cleared.
+
+**Step 8 — obstacle sequencing: less samey, and harder sooner.** Not started.
+Takes in the old step 5 (calm and busy sections that follow the music). The feedback is that the
+first two stages feel easy and alike; Pete also wants a look at how obstacles follow each other.
+- **Look first:** a script that lists, for each stage, which patterns come up, how often, what
+  follows what, and how long the rests are, to see the sameness in numbers before changing it.
+- **Each stage its own character:** a few patterns it leans on, and something new to learn:
+  holes in stage 2, double-jump pickups in stage 3, and so on. Today stages 1 and 2 draw from
+  much the same mix.
+- **Teach, then combine:** a new obstacle first appears alone and with room to spare, then in
+  patterns with others.
+- **Fewer repeats:** don't pick the same pattern twice running, or the same few too often.
+- **Harder sooner in stage 2:** a quicker budget ramp and shorter rests early on; stage 1 was
+  already retuned on 23 October.
+- **Calm and busy sections that follow the music:** a short intensity list per track (warm-up,
+  waves, breather, finale) that scales the budget, so the hard stretches land on the music's
+  big moments.
 
 ### How each step is checked
 
@@ -311,11 +372,13 @@ Not urgent, but each one removes a trap:
 | Gameplay step 3: obstacles on the beat | ✅ Done |
 | Gameplay step 4: pickups and streak | ✅ Done; to try on the phone |
 | Gameplay step 6: feel and forgiveness | ✅ Done |
-| Gameplay step 5: music sections | ⏭️ Next |
+| Gameplay step 5: pause button | ⏭️ Next |
+| Gameplay step 7: holes in the floor | Not started |
+| Gameplay step 8: obstacle sequencing and music sections | Not started |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |
-| World scoreboard | ✅ Built; database to connect on Vercel (§6) |
+| World scoreboard | ✅ Live (§6) |
 | Tuning, stickman poses | Not started |
 | Cleanup backlog | Partly done |
 
