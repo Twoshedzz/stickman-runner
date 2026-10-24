@@ -35,12 +35,19 @@ interface MenuPlayer {
 /** Kept on the page itself, so even a fresh copy of this code finds the one already playing. */
 const holder = globalThis as typeof globalThis & { __stickmanMenuMusic?: MenuPlayer | null };
 
-/** How long the clip is silent for at the very start. */
-const leadingSilenceSec = (buffer: AudioBuffer) => {
+/**
+ * How long the music in the loop lasts. The file is a little longer: making an MP3 adds a
+ * sliver of silence at the start (about 13 ms) and pads the end (about 28 ms), and
+ * looping the whole file plays both as a hiccup at every join.
+ */
+const LOOP_SEC = 30;
+
+/** Where the sound actually begins, past the encoder's silence at the start. */
+const soundStartSec = (buffer: AudioBuffer) => {
     const data = buffer.getChannelData(0);
     const limit = Math.min(data.length, buffer.sampleRate / 10);
     let i = 0;
-    while (i < limit && Math.abs(data[i]) < 0.001) i++;
+    while (i < limit && Math.abs(data[i]) < 0.01) i++;
     return i / buffer.sampleRate;
 };
 
@@ -84,10 +91,10 @@ const tryStart = (player: MenuPlayer) => {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
-    // The clip opens with a few milliseconds of silence from encoding; skip it on each
-    // repeat so the join doesn't stutter.
-    source.loopStart = leadingSilenceSec(buffer);
-    source.loopEnd = buffer.duration;
+    // Loop exactly the music: from where the sound begins, for LOOP_SEC, skipping the MP3's
+    // silence at both ends.
+    source.loopStart = soundStartSec(buffer);
+    source.loopEnd = Math.min(buffer.duration, source.loopStart + LOOP_SEC);
     source.connect(gain);
     const now = ctx.currentTime;
     const startAt = now + wanted.delaySec;
@@ -95,7 +102,7 @@ const tryStart = (player: MenuPlayer) => {
     gain.gain.setValueAtTime(0, now);
     gain.gain.setValueAtTime(0, startAt);
     gain.gain.linearRampToValueAtTime(MENU_VOLUME, startAt + Math.max(0.05, wanted.fadeInSec));
-    source.start(startAt);
+    source.start(startAt, source.loopStart);
     player.source = source;
 };
 
