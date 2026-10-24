@@ -344,6 +344,11 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
 - The stage name ("STAGE 1 · NEON CITY") shows for 5 seconds at the start of each stage, then fades.
 
 **Look**
+- **3D obstacles** (24 October): blocks and bars are solid boxes in the grid's perspective, like
+  the finish line and holes, reaching back towards the vanishing point with a lit top and a
+  shaded side. The side facing the middle of the screen shows, swapping over as a box passes
+  the middle, just as the grid lines turn. Spheres are shaded with a shadow on the floor. The
+  front face is exactly the hitbox, so what you see is still what you hit. `Obstacle3D.tsx`.
 - **New menu screens** (decision 9): title with attract mode (logo and best runs take turns) and
   HI-SCORE, How to Play with each obstacle drawn as its real shape, Stage Clear, Game Over (with
   NEW HI-SCORE!), Finished with the best-runs table, and a loading screen with ZX Spectrum

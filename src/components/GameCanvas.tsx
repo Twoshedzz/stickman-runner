@@ -12,6 +12,7 @@ import { shapeFor } from "../game/obstacleCatalogue";
 import { PICKUP_RADIUS } from "../game/pickups";
 import { remainingScroll, STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
+import { Box3D, Sphere3D } from "./Obstacle3D";
 import { Stickman } from "./Stickman";
 import { NeonCityScenery } from "./backgrounds/NeonCityScenery";
 import { MidnightMountainsBackground } from "./backgrounds/MidnightMountainsBackground";
@@ -396,31 +397,25 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                         : art.tint === 'overhead' ? palette.overheadGlow
                         : palette.blockGlow;
 
+                    // Solid shapes in the grid's perspective (Obstacle3D.tsx).
                     if (art.shape === 'sphere') {
                         return (
-                            <Circle
+                            <Sphere3D
                                 key={obs.id}
                                 cx={drawX + art.width / 2}
                                 cy={y + art.height / 2}
                                 r={art.width / 2}
-                                color={safeColor(colour)}
+                                colour={safeColor(colour)}
                             />
                         );
                     }
 
                     return (
-                        <Group key={obs.id}>
-                            <Rect
-                                x={drawX - 4} y={y - 4}
-                                width={art.width + 8} height={art.height + 8}
-                                color={safeColor(glow)} opacity={safeOpacity(0.35)}
-                            />
-                            <Rect
-                                x={drawX} y={y}
-                                width={art.width} height={art.height}
-                                color={safeColor(colour)}
-                            />
-                        </Group>
+                        <Box3D
+                            key={obs.id}
+                            x={drawX} y={y} width={art.width} height={art.height}
+                            colour={safeColor(colour)} glow={safeColor(glow)} vanishX={viewWidth / 2}
+                        />
                     );
                 })}
 
