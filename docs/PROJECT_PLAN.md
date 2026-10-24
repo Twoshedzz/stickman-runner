@@ -21,18 +21,18 @@ All four stages are playable end to end. Each has its own scenery, music, colour
 | Stage | Scenery | Its arc over 3 minutes |
 |-------|---------|-------------|
 | 1 Neon City | city strips, windows light up and fade | dusk → night → dawn; lights linger into the sunrise |
-| 2 Sunset Beach | sea, palms, waves washing the sand | sunrise: the sun climbs from a sliver, its light on the water widens |
+| 2 Sunset Beach | sea, palms, waves washing the sand | sunset: the sun sinks to a sliver, the sky darkens, the light on the water fades |
 | 3 Midnight Mountains | ridges, pines, moon | a mountain pass: peaks rise to a summit mid-stage, the moon crosses the sky |
 | 4 Victory Dawn | city, street lamps, fireworks | evening into night: sunset, lamps at dusk, fireworks, moonrise at the finish |
 
-The names stay as they are, even though stage 2 is now a sunrise and stage 4 ends at night
-(Pete, 23 October).
+The names stay as they are, even though stage 4 ends at night (Pete, 23 October). Stage 2 went
+back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the gameplay pass (§4). Steps 0–4 and 6 are done (step 4's rework still to be
-tried on the phone). From player feedback (24 October): the pause button (step 5) is done; holes
-in the floor (step 7) are next, then a rethink of how obstacles are sequenced (step 8).
+**Current focus:** the gameplay pass (§4). Steps 0–6 are done and live; pickups (step 4) and
+pause (step 5) still to be tried on the phone. From player feedback (24 October): holes in the
+floor (step 7) are next, then a rethink of how obstacles are sequenced (step 8).
 
 ---
 
@@ -40,8 +40,8 @@ in the floor (step 7) are next, then a rethink of how obstacles are sequenced (s
 
 Don't re-open these without a reason — a lot depends on them.
 
-1. **Duck = swipe down, and hold to stay down.** Tap anywhere jumps. On a keyboard, ↓ or S ducks
-   and holding the key keeps you down.
+1. **Duck = swipe down, and hold to stay down.** Tap anywhere jumps, and from a held duck a
+   swipe back up jumps too. On a keyboard, ↓ or S ducks and holding the key keeps you down.
 2. **World speed rises gently through each stage**, and each stage starts a little faster than the
    last. Stages still end on the 3-minute clock, so music and sky stay in sync.
 3. **Art = silhouette + lit overlay** for scenery strips.
@@ -121,7 +121,8 @@ heart generosity (`pacing.hearts`): stage 1 the most generous, stage 4 the least
   `stages.ts`: Neon City 75.2 BPM, Sunset Beach 80.2, Midnight Mountains and Victory Dawn 100.2.
 - Every obstacle reaches the runner on the half-beat grid (about every 0.3–0.4 sec), except the
   second of a tight pair, which is deliberately close behind the first. A test checks this.
-- The ground line pulses on every beat.
+- When the runner lands, the grid lines around his feet glow briefly (this replaced a line
+  that pulsed on every beat, which read as an extra element).
 
 **Step 4 — something to do between obstacles.** ✅ Done; reworked 23 October after the first
 phone test. All in `src/game/pickups.ts`; the spawner lays the trails as it places each pattern.
@@ -151,7 +152,7 @@ phone test. All in `src/game/pickups.ts`; the spawner lays the trails as it plac
 - To check on the phone: stage 4's pink diamonds against the lit city windows.
 - To tune: `TRAIL_SPACING_SEC`, `ARC_CHANCE`, `TRAIL_CHANCE` and `STREAK_LEVELS` in `pickups.ts`.
 
-**Step 5 — a pause button.** ✅ Done 24 October, not yet tried on the phone.
+**Step 5 — a pause button.** ✅ Done and live 24 October, not yet tried on the phone.
 The rules are in `src/game/pause.ts`.
 - **Pausing:** a round button with two bars at the top in the middle, or P / Esc on a keyboard.
   It only shows while a stage is being played, and tapping it doesn't also jump.
@@ -206,7 +207,7 @@ first two stages feel easy and alike; Pete also wants a look at how obstacles fo
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (142 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (149 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
@@ -221,6 +222,11 @@ first two stages feel easy and alike; Pete also wants a look at how obstacles fo
 
 **Controls and feel**
 - Swipe down **and hold** to stay ducked; keyboard ↓/S the same.
+- From a held duck, **swipe back up to jump** (24 October). The finger reading lives in
+  `src/game/swipe.ts`, shared by the phone app and phone browsers; How to Play shows it.
+- **Smoother runner** (23 October): the run flows between poses on curves instead of jumping
+  from one to the next, with a bounce in the stride, a proper leap on the way up, a reach for the
+  ground on the way down, and a knee-bend on landing. Poses are in `animations.ts`.
 - The stage name ("STAGE 1 · NEON CITY") shows for 5 seconds at the start of each stage, then fades.
 
 **Look**
@@ -233,14 +239,17 @@ first two stages feel easy and alike; Pete also wants a look at how obstacles fo
 - **Stage arcs** for stages 2–4 (§1).
 - **Sunset Beach:** sea and sand clearly different colours, waves washing up the sand, a slow
   twinkle on the water, palms set back from the surf.
-- **Neon City:** the lights linger into the sunrise (start going out at 2:30, last ones at the
-  finish), and go out building by building at scattered times rather than all at once.
+- **Neon City:** the lights linger into the sunrise and go out a few windows at a time, evenly
+  across all the buildings, in the reverse of how they came on, over the last 45 seconds.
 - **Sunset Beach:** the hills became low cloud streaks (bumpy-topped nearer ones, flat stripes by
   the horizon), and the light on the water is as wide as the sun showing above the sea.
 - **Stage length matches the music.** Every track is 3:00 long but most end in a few seconds of
   fade or silence, so each stage now ends where its music does (§3).
 - **CONTINUE goes straight to the next stage** (no second-long glimpse of the old one).
 - **Home screen icon** redrawn: a white runner in a full sprint with speed streaks.
+- **Menu animations:** stars that twinkle, a pulse of light running along the grid, and a light
+  sweeping across the logo. They switch off under the phone's Reduce Motion setting.
+- **Hearts** are drawn as heart shapes instead of circles.
 
 **Web and iPhone**
 - The web `Aborted()` crashes were a memory leak in Skia's web renderer; fixed with a patch. See
@@ -322,8 +331,8 @@ into fractions of the stage is optional; compare stage 1 before and after if it'
 ### Drawn obstacles (parked)
 
 The line art in `assets/obstacle-art/` was reverted to plain shapes: its line weight didn't match
-the grid, and small objects didn't stand out. The SVGs and generator are kept. Hearts are still
-circles, not heart shapes.
+the grid, and small objects didn't stand out. The SVGs and generator are kept. Hearts became
+heart shapes on 24 October.
 
 ### Tuning
 
@@ -336,8 +345,8 @@ circles, not heart shapes.
 
 ### Stickman
 
-The run cycle reads as stiff — better poses or easing between them. Then landing, hit, victory and
-idle poses.
+The run, jump and landing were reworked on 23 October (§5). Still to do, if wanted: hit,
+victory and idle poses.
 
 ---
 
@@ -374,15 +383,17 @@ Not urgent, but each one removes a trap:
 | Gameplay step 2: speed rise | ✅ Done |
 | Gameplay step 3: obstacles on the beat | ✅ Done |
 | Gameplay step 4: pickups and streak | ✅ Done; to try on the phone |
-| Gameplay step 6: feel and forgiveness | ✅ Done |
 | Gameplay step 5: pause button | ✅ Done; to try on the phone |
+| Gameplay step 6: feel and forgiveness | ✅ Done |
+| Swipe up from a duck to jump | ✅ Done; to try on the phone |
 | Gameplay step 7: holes in the floor | ⏭️ Next |
 | Gameplay step 8: obstacle sequencing and music sections | Not started |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |
 | World scoreboard | ✅ Live (§6) |
-| Tuning, stickman poses | Not started |
+| Stickman run, jump and landing | ✅ Done |
+| Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
