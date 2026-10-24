@@ -344,6 +344,9 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
 - The stage name ("STAGE 1 · NEON CITY") shows for 5 seconds at the start of each stage, then fades.
 
 **Look**
+- **A more solid runner** (24 October): his far arm and leg are a cooler grey, a little thinner
+  and set slightly back, his head is a lit ball like the obstacles, and he casts a shadow on the
+  floor that shrinks and fades as he jumps.
 - **3D obstacles** (24 October): blocks and bars are solid boxes in the grid's perspective, like
   the finish line and holes, reaching back towards the vanishing point with a lit top and a
   shaded side. The side facing the middle of the screen shows, swapping over as a box passes

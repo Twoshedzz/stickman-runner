@@ -441,6 +441,21 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     );
                 })}
 
+                {/* His shadow on the floor: smaller and fainter the higher he jumps. Not in a hole. */}
+                {player.falling <= 0 && (() => {
+                    const height = Math.max(0, RUNNER_GROUND_Y - PLAYER_SIZE - player.y);
+                    const k = Math.max(0, 1 - height / 160);
+                    const rx = PLAYER_SIZE * (0.4 + 0.25 * k);
+                    const ry = 3 + 2 * k;
+                    // The floor is nearly black, so the shadow shows by dimming the grid lines under him.
+                    return (
+                        <Oval
+                            x={PLAYER_X + gameOffsetX + PLAYER_SIZE / 2 - rx} y={RUNNER_GROUND_Y - ry}
+                            width={rx * 2} height={ry * 2}
+                            color="#05020f" opacity={0.35 + 0.55 * k}
+                        />
+                    );
+                })()}
                 {/* 10. Player (Stickman) - left of 600 zone; visual y -5 so feet align with obstacles */}
                 {/* Blinks during the safe moment after a hit (hidden every other tenth of a second). */}
                 {/* Dropping into a hole: he goes back with the hole, cut off by the floor in front of it. */}

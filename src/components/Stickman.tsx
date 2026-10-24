@@ -1,4 +1,4 @@
-import { Circle, Group, Line } from "@shopify/react-native-skia";
+import { Circle, Group, Line, RadialGradient, vec } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 import { DUCK_POSE, EXHAUSTED_POSE, FALL_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
 
@@ -63,6 +63,11 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     // Synthwave Stickman: White with Neon Glow
     const color = "white";
     const strokeWidth = 5; // Thicker for pictogram style
+    // The far arm and leg: a cooler grey, a little thinner and set slightly back, so he reads
+    // as a solid figure with one side further away rather than a flat drawing.
+    const farColor = "#a9aec8";
+    const farStrokeWidth = 4.2;
+    const farShift = [{ translateX: 1.2 * (size / 40) }, { translateY: -0.8 * (size / 40) }];
 
     // Dimensions
     const scale = size / 40;
@@ -185,16 +190,24 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     return (
         <Group transform={[{ translateX: x }, { translateY: y + plantShift + bounce }]}>
             {/* Render Back Limbs First (Left side usually, depends on direction) */}
-            <Group>
-                <Line p1={hip} p2={lKnee} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-                <Line p1={lKnee} p2={lFoot} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-                <Line p1={shoulders} p2={lElbow} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-                <Line p1={lElbow} p2={lHand} color={color} strokeWidth={strokeWidth} strokeCap="round" />
+            <Group transform={farShift}>
+                <Line p1={hip} p2={lKnee} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
+                <Line p1={lKnee} p2={lFoot} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
+                <Line p1={shoulders} p2={lElbow} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
+                <Line p1={lElbow} p2={lHand} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
             </Group>
 
             {/* Body & Head */}
             <Line p1={neck} p2={hip} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-            <Circle cx={headCenter.x} cy={headCenter.y} r={headRadius} color={color} style="fill" />
+            {/* The head as a ball, lit from the upper left like the obstacles. */}
+            <Circle cx={headCenter.x} cy={headCenter.y} r={headRadius}>
+                <RadialGradient
+                    c={vec(headCenter.x - headRadius * 0.35, headCenter.y - headRadius * 0.4)}
+                    r={headRadius * 1.5}
+                    colors={["#ffffff", "#ffffff", "#b9bdd6"]}
+                    positions={[0, 0.45, 1]}
+                />
+            </Circle>
 
             {/* Front Limbs */}
             <Group>
