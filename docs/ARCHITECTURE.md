@@ -160,6 +160,8 @@ since Expo's TypeScript settings leave `import`/`export` lines that Node can't l
 |---------|----------------|
 | Gravity, jump, ground | `src/game/systems/physics.ts`, `constants.ts` |
 | Hits / hearts | `src/game/systems/collisions.ts` |
+| Holes in the floor (falling in, the reset) | `src/game/systems/holes.ts` |
+| Stage clock following the music | `src/game/musicSync.ts` |
 | Pickups, streak multiplier | `src/game/pickups.ts` |
 | World scoreboard | `api/scores.ts`, `api/_lib/scoreboardServer.ts` (server); `src/scoreboard/` (rules, game side); `src/components/menu/InitialsScreen.tsx`, `WorldBoard.tsx`, `WorldScoresScreen.tsx` |
 | Obstacle cadence | `src/game/systems/spawn.ts`, stage `difficultySegments` |

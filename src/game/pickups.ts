@@ -3,7 +3,7 @@
  *
  * Pickups come in trails, placed by the spawner alongside each pattern, and get more
  * demanding stage by stage (`pacing.pickups` in stages.ts):
- * - ARCS trace a jump over a block, so a well-timed jump sweeps up the whole arc and an
+ * - ARCS trace a jump over a block or a hole, so a well-timed jump sweeps up the whole arc and an
  *   early or late one only catches some of it. Every stage.
  * - TRAILS run along the ground in the rest after a pattern. Every stage.
  * - HOPS float in mid-air in a rest: an extra jump between obstacles, which still lands in
@@ -103,8 +103,11 @@ let nextId = 0;
 const blend = ([start, end]: [number, number], progress: number) =>
     start + (end - start) * progress;
 
-/** Blocks a plain jump clears. Not the purple sphere (it wobbles) or the wide block (double jump). */
-const arcsOver = (role: ObstacleRole | undefined) => role === 'small' || role === 'large';
+/**
+ * What a plain jump clears: the blocks and the hole. Not the purple sphere (it wobbles) or
+ * the wide block (double jump).
+ */
+const arcsOver = (role: ObstacleRole | undefined) => role === 'small' || role === 'large' || role === 'hole';
 
 /** Pickups along a flight path, for a jump that peaks (or would peak) over `peakX`. */
 const placeAlong = (state: GameState, path: number[], frames: number[], peakX: number) => {
@@ -224,6 +227,8 @@ export const breakStreak = (state: GameState) => {
 /** Pick up anything the runner is touching. Called every frame, after collisions. */
 export const collectPickups = (state: GameState) => {
     const { player } = state;
+    // Dropping into a hole: out of reach of everything.
+    if (player.falling > 0) return;
     // Ducking keeps the feet down and drops the head, as in collisions.ts.
     const top = player.isDucking ? RUNNER_GROUND_Y - PLAYER_DUCK_HEIGHT : player.y;
     const bottom = player.isDucking ? RUNNER_GROUND_Y : player.y + PLAYER_SIZE;

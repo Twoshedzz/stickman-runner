@@ -3,6 +3,7 @@ import { frameScale } from '../frame';
 import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { clearedObstacle } from '../pickups';
+import { isFalling, updateFall } from './holes';
 import { GameState } from '../state';
 
 /**
@@ -16,7 +17,7 @@ const LAND_GLOW_SEC = 0.5;
 
 /** deltaTimeSec: seconds since last frame (used so movement stays in sync with real time) */
 export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
-    const { player, obstacles } = state;
+    const { player } = state;
     const scale = frameScale(deltaTimeSec);
 
     player.jumpBuffer = Math.max(0, player.jumpBuffer - deltaTimeSec);
@@ -36,6 +37,19 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
         }
     }
 
+    // Dropping into a hole: no running or jumping until he's put back on the line.
+    if (isFalling(state)) {
+        updateFall(state, deltaTimeSec, scale, (state.speed / 60) * scale);
+    } else {
+        runAndJump(state, scale);
+    }
+
+    moveWorld(state, scale);
+};
+
+/** The runner's own movement: gravity, landing, and what happens with his feet on the ground. */
+const runAndJump = (state: GameState, scale: number) => {
+    const { player } = state;
     // Player vertical physics: scale by time so jump duration and height are the same at any frame rate
     player.dy += GRAVITY * scale;
     player.y += player.dy * scale;
@@ -95,7 +109,11 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
     } else {
         player.isGrounded = false;
     }
+};
 
+/** Everything else moves left with the world. */
+const moveWorld = (state: GameState, scale: number) => {
+    const { obstacles } = state;
     // Move Obstacles (scale by deltaTime so movement is in sync with real time)
     obstacles.forEach(obs => {
         let speed = state.speed / 60; // pixels per 60fps frame
@@ -137,7 +155,7 @@ export const applyPhysics = (state: GameState, deltaTimeSec: number) => {
  */
 export const startDuck = (state: GameState, hold = false) => {
     const { player } = state;
-    if (!player.isGrounded) return;
+    if (!player.isGrounded || isFalling(state)) return;
     player.isDucking = true;
     player.duckTimer = DUCK_DURATION_SEC;
     player.duckHeld = hold;
@@ -150,6 +168,7 @@ export const releaseDuck = (state: GameState) => {
 
 export const jump = (state: GameState) => {
     const { isGrounded, jumpCount } = state.player;
+    if (isFalling(state)) return;
 
     // 1. Grounded Jump (Always allowed, no energy cost)
     if (isGrounded) {

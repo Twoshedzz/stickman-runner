@@ -4,8 +4,13 @@ import { shapeFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { addScore, breakStreak } from '../pickups';
 import { GameState } from '../state';
+import { checkHoles, isFalling } from './holes';
 
 export const checkCollisions = (state: GameState) => {
+    // Mid-drop into a hole: nothing else can touch him until he's back.
+    if (isFalling(state)) return false;
+    if (checkHoles(state)) return true;
+
     const playerX = PLAYER_X;
     const playerR = playerX + PLAYER_SIZE;
     // Ducking keeps the feet on the ground and drops the head, so the box shrinks from the top.
@@ -17,6 +22,8 @@ export const checkCollisions = (state: GameState) => {
         const obs = state.obstacles[i];
 
         const role = obs.role ?? 'small';
+        // Holes are fallen into, not bumped into (above).
+        if (role === 'hole') continue;
         const isHeart = role === 'heart';
         // The hitbox is the shape's own size, so what you see is what you hit.
         const art = shapeFor(role);

@@ -12,15 +12,18 @@
  * Widths are set against the jump arc: a jump peaks 120px up and covers 160px, so
  * anything up to about 90px wide can be cleared. The wide block is deliberately wider and
  * needs a double jump - it is the one obstacle that makes the energy bar matter.
+ *
+ * The hole is a circle cut into the floor. It isn't hit like the others: the runner falls
+ * in if his feet come down on it (see systems/holes.ts), so jumping is the only way past.
  */
 
-export type ObstacleRole = 'small' | 'large' | 'mover' | 'huge' | 'overhead' | 'heart';
+export type ObstacleRole = 'small' | 'large' | 'mover' | 'huge' | 'overhead' | 'hole' | 'heart';
 
 /** Which of the stage's colours a role is drawn in. */
-export type ObstacleTint = 'block' | 'red' | 'purple' | 'overhead' | 'heart';
+export type ObstacleTint = 'block' | 'red' | 'purple' | 'overhead' | 'hole' | 'heart';
 
 export interface RoleShape {
-    shape: 'block' | 'sphere' | 'bar';
+    shape: 'block' | 'sphere' | 'bar' | 'hole';
     width: number;
     height: number;
     tint: ObstacleTint;
@@ -39,6 +42,8 @@ export const ROLE_SHAPES: Record<ObstacleRole, RoleShape> = {
     mover:    { shape: 'sphere', width: 36,  height: 36,  tint: 'purple',   damage: 3 },
     huge:     { shape: 'block',  width: 110, height: 40,  tint: 'red',      damage: 5 },
     overhead: { shape: 'bar',    width: 28,  height: 144, tint: 'overhead', overhead: true, damage: 3 },
+    // Flat on the floor, so no height: nothing stands up out of it to hit.
+    hole:     { shape: 'hole',   width: 90,  height: 0,   tint: 'hole',     damage: 3 },
     heart:    { shape: 'sphere', width: 28,  height: 28,  tint: 'heart',    damage: 0 },
 };
 

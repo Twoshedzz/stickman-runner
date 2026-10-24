@@ -1,5 +1,5 @@
 
-import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, Skia, vec } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, LinearGradient, Mask, Oval, Path, Rect, Skia, vec } from "@shopify/react-native-skia";
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -35,6 +35,19 @@ const RUNNER_VISUAL_Y_OFFSET = -5;
  * A solid heart filling a HEART_SIZE box (30 wide, its point resting on the bottom edge).
  * Made into a Skia path once, inside the component: on web Skia isn't ready at module load.
  */
+/** Half the height of a hole: a circle on the floor, flattened to the grid's perspective. */
+const HOLE_RY = 8;
+
+/**
+ * While the runner drops into a hole, he's only drawn above the floor and inside the hole:
+ * everything above the running line, plus the near half of the hole's opening. The floor
+ * in front of the hole hides the rest of him as he goes down.
+ */
+const fallClip = (viewWidth: number, cx: number, rx: number) => {
+    const cy = RUNNER_GROUND_Y;
+    return `M 0 0 H ${viewWidth} V ${cy} H ${cx + rx} A ${rx} ${HOLE_RY} 0 0 1 ${cx - rx} ${cy} H 0 Z`;
+};
+
 const HEART_SVG = 'M15 30 C6 23 0 17.5 0 10.5 C0 5.5 3.8 2 8.2 2 C11 2 13.5 3.5 15 6 C16.5 3.5 19 2 21.8 2 C26.2 2 30 5.5 30 10.5 C30 17.5 24 23 15 30 Z';
 
 /** Ensure Skia always receives a valid color string (avoids JsiSkPaint/savePaint crashes on web). */
@@ -192,6 +205,11 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
         overhead: '#00ffff', overheadGlow: '#7df5ff',
     };
     const pickupColors = currentStage.theme.pickupColors;
+    const holeRx = shapeFor('hole').width / 2;
+    const fallingInto = player.falling > 0 ? gameState.obstacles.find(o => o.id === player.fallHoleId) : undefined;
+    const runnerClip = player.falling > 0
+        ? fallClip(viewWidth, fallingInto ? fallingInto.x + gameOffsetX + holeRx : PLAYER_X + gameOffsetX + PLAYER_SIZE / 2, holeRx)
+        : undefined;
 
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
@@ -341,6 +359,22 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                         );
                     }
 
+                    // A hole: a dark opening cut into the grid, its rim lit in the stage's colours.
+                    if (role === 'hole') {
+                        const rx = shapeFor(role).width / 2;
+                        const cx = drawX + rx;
+                        const cy = RUNNER_GROUND_Y;
+                        return (
+                            <Group key={obs.id}>
+                                <Oval x={cx - rx - 4} y={cy - HOLE_RY - 3} width={2 * rx + 8} height={2 * HOLE_RY + 6} color={safeColor(pickupColors.glow)} opacity={0.35} />
+                                <Oval x={cx - rx} y={cy - HOLE_RY} width={2 * rx} height={2 * HOLE_RY} color="#020008" />
+                                {/* The far wall catches a little light. */}
+                                <Oval x={cx - rx + 6} y={cy - HOLE_RY + 1} width={2 * rx - 12} height={HOLE_RY} color={safeColor(pickupColors.glow)} opacity={0.12} />
+                                <Oval x={cx - rx} y={cy - HOLE_RY} width={2 * rx} height={2 * HOLE_RY} color={safeColor(pickupColors.glow)} style="stroke" strokeWidth={2} />
+                            </Group>
+                        );
+                    }
+
                     const art = shapeFor(role);
                     // The bar hangs in the air; everything else stands on the ground.
                     const y = art.overhead
@@ -408,8 +442,10 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
 
                 {/* 10. Player (Stickman) - left of 600 zone; visual y -5 so feet align with obstacles */}
                 {/* Blinks during the safe moment after a hit (hidden every other tenth of a second). */}
+                {/* Dropping into a hole: he goes back with the hole, cut off by the floor in front of it. */}
+                <Group clip={runnerClip}>
                 {!(player.hurtTimer > 0 && Math.floor(player.hurtTimer * 10) % 2 === 1) && <Stickman
-                    x={PLAYER_X + gameOffsetX}
+                    x={PLAYER_X + gameOffsetX - player.fallDrift}
                     y={player.y + RUNNER_VISUAL_Y_OFFSET}
                     size={PLAYER_SIZE}
                     // Legs keep pace with the ground: at the original 240 px/sec this is plain seconds.
@@ -421,6 +457,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     isRunning={gameState.gameStarted && !gameState.gameOver}
                     status={gameState.stageStatus}
                 />}
+                </Group>
                 {/* A short pink flash as the hit lands. */}
                 {player.hurtTimer > HIT_GRACE_SEC - HIT_FLASH_SEC && (
                     <Rect

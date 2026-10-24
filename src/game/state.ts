@@ -42,6 +42,12 @@ export interface GameState {
         hurtTimer: number;
         /** 1 the moment the runner lands, fading to 0: lights up the grid under his feet. */
         landGlow: number;
+        /** Seconds left of a drop into a hole (see systems/holes.ts); 0 when not falling. */
+        falling: number;
+        /** The hole being fallen into, or -1. */
+        fallHoleId: number;
+        /** How far the world has carried the runner back while he falls, in pixels. */
+        fallDrift: number;
         health: number;
         maxHealth: number;
     };
@@ -104,6 +110,9 @@ export const createInitialState = (): GameState => ({
         jumpBuffer: 0,
         hurtTimer: 0,
         landGlow: 0,
+        falling: 0,
+        fallHoleId: -1,
+        fallDrift: 0,
         health: MAX_HEALTH,
         maxHealth: MAX_HEALTH,
     },

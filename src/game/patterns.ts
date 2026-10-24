@@ -54,6 +54,11 @@ export const PATTERNS: Pattern[] = [
     { id: 'triple', cost: 3, steps: [{ role: 'small', at: 0 }, { role: 'small', at: 0.95 }, { role: 'small', at: 1.9 }] },
     { id: 'bar-hop-bar', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'large', at: 0.6 }, { role: 'overhead', at: 1.75 }] },
     { id: 'hop-bar-hop', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'overhead', at: 1.1 }, { role: 'small', at: 1.7 }] },
+    // Holes in the floor (from stage 2): jump them like a block, but there's no ducking past
+    { id: 'hole', cost: 1, steps: [{ role: 'hole', at: 0 }] },
+    { id: 'hole-hop', cost: 2, steps: [{ role: 'hole', at: 0 }, { role: 'small', at: 1.0 }] },
+    { id: 'bar-hole', cost: 3, steps: [{ role: 'overhead', at: 0 }, { role: 'hole', at: 0.6 }] },
+    { id: 'hole-bar', cost: 3, steps: [{ role: 'hole', at: 0 }, { role: 'overhead', at: 1.15 }] },
     // The wide block: needs a double jump, so only appears when the energy bar is full
     { id: 'huge', cost: 4, steps: [{ role: 'huge', at: 0 }] },
 ];

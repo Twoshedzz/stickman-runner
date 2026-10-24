@@ -11,10 +11,25 @@ const COLOURS = STAGES[0].theme.obstacleColors!;
 const HEART = '#FF1493';
 const PICKUP = STAGES[0].theme.pickupColors;
 
-type Shape = { kind: 'block' | 'ball' | 'bar' | 'wide'; colour: string };
+type Shape = { kind: 'block' | 'ball' | 'bar' | 'wide' | 'hole' | 'heart'; colour: string };
 
 /** A small drawing of the obstacle itself, so the player knows exactly what to look for. */
 const Icon = ({ kind, colour }: Shape) => {
+    // A hole: a dark opening in the floor with a lit rim, flattened like the game draws it.
+    if (kind === 'hole') {
+        return (
+            <View style={styles.iconBox}>
+                <View style={[styles.hole, { borderColor: colour, boxShadow: `0 0 8px ${colour}` }]} />
+            </View>
+        );
+    }
+    if (kind === 'heart') {
+        return (
+            <View style={styles.iconBox}>
+                <RNText style={[styles.heart, { color: colour, textShadowColor: colour }]}>♥</RNText>
+            </View>
+        );
+    }
     const shape =
         kind === 'ball' ? { width: 16, height: 16, borderRadius: 8 }
         : kind === 'bar' ? { width: 7, height: 22 }
@@ -67,7 +82,8 @@ const PageOne = ({ keyboard }: { keyboard: boolean }) => (
             <Row icons={[{ kind: 'block', colour: COLOURS.block }, { kind: 'ball', colour: COLOURS.purple }]} text="JUMP OVER" />
             <Row icons={[{ kind: 'bar', colour: COLOURS.overhead }]} text="DUCK UNDER" />
             <Row icons={[{ kind: 'wide', colour: COLOURS.red }]} text="DOUBLE JUMP" />
-            <Row icons={[{ kind: 'ball', colour: HEART }]} text="COLLECT FOR HEALTH" />
+            <Row icons={[{ kind: 'hole', colour: PICKUP.glow }]} text="STAGE 2+ · JUMP IT OR FALL IN" />
+            <Row icons={[{ kind: 'heart', colour: HEART }]} text="COLLECT FOR HEALTH" />
         </View>
     </>
 );
@@ -233,6 +249,19 @@ const styles = StyleSheet.create({
         width: 78,
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    heart: {
+        fontSize: 22,
+        lineHeight: 24,
+        textShadowRadius: 8,
+        textShadowOffset: { width: 0, height: 0 },
+    },
+    hole: {
+        width: 30,
+        height: 9,
+        borderRadius: 15,
+        borderWidth: 1.5,
+        backgroundColor: '#020008',
     },
     iconBox: {
         width: 34,

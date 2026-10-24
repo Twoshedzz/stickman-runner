@@ -32,7 +32,8 @@ back to a sunset on 23 October, so its name fits again.
 
 **Current focus:** the gameplay pass (§4). Steps 0–6 are done and live; pickups (step 4) and
 pause (step 5) still to be tried on the phone. From player feedback (24 October): holes in the
-floor (step 7) are next, then a rethink of how obstacles are sequenced (step 8).
+floor (step 7) are done and also to be tried; next is a rethink of how obstacles are sequenced
+and how difficulty grows (step 8).
 
 ---
 
@@ -173,20 +174,31 @@ The rules are in `src/game/pause.ts`.
 - Double jump costs half the bar, so a full bar gives two.
 - After a hit: the runner blinks, a short pink flash, and 1 sec safe from further hits.
 
-**Step 7 — holes in the floor.** Not started.
-A new obstacle: a circle cut into the grid, seen in perspective as a dark ellipse with a glowing
-rim in the stage's colours. Jump over it. It keeps to one running level (decision 11).
-- **What happens if you don't jump:** a hit, like any other obstacle (health lost, the blink and
-  the safe second), not a fall to your death. Casual, not manic (decision 6).
-- **How it's detected:** by the runner's feet being on the ground over the hole, not by boxes
-  overlapping like the other obstacles. Ducking doesn't help.
-- **Size:** set against the jump, like the blocks: up to about 90px is one jump. A wide hole
-  that needs a double jump could follow, the way the wide block does.
-- **Where it first appears:** stage 2, so that stage brings something new (step 8).
-- **Wiring:** a new role in `obstacleCatalogue.ts`, its own gap rules and patterns in
-  `patterns.ts` (a hole, hole then block, bar then hole, …), drawing in the grid's perspective,
-  pickup arcs over it, a row on How to Play, and the bot test proving every pattern can still
-  be cleared.
+**Step 7 — holes in the floor.** ✅ Done 24 October, not yet tried on the phone.
+A circle cut into the grid, seen in perspective as a dark ellipse with a rim lit in the stage's
+colours. Jump over it. It keeps to one running level (decision 11). The rules are in
+`src/game/systems/holes.ts`.
+- **Falling in:** if the runner's feet come down on a hole (more than 14px inside the rim), he
+  stumbles, goes back with the hole as the world carries it away, and drops through it; the
+  floor in front of the hole hides him as he goes. 0.7 sec later he's put back on the running
+  line, blinking through the usual safe second. It costs 3 health and the streak, like a hit.
+  It only ends the run if that was the last of the health, and then only after the drop.
+- **Ducking doesn't help**, and nothing can be done mid-drop. In the safe second after a hit he
+  runs straight across a hole.
+- **Size:** 90px across, one jump at every speed.
+- **Where:** from about 15 seconds into stage 2, then all through stages 3 and 4: roughly 15–20
+  a stage. Patterns: a hole, hole then block, bar then hole, hole then bar.
+- Pickup arcs go over holes too, and How to Play has a row for them (the heart there is now a
+  heart shape as well).
+- `holes.test.ts` checks the drop and the reset; the bot test plays every hole pattern and
+  whole stages with holes in them.
+
+**Music stays in step after a pause.** ✅ Done 24 October. Each pause and restart left the music a
+little behind the game (about 0.05 sec a time in a desktop browser, likely more on iPhone), and it
+added up. The stage clock now follows the music: while a stage is played it is nudged gently
+towards where the music actually is (never more than 0.1 sec per second, so nothing jumps). See
+`src/game/musicSync.ts`. Leaving the app mid-run also pauses the music straight away, so it no
+longer plays for a moment on return to the PAUSED screen.
 
 **Step 8 — obstacle sequencing: less samey, and harder sooner.** Not started.
 Takes in the old step 5 (calm and busy sections that follow the music). The feedback is that the
@@ -207,7 +219,7 @@ first two stages feel easy and alike; Pete also wants a look at how obstacles fo
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (149 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (174 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
@@ -386,8 +398,8 @@ Not urgent, but each one removes a trap:
 | Gameplay step 5: pause button | ✅ Done; to try on the phone |
 | Gameplay step 6: feel and forgiveness | ✅ Done |
 | Swipe up from a duck to jump | ✅ Done; to try on the phone |
-| Gameplay step 7: holes in the floor | ⏭️ Next |
-| Gameplay step 8: obstacle sequencing and music sections | Not started |
+| Gameplay step 7: holes in the floor | ✅ Done; to try on the phone |
+| Gameplay step 8: obstacle sequencing and music sections | ⏭️ Next |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |

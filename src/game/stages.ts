@@ -343,7 +343,8 @@ export const STAGES: StageConfig[] = [
         pacing: {
             budget: [2, 4],
             rest: [1.3, 0.8],
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0 },
+            // Holes in the floor are new here: the first comes about 10 seconds in.
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0.05 },
             hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
             // Introduces the extra jump between obstacles.
             pickups: { hop: [0.3, 0.6], double: [0, 0] },
@@ -393,7 +394,7 @@ export const STAGES: StageConfig[] = [
         pacing: {
             budget: [2.5, 4.5],
             rest: [1.2, 0.75],
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0.2 },
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.2 },
             hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 25 },
             // Adds double-jump arcs, which compete with the wide block for the energy bar.
             pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
@@ -431,7 +432,7 @@ export const STAGES: StageConfig[] = [
         pacing: {
             budget: [3, 5],
             rest: [1.1, 0.7],
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, huge: 0 },
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
             hearts: { hurtBelow: 0.5, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 30 },
             pickups: { hop: [0.5, 0.7], double: [0.4, 0.6] },
         },
