@@ -59,6 +59,7 @@ const PageOne = ({ keyboard }: { keyboard: boolean }) => (
             <Row keyText={keyboard ? 'AGAIN' : 'TAP AGAIN'} text="DOUBLE JUMP IN THE AIR" />
             <Row keyText={'⚡'} text="EACH DOUBLE JUMP USES HALF THE ENERGY BAR" />
             <Row keyText={keyboard ? '↓ / S' : 'SWIPE ↓'} text="DUCK · HOLD TO STAY DOWN" />
+            {!keyboard && <Row keyText="SWIPE ↑" text="FROM A DUCK: JUMP STRAIGHT UP" />}
         </View>
 
         <View style={styles.column}>

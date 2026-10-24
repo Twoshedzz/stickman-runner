@@ -20,6 +20,7 @@ import { DEBUG_ENABLED, SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
 import { useGameLoop } from '../game/loop/useGameLoop';
 import { canPause, countdownLeft, isCountingDown, RESUME_COUNTDOWN_SEC } from '../game/pause';
 import { STAGES } from '../game/stages';
+import { endSwipe, moveSwipe, startSwipe, Swipe } from '../game/swipe';
 import { BOARD_SIZE } from '../scoreboard/rules';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
 import { SendOutcome, useWorldBoard } from '../scoreboard/worldBoard';
@@ -39,8 +40,6 @@ const WEB_VIEWPORT = { width: 600, height: 350 };
 const STAGE_BANNER_SEC = 5;
 const STAGE_BANNER_FADE_SEC = 0.8;
 
-/** How far a finger has to move down, in screen points, to count as a swipe to duck. */
-const SWIPE_DUCK_PX = 24;
 
 /**
  * A phone or tablet browser, including the game saved to the home screen. These fill the
@@ -237,19 +236,6 @@ export const GameScreen = () => {
         }
     }, [gameState.gameOver, gameState.showContinue, stopMusic]);
 
-    // Swipe down to duck, and keep the finger down to stay ducked. Tap still jumps.
-    const duckGesture = useMemo(
-        () => Gesture.Pan()
-            .runOnJS(true)
-            .minDistance(12)
-            .onUpdate((e) => {
-                const mostlyDownward = e.translationY > Math.abs(e.translationX);
-                if (e.translationY > SWIPE_DUCK_PX && mostlyDownward) onDuck(true);
-            })
-            .onFinalize(() => onDuckRelease()),
-        [onDuck, onDuckRelease]
-    );
-
     // A new run always starts at stage 1, so start stage 1's music - not the music of the
     // stage the last run ended on.
     const playAgain = useCallback(() => {
@@ -262,6 +248,31 @@ export const GameScreen = () => {
         if (gameState.showContinue) return;
         onJump();
     }, [onJump, gameState.gameOver, gameState.showContinue]);
+
+    // Swipe down to duck, and keep the finger down to stay ducked; swipe back up from there
+    // to jump. Tap still jumps.
+    const gestureSwipeRef = useRef<Swipe | null>(null);
+    const duckGesture = useMemo(
+        () => Gesture.Pan()
+            .runOnJS(true)
+            .minDistance(12)
+            .onBegin(() => { gestureSwipeRef.current = startSwipe(0, 0); })
+            .onUpdate((e) => {
+                const swipe = gestureSwipeRef.current;
+                if (!swipe) return;
+                if (moveSwipe(swipe, e.translationX, e.translationY) === 'jump') {
+                    onDuckRelease();
+                    handleInteraction();
+                } else if (swipe.ducked && !swipe.jumped) {
+                    onDuck(true); // again as the finger moves, so a duck swiped in the air lands ducked
+                }
+            })
+            .onFinalize(() => {
+                gestureSwipeRef.current = null;
+                onDuckRelease();
+            }),
+        [onDuck, onDuckRelease, handleInteraction]
+    );
 
     /**
      * START. The music is started right here, inside the tap, as well as when the run begins:
@@ -292,35 +303,37 @@ export const GameScreen = () => {
 
     /**
      * Phone browsers: one handler decides, for each touch, whether it's a tap (jump) or a
-     * downward swipe (duck). In a browser the gesture library and the tap button each saw
-     * the same touch, so a swipe also jumped on release, and jumping cancels a duck.
-     * The phone app keeps the gesture library below, where it works.
+     * downward swipe (duck), or a swipe back up from that duck (jump). In a browser the gesture
+     * library and the tap button each saw the same touch, so a swipe also jumped on release,
+     * and jumping cancels a duck. The phone app keeps the gesture library above, where it works.
      */
-    const touchRef = useRef<{ x: number; y: number; ducked: boolean } | null>(null);
+    const touchRef = useRef<Swipe | null>(null);
     const onTouchStart = useCallback((e: GestureResponderEvent) => {
         const t = e.nativeEvent.touches[0];
-        if (t) touchRef.current = { x: t.pageX, y: t.pageY, ducked: false };
+        if (t) touchRef.current = startSwipe(t.pageX, t.pageY);
     }, []);
     const onTouchMove = useCallback((e: GestureResponderEvent) => {
-        const start = touchRef.current;
+        const swipe = touchRef.current;
         const t = e.nativeEvent.touches[0];
-        if (!start || start.ducked || !t) return;
-        const dx = t.pageX - start.x;
-        const dy = t.pageY - start.y;
+        if (!swipe || !t) return;
         // Duck the moment the finger has clearly moved down, rather than waiting for it to lift,
         // and stay down for as long as the finger stays on the screen.
-        if (dy > SWIPE_DUCK_PX && dy > Math.abs(dx)) {
-            start.ducked = true;
-            if (!gameState.gameOver && !gameState.showContinue) onDuck(true);
+        const action = moveSwipe(swipe, t.pageX, t.pageY);
+        if (action === 'duck' && !gameState.gameOver && !gameState.showContinue) onDuck(true);
+        if (action === 'jump') {
+            onDuckRelease();
+            handleInteraction();
         }
-    }, [onDuck, gameState.gameOver, gameState.showContinue]);
+    }, [onDuck, onDuckRelease, handleInteraction, gameState.gameOver, gameState.showContinue]);
     const onTouchEnd = useCallback((e: GestureResponderEvent) => {
-        const start = touchRef.current;
+        const swipe = touchRef.current;
         touchRef.current = null;
         // Stops the browser also sending a mouse click for this touch.
         e.preventDefault();
-        if (start?.ducked) onDuckRelease();
-        else if (start) handleInteraction();
+        if (!swipe) return;
+        const action = endSwipe(swipe);
+        if (action === 'release') onDuckRelease();
+        if (action === 'tap') handleInteraction();
     }, [handleInteraction, onDuckRelease]);
 
     // Web Keyboard: capture phase so we handle Space/Up before React (no synthetic click on Pressable)
