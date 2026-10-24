@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { frameScale } from '../frame';
 import { updateParticles } from '../particles';
+import { cancelResume, pauseRun, startResume, tickPause } from '../pause';
 import { collectPickups } from '../pickups';
 import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -42,6 +43,11 @@ export const useGameLoop = () => {
     if (stateRef.current.debugMode === undefined) {
         stateRef.current.debugMode = false;
     }
+    if (stateRef.current.paused === undefined) {
+        stateRef.current.paused = false;
+        stateRef.current.pausedAt = 0;
+        stateRef.current.resumeAt = 0;
+    }
     if (stateRef.current.pickups === undefined) {
         stateRef.current.pickups = [];
         stateRef.current.streak = 0;
@@ -50,23 +56,27 @@ export const useGameLoop = () => {
     const lastFrameTimeRef = useRef<number>(0);
 
     /**
-     * Freeze the game while it's in the background (another app, or the phone locked), and
-     * carry on exactly where it left off on return. The stage clock runs on real time, so the
-     * time away is added to the stage's start time; otherwise the stage would have jumped
-     * ahead while the music (paused by the music player) picked up where it stopped.
+     * Leaving the app (another app, or the phone locked) pauses a run that's going, so it
+     * comes back to the PAUSED screen rather than carrying straight on. A 3-2-1 that was
+     * counting stops, back to plain paused.
+     *
+     * Anything else (a Stage Clear screen, say) just freezes: the time away is added to the
+     * stage's start time, since the stage clock runs on real time.
      */
     useEffect(() => {
         let awaySince: number | null = null;
         const subscription = AppState.addEventListener('change', (next) => {
+            const state = stateRef.current;
             if (next !== 'active') {
                 if (awaySince === null) awaySince = Date.now() / 1000;
+                if (!pauseRun(state, awaySince)) cancelResume(state);
                 return;
             }
             if (awaySince === null) return;
             const away = Date.now() / 1000 - awaySince;
             awaySince = null;
-            const state = stateRef.current;
-            if (state.stageStartTime > 0) state.stageStartTime += away;
+            // A paused run's clock is already standing still; it moves on when play resumes.
+            if (state.stageStartTime > 0 && !state.paused) state.stageStartTime += away;
             // Start timing frames afresh, so the first frame back isn't one huge step.
             lastFrameTimeRef.current = 0;
         });
@@ -132,6 +142,17 @@ export const useGameLoop = () => {
                 // Time-based stage progress: 3 minutes per stage so audio and visuals stay in sync (see docs/STAGE_DESIGN.md)
                 const nowSec = Date.now() / 1000;
                 if (state.stageStartTime <= 0) state.stageStartTime = nowSec;
+
+                // Paused: nothing moves and the stage clock stands still until the 3-2-1 runs out.
+                if (state.paused) {
+                    if (!tickPause(state, nowSec)) {
+                        setRenderTrigger(prev => prev + 1);
+                        requestRef.current = requestAnimationFrame(loop);
+                        return;
+                    }
+                    // Carrying on: time the next frame afresh, so it isn't one huge step.
+                    lastFrameTimeRef.current = 0;
+                }
                 const elapsedSec = nowSec - state.stageStartTime;
                 state.elapsedSecInStage = elapsedSec;
                 state.stageProgress = Math.min(elapsedSec / currentStage.durationSec, 1);
@@ -256,10 +277,41 @@ export const useGameLoop = () => {
         setGameMetrics(initialMetrics);
     }, []);
 
+    /** Pause the run. False if there's nothing to pause (menus, Stage Clear, Game Over). */
+    const pauseGame = useCallback(() => {
+        const paused = pauseRun(stateRef.current, Date.now() / 1000);
+        if (paused) setRenderTrigger(prev => prev + 1);
+        return paused;
+    }, []);
+
+    /** Start the 3-2-1; play carries on when it runs out. */
+    const resumeGame = useCallback(() => {
+        startResume(stateRef.current, Date.now() / 1000);
+        setRenderTrigger(prev => prev + 1);
+    }, []);
+
+    /** Give up this run and go back to the title. It isn't recorded: it didn't end. */
+    const quitToTitle = useCallback(() => {
+        stateRef.current = createInitialState();
+        lastFrameTimeRef.current = 0;
+        recordedRef.current = false;
+        setNewScoreIndex(-1);
+        resetSpawner(stateRef.current);
+        const initialMetrics = {
+            score: 0,
+            health: MAX_HEALTH,
+            energy: 100,
+            maxHealth: MAX_HEALTH,
+            streak: 0,
+        };
+        metricsRef.current = initialMetrics;
+        setGameMetrics(initialMetrics);
+    }, []);
+
     // Input Handler
     const onJump = useCallback(() => {
         const state = stateRef.current;
-        if (state.gameOver) return;
+        if (state.gameOver || state.paused) return;
 
         if (!state.gameStarted) {
             state.gameStarted = true;
@@ -293,7 +345,7 @@ export const useGameLoop = () => {
     /** `hold`: stay down until onDuckRelease (finger kept on the screen, or the key held). */
     const onDuck = useCallback((hold = false) => {
         const state = stateRef.current;
-        if (state.gameOver || !state.gameStarted) return;
+        if (state.gameOver || !state.gameStarted || state.paused) return;
         startDuck(state, hold);
     }, []);
 
@@ -344,6 +396,9 @@ export const useGameLoop = () => {
         onDuckRelease,
         restartGame,
         onContinue,
+        pauseGame,
+        resumeGame,
+        quitToTitle,
         toggleDebugMode,
         jumpToStage,
         tick: renderTrigger,

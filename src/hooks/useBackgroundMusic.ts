@@ -15,6 +15,8 @@ export const useBackgroundMusic = () => {
     const playGenerationRef = useRef(0);
     /** Tracks already loaded, so starting them is instant. */
     const preloadedRef = useRef<Map<string, ReturnType<typeof createAudioPlayer>>>(new Map());
+    /** A resume waiting to start (see resumeMusic), cancelled if the game pauses again first. */
+    const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         setAudioModeAsync({
@@ -135,5 +137,37 @@ export const useBackgroundMusic = () => {
         }
     }, []);
 
-    return { playMusic, stopMusic, preloadTrack, musicStatus };
+    /** Pause for the game's pause button. */
+    const pauseMusic = useCallback(() => {
+        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+        playerRef.current?.pause();
+    }, []);
+
+    /**
+     * Carry on after a pause, rewound by `leadInSec` so the music plays through the game's
+     * 3-2-1 and is back where it stopped as play resumes.
+     */
+    const resumeMusic = useCallback(async (leadInSec = 0) => {
+        const player = playerRef.current;
+        if (!player) return;
+        const back = Math.min(leadInSec, player.currentTime);
+        try {
+            await player.seekTo(player.currentTime - back);
+        } catch {
+            // Couldn't rewind: carry on from where it is.
+        }
+        // Paused in the first seconds of the track: not enough to rewind, so start later instead.
+        const wait = leadInSec - back;
+        if (wait > 0.05) {
+            resumeTimerRef.current = setTimeout(() => {
+                resumeTimerRef.current = null;
+                player.play();
+            }, wait * 1000);
+        } else {
+            player.play();
+        }
+    }, []);
+
+    return { playMusic, stopMusic, pauseMusic, resumeMusic, preloadTrack, musicStatus };
 };

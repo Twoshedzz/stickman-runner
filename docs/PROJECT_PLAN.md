@@ -31,8 +31,8 @@ The names stay as they are, even though stage 2 is now a sunrise and stage 4 end
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
 **Current focus:** the gameplay pass (§4). Steps 0–4 and 6 are done (step 4's rework still to be
-tried on the phone). Next, from player feedback (24 October): a pause button (step 5), holes in
-the floor (step 7), then a rethink of how obstacles are sequenced (step 8).
+tried on the phone). From player feedback (24 October): the pause button (step 5) is done; holes
+in the floor (step 7) are next, then a rethink of how obstacles are sequenced (step 8).
 
 ---
 
@@ -93,7 +93,7 @@ From a tester, with Pete's take on each:
 | Feedback | Pete's view | Where it went |
 |---|---|---|
 | Good fun | — | — |
-| Add a pause button | Important | Step 5, next up |
+| Add a pause button | Important | Step 5, done |
 | Harder sooner? The first two stages are samey | Valid | Step 8 |
 | More obstacle types: holes? | Yes: a circle in the grid | Step 7 |
 | Jump and land on things? Go higher? Maybe later | Not keen: likes the one level | Decision 11 |
@@ -151,18 +151,21 @@ phone test. All in `src/game/pickups.ts`; the spawner lays the trails as it plac
 - To check on the phone: stage 4's pink diamonds against the lit city windows.
 - To tune: `TRAIL_SPACING_SEC`, `ARC_CHANCE`, `TRAIL_CHANCE` and `STREAK_LEVELS` in `pickups.ts`.
 
-**Step 5 — a pause button.** Next up. The most important of the feedback.
-- A pause button in the HUD, placed clear of the notch. Tapping it must not also jump, since a
-  tap anywhere else jumps. On a keyboard, P or Esc.
-- Pausing stops everything: world, obstacles, the stage clock and the music. Use the same trick
-  as when the app goes to the background (move the stage's start time on by the time paused),
-  so the music and the sky stay in step.
-- A PAUSED screen in the arcade style, with RESUME, HOW TO PLAY and QUIT (back to the title,
-  run not recorded).
-- RESUME counts in 3-2-1 before play carries on, so nobody is thrown straight into an obstacle.
-- Coming back to the app after switching away should land on the PAUSED screen too, rather
-  than carrying straight on as it does now.
-- Not during Stage Clear, Game Over or the initials screen: only while running.
+**Step 5 — a pause button.** ✅ Done 24 October, not yet tried on the phone.
+The rules are in `src/game/pause.ts`.
+- **Pausing:** a round button with two bars at the top in the middle, or P / Esc on a keyboard.
+  It only shows while a stage is being played, and tapping it doesn't also jump.
+- **What stops:** everything, including the stage clock and the music. When play carries on, the
+  stage's start time moves on by the time spent paused, so the music and the sky stay in step.
+- **The PAUSED screen:** the stage, the score, and RESUME, HOW TO PLAY and QUIT. QUIT goes back to
+  the title, and the run isn't added to the best runs.
+- **Resuming:** a big 3-2-1 over the frozen game. The music restarts in the RESUME tap itself
+  (iPhone Safari only allows that), rewound 3 seconds, so it plays through the count and is back
+  where it stopped as the run carries on. Paused in the first seconds of a track, the music
+  waits the difference instead.
+- **Switching away** (another app, the phone locked, pulling down Control Centre) pauses a run,
+  so coming back lands on the PAUSED screen. A 3-2-1 that was counting goes back to plain paused.
+- Jumps, ducks and the keyboard do nothing while paused.
 
 **Step 6 — feel and forgiveness.** ✅ Done.
 - Jump buffering: a tap up to 0.12 sec before landing still jumps on landing.
@@ -203,7 +206,7 @@ first two stages feel easy and alike; Pete also wants a look at how obstacles fo
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (121 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (142 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
@@ -264,7 +267,7 @@ Home Screen. It opens full screen, edge to edge, with its own icon and name.
   directly. Other tracks are "unlocked" on later taps, never on the START tap itself (that made
   stage 1 silent). If Safari still refuses, the next tap starts the music.
 - The game and its music **pause while the app is in the background** (another app, phone
-  locked) and carry on where they left off.
+  locked). Coming back lands on the PAUSED screen during a run (step 5); RESUME carries on.
 - To pick up a new version, fully close the home screen app from the app switcher and reopen it.
   Only a new icon needs the icon removing and re-adding.
 - Home screen apps can hold on to an old copy: if a change doesn't show, remove the icon and add it
@@ -372,8 +375,8 @@ Not urgent, but each one removes a trap:
 | Gameplay step 3: obstacles on the beat | ✅ Done |
 | Gameplay step 4: pickups and streak | ✅ Done; to try on the phone |
 | Gameplay step 6: feel and forgiveness | ✅ Done |
-| Gameplay step 5: pause button | ⏭️ Next |
-| Gameplay step 7: holes in the floor | Not started |
+| Gameplay step 5: pause button | ✅ Done; to try on the phone |
+| Gameplay step 7: holes in the floor | ⏭️ Next |
 | Gameplay step 8: obstacle sequencing and music sections | Not started |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |

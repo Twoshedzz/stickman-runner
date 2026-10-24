@@ -46,6 +46,8 @@ export const useBackgroundMusic = () => {
     const wantPlayingRef = useRef(false);
     /** Tracks already fetched and buffered, so starting them is instant. */
     const preloadedRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+    /** A resume waiting to start (see resumeMusic), cancelled if the game pauses again first. */
+    const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         return () => {
@@ -275,5 +277,37 @@ export const useBackgroundMusic = () => {
         }
     }, []);
 
-    return { playMusic, stopMusic, preloadTrack, musicStatus };
+    /**
+     * Pause for the game's pause button. The music counts as not wanted while paused, so
+     * neither coming back to the app nor a tap restarts it.
+     */
+    const pauseMusic = useCallback(() => {
+        if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+        wantPlayingRef.current = false;
+        webAudioRef.current?.pause();
+    }, []);
+
+    /**
+     * Carry on after a pause, rewound by `leadInSec` so the music plays through the game's
+     * 3-2-1 and is back where it stopped as play resumes. Call it from the RESUME tap itself:
+     * iPhone Safari only lets music start during a tap.
+     */
+    const resumeMusic = useCallback((leadInSec = 0) => {
+        const audio = webAudioRef.current;
+        if (!audio) return;
+        wantPlayingRef.current = true;
+        const back = Math.min(leadInSec, audio.currentTime);
+        audio.currentTime -= back;
+        const start = () => {
+            resumeTimerRef.current = null;
+            audio.play()?.catch(() => {});
+        };
+        // Paused in the first seconds of the track: not enough to rewind, so start later instead.
+        const wait = leadInSec - back;
+        if (wait > 0.05) resumeTimerRef.current = setTimeout(start, wait * 1000);
+        else start();
+    }, []);
+
+    return { playMusic, stopMusic, pauseMusic, resumeMusic, preloadTrack, musicStatus };
 };

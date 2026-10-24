@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HowToPlayScreen } from '../components/menu/HowToPlayScreen';
 import { InitialsScreen } from '../components/menu/InitialsScreen';
 import { LoadingScreen } from '../components/menu/LoadingScreen';
+import { PausedScreen } from '../components/menu/PausedScreen';
 import { FinishedScreen, GameOverScreen, StageClearScreen } from '../components/menu/ResultScreens';
 import { FONT, glow, MENU_FONT_FILES, NEON } from '../components/menu/menuStyle';
 import { TitleScreen } from '../components/menu/TitleScreen';
@@ -13,9 +14,11 @@ import { WorldScoresScreen } from '../components/menu/WorldScoresScreen';
 import { RNText } from '../components/RNText';
 import { EnergyBar } from '../components/ui/EnergyBar';
 import { HealthBar } from '../components/ui/HealthBar';
+import { PauseButton } from '../components/ui/PauseButton';
 import { ScoreDisplay } from '../components/ui/ScoreDisplay';
 import { DEBUG_ENABLED, SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
 import { useGameLoop } from '../game/loop/useGameLoop';
+import { canPause, countdownLeft, isCountingDown, RESUME_COUNTDOWN_SEC } from '../game/pause';
 import { STAGES } from '../game/stages';
 import { BOARD_SIZE } from '../scoreboard/rules';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
@@ -58,9 +61,27 @@ export const GameScreen = () => {
     /** Phones can't be locked sideways from a web page, so ask the player to turn it. */
     const needsRotate = isTouchWeb && windowDim.height > windowDim.width;
 
-    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage } = useGameLoop();
-    const { playMusic, stopMusic, preloadTrack } = useBackgroundMusic();
+    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle } = useGameLoop();
+    const { playMusic, stopMusic, pauseMusic, resumeMusic, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
+
+    /**
+     * Pausing. The button (or P / Esc) stops the run and its music; RESUME counts 3-2-1 with
+     * the music rewound to play through the count (see src/game/pause.ts).
+     */
+    const countingDown = isCountingDown(gameState);
+    // Also catches a pause the game made itself, when the app went to the background.
+    useEffect(() => {
+        if (gameState.paused && !countingDown) pauseMusic();
+    }, [gameState.paused, countingDown, pauseMusic]);
+    const pauseRun = useCallback(() => {
+        if (pauseGame()) pauseMusic();
+    }, [pauseGame, pauseMusic]);
+    // The music starts inside this tap: iPhone Safari won't start it any other way.
+    const resumeRun = useCallback(() => {
+        resumeMusic(RESUME_COUNTDOWN_SEC);
+        resumeGame();
+    }, [resumeMusic, resumeGame]);
 
     /**
      * The world scoreboard. When a run ends with a score that makes the world top 10, it
@@ -200,6 +221,14 @@ export const GameScreen = () => {
         }
     }, [gameState.gameStarted, gameState.gameOver, gameState.stageId, playMusic]);
 
+    /** QUIT on the PAUSED screen: the run is dropped, back to the title. */
+    const quitRun = useCallback(() => {
+        musicStartedForRunRef.current = false;
+        stopMusic();
+        setShowInstructions(false);
+        quitToTitle();
+    }, [stopMusic, quitToTitle]);
+
     // Stop music on game over / continue; reset so Play Again can start music again
     useEffect(() => {
         if (gameState.gameOver || gameState.showContinue) {
@@ -302,6 +331,12 @@ export const GameScreen = () => {
     const onDuckReleaseRef = React.useRef(onDuckRelease);
     const playMusicRef = React.useRef(playMusic);
     const restartGameRef = React.useRef(restartGame);
+    const pauseRunRef = React.useRef(pauseRun);
+    const resumeRunRef = React.useRef(resumeRun);
+    const showInstructionsRef = React.useRef(showInstructions);
+    pauseRunRef.current = pauseRun;
+    resumeRunRef.current = resumeRun;
+    showInstructionsRef.current = showInstructions;
     onJumpRef.current = onJump;
     onDuckRef.current = onDuck;
     onDuckReleaseRef.current = onDuckRelease;
@@ -313,6 +348,18 @@ export const GameScreen = () => {
                 // Typing initials: the keys are letters and arrows there, not jump and duck.
                 if (initialsOpenRef.current) return;
                 const state = gameStateRef.current;
+                // P or Esc pauses, and on the PAUSED screen carries on.
+                if (e.code === 'KeyP' || e.code === 'Escape') {
+                    e.preventDefault();
+                    if (!state.paused) pauseRunRef.current();
+                    else if (!state.resumeAt && !showInstructionsRef.current) resumeRunRef.current();
+                    return;
+                }
+                // Nothing else does anything while paused.
+                if (state.paused) {
+                    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown') e.preventDefault();
+                    return;
+                }
                 if (e.code === 'Space' || e.code === 'ArrowUp') {
                     e.preventDefault();
                     e.stopPropagation();
@@ -454,7 +501,27 @@ export const GameScreen = () => {
                                 streak={gameMetrics.streak}
                                 colour={(STAGES.find(s => s.id === gameState.stageId) ?? STAGES[0]).theme.pickupColors.glow}
                             />
+                            {canPause(gameState) && <PauseButton onPress={pauseRun} />}
                         </View>
+                    )}
+
+                    {/* Resuming: 3-2-1 over the frozen game, the music already playing */}
+                    {countingDown && (
+                        <View style={styles.countdown}>
+                            <RNText style={styles.countdownNumber}>{countdownLeft(gameState, Date.now() / 1000)}</RNText>
+                        </View>
+                    )}
+
+                    {/* Paused */}
+                    {gameState.paused && !countingDown && !showInstructions && (
+                        <PausedScreen
+                            stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
+                            stageName={(STAGES.find(s => s.id === gameState.stageId) ?? STAGES[0]).name}
+                            score={gameState.score}
+                            onResume={resumeRun}
+                            onHowToPlay={() => setShowInstructions(true)}
+                            onQuit={quitRun}
+                        />
                     )}
 
                     {/* Made the world top 10: initials first, then the end screen */}
@@ -617,6 +684,19 @@ const styles = StyleSheet.create({
     hudArea: {
         ...StyleSheet.absoluteFillObject,
         pointerEvents: 'box-none',
+    },
+    countdown: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        // Taps pass straight through (they don't jump while paused anyway).
+        pointerEvents: 'none',
+    },
+    countdownNumber: {
+        fontFamily: FONT.display,
+        fontSize: 96,
+        color: NEON.white,
+        ...glow(NEON.pink, 24),
     },
     rotateOverlay: {
         ...StyleSheet.absoluteFillObject,

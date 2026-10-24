@@ -84,6 +84,12 @@ export interface GameState {
     shield: number;
     debugMode: boolean;
     showContinue: boolean;
+    /** The run is paused (see pause.ts): nothing moves and the stage clock stands still. */
+    paused: boolean;
+    /** Unix seconds when the pause began. */
+    pausedAt: number;
+    /** Unix seconds when the 3-2-1 runs out and play carries on; 0 while plainly paused. */
+    resumeAt: number;
 }
 
 export const createInitialState = (): GameState => ({
@@ -122,5 +128,8 @@ export const createInitialState = (): GameState => ({
     elapsedSecInStage: 0,
     shield: 0,
     debugMode: false,
-    showContinue: false
+    showContinue: false,
+    paused: false,
+    pausedAt: 0,
+    resumeAt: 0,
 });
