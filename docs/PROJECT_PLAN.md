@@ -200,9 +200,26 @@ towards where the music actually is (never more than 0.1 sec per second, so noth
 `src/game/musicSync.ts`. Leaving the app mid-run also pauses the music straight away, so it no
 longer plays for a moment on return to the PAUSED screen.
 
-**Step 8 — obstacle sequencing: less samey, and harder sooner.** Not started.
+**Step 8 — obstacle sequencing: less samey, and harder sooner.** In progress.
 Takes in the old step 5 (calm and busy sections that follow the music). The feedback is that the
-first two stages feel easy and alike; Pete also wants a look at how obstacles follow each other.
+first two stages feel easy and alike; Pete also wants a look at how obstacles follow each other,
+and a way to make the game harder gradually without it ever becoming impossible.
+
+*The pretend player* ✅ (24 October): `src/game/difficulty/pretendPlayer.ts` plays whole stages of
+the real game like a person. For each obstacle it finds the window of moments that get past, aims
+for the middle, and misses by a human amount; now and then it doesn't react at all. Three skill
+levels (steady, average, beginner). `npm run difficulty` plays every stage 12 times at each level
+(about 2½ minutes) and writes [DIFFICULTY.md](./DIFFICULTY.md): survival, hits, health lost and
+healed, what hits most, and each obstacle's timing window. First findings:
+- **Difficulty is flat for an average player:** about 5 hits a stage in all four, surviving nearly
+  every time, because the hearts heal almost all of it back.
+- **A beginner meets a cliff after stage 1:** survives stage 1 92% of the time, stage 2 42%,
+  stages 3–4 25%. Mostly fewer hearts, not harder obstacles.
+- **Nothing is impossible:** no obstacle in any run had no way through. Timing windows are about
+  0.4–0.5 sec for a jump, about 1 sec for a duck (it can be held), 0.7 sec for a double jump.
+- **The plan from here:** set a target per stage and skill (say, the average player loses about
+  1 heart's worth in stage 1, rising to 4 in stage 4; a beginner gets through stage 1 almost
+  always), then tune the levers below until the report matches, checking each change against it.
 - **Look first:** a script that lists, for each stage, which patterns come up, how often, what
   follows what, and how long the rests are, to see the sameness in numbers before changing it.
 - **Each stage its own character:** a few patterns it leans on, and something new to learn:
@@ -219,13 +236,15 @@ first two stages feel easy and alike; Pete also wants a look at how obstacles fo
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (174 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (175 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
 - `pickups.test.ts` plays the arcs, hops and double arcs with timing a little early and late at
   every speed, checks none of them costs a hit, that no pickup sits inside an obstacle across
   whole stages, and the streak rules.
+- `npm run difficulty` (not part of `npm test`; a quick check of it is) re-measures how hard each
+  stage is after any change to obstacles, patterns or pacing. Commit the new DIFFICULTY.md.
 - Then played on the phone — Pete and his son are the real test.
 
 ---
@@ -420,4 +439,5 @@ single source of truth.
 - [STAGE_DESIGN.md](./STAGE_DESIGN.md) — 3-minute stages, time-based progress, music sync
 - [STAGE1_REVIEW.md](./STAGE1_REVIEW.md) — stage 1 end to end
 - [WEB_PATCHES_AND_ARCHITECTURE.md](./WEB_PATCHES_AND_ARCHITECTURE.md) — the web patches, including the leak fix
+- [DIFFICULTY.md](./DIFFICULTY.md) — how hard each stage is, measured by the pretend player
 - [HISTORY.md](./HISTORY.md) — past debugging and completed plans
