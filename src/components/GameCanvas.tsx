@@ -1,5 +1,5 @@
 
-import { Canvas, Circle, Group, LinearGradient, Mask, Rect, vec } from "@shopify/react-native-skia";
+import { Canvas, Circle, Group, LinearGradient, Mask, Path, Rect, Skia, vec } from "@shopify/react-native-skia";
 import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -31,6 +31,11 @@ interface GameCanvasProps {
 const PLAYER_X = 50;
 /** Visual only: draw runner 5px higher so feet align with obstacle bottom. Physics/collision unchanged. */
 const RUNNER_VISUAL_Y_OFFSET = -5;
+/**
+ * A solid heart filling a HEART_SIZE box (30 wide, its point resting on the bottom edge).
+ * Made into a Skia path once, inside the component: on web Skia isn't ready at module load.
+ */
+const HEART_SVG = 'M15 30 C6 23 0 17.5 0 10.5 C0 5.5 3.8 2 8.2 2 C11 2 13.5 3.5 15 6 C16.5 3.5 19 2 21.8 2 C26.2 2 30 5.5 30 10.5 C30 17.5 24 23 15 30 Z';
 
 /** Ensure Skia always receives a valid color string (avoids JsiSkPaint/savePaint crashes on web). */
 const safeColor = (c: unknown): string =>
@@ -168,6 +173,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const gameOffsetX = (viewWidth - SCREEN_WIDTH) / 2;
 
+    const heartPath = useMemo(() => Skia.Path.MakeFromSVGString(HEART_SVG)!, []);
     const currentStage = useMemo(() =>
         STAGES.find(s => s.id === gameState.stageId) || STAGES[0]
         , [gameState.stageId]);
@@ -329,13 +335,9 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     if (role === 'heart') {
                         const heartY = RUNNER_GROUND_Y - HEART_SIZE;
                         return (
-                            <Circle
-                                key={obs.id}
-                                cx={drawX + HEART_SIZE / 2}
-                                cy={heartY + HEART_SIZE / 2}
-                                r={HEART_SIZE / 2}
-                                color={safeColor(COLOR_HP_DEEP)}
-                            />
+                            <Group key={obs.id} transform={[{ translateX: drawX }, { translateY: heartY }]}>
+                                <Path path={heartPath} color={safeColor(COLOR_HP_DEEP)} />
+                            </Group>
                         );
                     }
 
