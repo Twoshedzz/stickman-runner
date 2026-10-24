@@ -30,10 +30,10 @@ back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the gameplay pass (§4). Steps 0–6 are done and live; pickups (step 4) and
-pause (step 5) still to be tried on the phone. From player feedback (24 October): holes in the
-floor (step 7) are done and also to be tried; next is a rethink of how obstacles are sequenced
-and how difficulty grows (step 8).
+**Current focus:** the gameplay pass (§4). Steps 0–7 are done and live. Step 8 (sequencing and
+difficulty, measured with the pretend player) is done apart from calm and busy sections that
+follow the music. Step 9 (the beat pulse) has its pulse on the floor; the bonus for landing on
+the beat is next. Obstacles are now 3D and there's menu music.
 
 ---
 
@@ -505,9 +505,13 @@ Not urgent, but each one removes a trap:
 | Gameplay step 5: pause button | ✅ Done; to try on the phone |
 | Gameplay step 6: feel and forgiveness | ✅ Done |
 | Swipe up from a duck to jump | ✅ Done; to try on the phone |
-| Gameplay step 7: holes in the floor | ✅ Done; to try on the phone |
-| Gameplay step 8: obstacle sequencing and music sections | Mostly done; music sections next |
-| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Part 1 (the pulse) done; bonus next |
+| Gameplay step 7: holes in the floor | ✅ Done; in stage 1 from 35 sec |
+| Gameplay step 8: obstacle sequencing and difficulty | ✅ Done, except music sections |
+| Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
+| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
+| Music stays in step after pauses | ✅ Done |
+| Menu music (fades in after a game) | ✅ Done |
+| 3D obstacles | ✅ Done |
 | Web `Aborted()` crash | ✅ Fixed |
 | iPhone: home screen web app | ✅ Working |
 | iPhone: real app via EAS | Not started |
