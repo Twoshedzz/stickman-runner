@@ -232,26 +232,34 @@ once after stage 1. From 12 runs each:
 | Beginner, now | 92% | 83% | 42% | 33% |
 | Average, now (hits) | 100% (4.8) | 100% (4.9) | 100% (6.3) | 83% (6.1) |
 
-Still to do: stage 2 isn't yet any busier than stage 1 for an average player. The rests are now
-down at the minimum gaps the fairness rules allow, so the next lever is the patterns themselves
-(below): longer runs of obstacles in later stages, and each stage its own mix.
-- **Look first:** a script that lists, for each stage, which patterns come up, how often, what
-  follows what, and how long the rests are, to see the sameness in numbers before changing it.
-- **Each stage its own character:** a few patterns it leans on, and something new to learn:
-  holes in stage 2, double-jump pickups in stage 3, and so on. Today stages 1 and 2 draw from
-  much the same mix.
-- **Teach, then combine:** a new obstacle first appears alone and with room to spare, then in
-  patterns with others.
-- **Fewer repeats:** don't pick the same pattern twice running, or the same few too often.
-- **Harder sooner in stage 2:** a quicker budget ramp and shorter rests early on; stage 1 was
-  already retuned on 23 October.
+*Sequences* ✅ (24 October). Looking first showed stages 2–4 drew on every pattern about evenly
+(no stage had a character of its own), stage 1 repeated the same pattern back to back 21% of the
+time, and stage 2 was barely busier than stage 1. Now:
+- **No pattern twice running**, and one from the last three is about a third as likely.
+- **Each stage leans on its own patterns** (`pacing.favour` in `stages.ts`): stage 1 the basics,
+  stage 2 holes, stage 3 moving spheres, the wide block and runs of three, stage 4 the longest runs.
+- **Eight new patterns**, the longer ones for later stages: hole-hole, mover-bar, bar-bar-hop,
+  pair-bar, hole-hop-hole, and three five-cost finales (quad, hole-bar-hole, gauntlet). All pass
+  the bot at every speed.
+- **Teach, then combine:** an obstacle that's new part-way through a stage (holes in stage 2) comes
+  on its own for about 15 seconds before turning up mixed with others.
+- Stage 2's rests are shorter, so it's now busier than stage 1. Obstacles per stage: 125, 134,
+  138, 147. From 20 runs each:
+
+| | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
+|---|---|---|---|---|
+| Beginner survives (target) | 80% (90%) | 60% (65%) | 50% (45%) | 35% (33%) |
+| Average player's hits | 4.5 | 4.8 | 5.4 | 5.8 |
+
+Still to do in step 8: calm and busy sections that follow the music (below).
+
 - **Calm and busy sections that follow the music:** a short intensity list per track (warm-up,
   waves, breather, finale) that scales the budget, so the hard stretches land on the music's
   big moments.
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (175 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (211 tests).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.

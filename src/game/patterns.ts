@@ -59,6 +59,15 @@ export const PATTERNS: Pattern[] = [
     { id: 'hole-hop', cost: 2, steps: [{ role: 'hole', at: 0 }, { role: 'small', at: 1.0 }] },
     { id: 'bar-hole', cost: 3, steps: [{ role: 'overhead', at: 0 }, { role: 'hole', at: 0.6 }] },
     { id: 'hole-bar', cost: 3, steps: [{ role: 'hole', at: 0 }, { role: 'overhead', at: 1.15 }] },
+    { id: 'hole-hole', cost: 3, steps: [{ role: 'hole', at: 0 }, { role: 'hole', at: 1.0 }] },
+    { id: 'mover-bar', cost: 3, steps: [{ role: 'mover', at: 0 }, { role: 'overhead', at: 1.25 }] },
+    // Longer runs, for the later stages
+    { id: 'bar-bar-hop', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'overhead', at: 0.5 }, { role: 'small', at: 1.1 }] },
+    { id: 'pair-bar', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'small', at: 0.15 }, { role: 'overhead', at: 1.15 }] },
+    { id: 'hole-hop-hole', cost: 4, steps: [{ role: 'hole', at: 0 }, { role: 'small', at: 1.0 }, { role: 'hole', at: 2.0 }] },
+    { id: 'quad', cost: 5, steps: [{ role: 'small', at: 0 }, { role: 'large', at: 0.95 }, { role: 'small', at: 1.9 }, { role: 'large', at: 2.85 }] },
+    { id: 'hole-bar-hole', cost: 5, steps: [{ role: 'hole', at: 0 }, { role: 'overhead', at: 1.15 }, { role: 'hole', at: 1.75 }] },
+    { id: 'gauntlet', cost: 5, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'overhead', at: 1.75 }, { role: 'hole', at: 2.35 }] },
     // The wide block: needs a double jump, so only appears when the energy bar is full
     { id: 'huge', cost: 4, steps: [{ role: 'huge', at: 0 }] },
 ];

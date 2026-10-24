@@ -13,6 +13,8 @@ export interface SpawnerState {
     /** Stage seconds when the last heart and last wide block were placed. */
     lastHeartSec: number;
     lastHugeSec: number;
+    /** The patterns placed most recently, newest first, so the same few don't keep coming. */
+    recent: string[];
 }
 
 export const createSpawnerState = (): SpawnerState => ({
@@ -22,6 +24,7 @@ export const createSpawnerState = (): SpawnerState => ({
     lastCost: 0,
     lastHeartSec: 0,
     lastHugeSec: -Infinity,
+    recent: [],
 });
 
 export interface GameState {

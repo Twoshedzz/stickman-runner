@@ -20,11 +20,20 @@ const REST_PER_COST = 0.15;
 const REST_JITTER = 0.25;
 /** A wide block needs the whole energy bar, which takes 3.3 sec on the ground to refill. */
 const HUGE_COOLDOWN_SEC = 6;
+/** How many recent patterns the spawner remembers, to keep the same few from repeating. */
+const RECENT_KEPT = 3;
 /** A heart only goes in a rest at least this long, so it never crowds an obstacle. */
 const HEART_MIN_REST = 0.9;
 
 const blend = ([start, end]: [number, number], progress: number) =>
     start + (end - start) * progress;
+
+/**
+ * A new obstacle first comes on its own: patterns that mix it with others wait this much
+ * longer (as a share of the stage, about 15 seconds), so the player learns it before having
+ * to combine it. Only for obstacles new part-way through a stage.
+ */
+const TEACH_ALONE = 0.08;
 
 /** The patterns this stage allows right now, given its budget and what's been unlocked. */
 export const availablePatterns = (
@@ -37,7 +46,9 @@ export const availablePatterns = (
     const unlocked = (pattern: Pattern) =>
         pattern.steps.every((s) => {
             const from = pacing.unlocks[s.role];
-            return from !== undefined && progress >= from;
+            if (from === undefined) return false;
+            const mixed = pattern.steps.some((other) => other.role !== s.role);
+            return progress >= from + (mixed && from > 0 ? TEACH_ALONE : 0);
         });
     return PATTERNS.filter(
         (p) =>
@@ -60,10 +71,29 @@ const onGrid = (at: number, grid: number) => {
     return nearest < at - 0.06 ? Math.ceil(at / grid) * grid : nearest;
 };
 
-/** Pick one, leaning towards the harder end of what's allowed. */
-const pickPattern = (patterns: Pattern[], budget: number, random: () => number): Pattern => {
+/** How much less likely a pattern is when it came up in the last few. */
+const RECENT_WEIGHT = 0.35;
+
+/**
+ * Pick one, leaning towards the harder end of what's allowed and towards the patterns this
+ * stage favours. Never the same pattern twice running (unless it's the only choice), and
+ * less often one that came up in the last few.
+ */
+const pickPattern = (
+    allowed: Pattern[],
+    budget: number,
+    random: () => number,
+    recent: string[] = [],
+    favour: StagePacing['favour'] = {}
+): Pattern => {
+    const fresh = allowed.filter((p) => p.id !== recent[0]);
+    const patterns = fresh.length > 0 ? fresh : allowed;
     if (patterns.length === 0) return PATTERNS[0];
-    const weights = patterns.map((p) => 1 + (2 * p.cost) / Math.max(1, budget));
+    const weights = patterns.map((p) =>
+        (1 + (2 * p.cost) / Math.max(1, budget)) *
+        (favour[p.id] ?? 1) *
+        (recent.includes(p.id) ? RECENT_WEIGHT : 1)
+    );
     let roll = random() * weights.reduce((a, b) => a + b, 0);
     for (let i = 0; i < patterns.length; i++) {
         roll -= weights[i];
@@ -102,7 +132,9 @@ export const spawnObstacle = (
     const pattern = pickPattern(
         availablePatterns(pacing, progress, spawner.lastCost, hugeAllowed),
         blend(pacing.budget, progress),
-        random
+        random,
+        spawner.recent,
+        pacing.favour
     );
 
     // The first obstacle goes after the rest, or further if what came before needs more room.
@@ -165,6 +197,7 @@ export const spawnObstacle = (
     spawner.restSec = rest;
     spawner.lastRole = pattern.steps[pattern.steps.length - 1].role;
     spawner.lastCost = pattern.cost;
+    spawner.recent = [pattern.id, ...spawner.recent].slice(0, RECENT_KEPT);
 };
 
 /** Start the spawner afresh, for a new run or a new stage. Clears any pickups left over. */

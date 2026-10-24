@@ -35,6 +35,11 @@ export interface StagePacing {
      * 0.5 = halfway). Obstacles not listed never appear. Hearts are always available.
      */
     unlocks: Partial<Record<ObstacleRole, number>>;
+    /**
+     * What gives the stage its own character: patterns it leans on, as a multiplier on how
+     * often each is picked (by id from src/game/patterns.ts; anything unlisted is 1).
+     */
+    favour?: Partial<Record<string, number>>;
     /** How readily hearts turn up. Generous early on balances a harder start. */
     hearts: {
         /** Below this share of health, a heart comes at every chance, at most every `hurtEverySec`. */
@@ -170,6 +175,8 @@ export const STAGES: StageConfig[] = [
             budget: [1.5, 4],
             rest: [1.2, 0.8],
             unlocks: { small: 0, overhead: 0.05, large: 0.1, mover: 0.25, huge: 0.6 },
+            // The basics: the longer runs are saved for later stages.
+            favour: { 'bar-bar-hop': 0, 'pair-bar': 0, 'mover-bar': 0 },
             hearts: { hurtBelow: 0.8, hurtEverySec: 6, topUpChance: 0.5, topUpEverySec: 12 },
             pickups: { hop: [0, 0], double: [0, 0] },
         },
@@ -341,11 +348,16 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_beach'
         },
         pacing: {
-            budget: [2.5, 4.5],
-            rest: [1.05, 0.65],
-            // Holes in the floor are new here: the first comes about 10 seconds in.
+            budget: [3, 4.5],
+            rest: [0.9, 0.55],
+            // Holes in the floor are new here: the first comes about 10 seconds in, on its
+            // own, and the stage leans on them from then on.
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0.05 },
-            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.4, topUpEverySec: 15 },
+            favour: {
+                hole: 2, 'hole-hop': 2.5, 'bar-hole': 2, 'hole-bar': 2, 'hole-hole': 2, 'hole-hop-hole': 1.5,
+                small: 0.6, bar: 0.6, pair: 0.7,
+            },
+            hearts: { hurtBelow: 0.65, hurtEverySec: 7, topUpChance: 0.35, topUpEverySec: 16 },
             // Introduces the extra jump between obstacles.
             pickups: { hop: [0.3, 0.6], double: [0, 0] },
         },
@@ -392,10 +404,16 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_mountains'
         },
         pacing: {
-            budget: [3, 5],
+            budget: [3, 5.5],
             rest: [0.95, 0.6],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.2 },
-            hearts: { hurtBelow: 0.6, hurtEverySec: 9, topUpChance: 0.25, topUpEverySec: 22 },
+            // Moving spheres, the wide block and runs of three; the longest runs near the end.
+            favour: {
+                mover: 1.5, 'mover-hop': 2, 'mover-bar': 2, huge: 2,
+                triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, quad: 1.5,
+                small: 0.5, bar: 0.5, large: 0.6, hole: 0.6,
+            },
+            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
             // Adds double-jump arcs, which compete with the wide block for the energy bar.
             pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
         },
@@ -430,10 +448,16 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_victory'
         },
         pacing: {
-            budget: [3.5, 5],
+            budget: [4.5, 6],
             rest: [0.85, 0.55],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
-            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 18 },
+            // The finale: everything, in the longest runs.
+            favour: {
+                gauntlet: 2.5, quad: 2, 'hole-bar-hole': 2, 'hole-hop-hole': 1.5,
+                'bar-hop-bar': 1.5, 'hop-bar-hop': 1.5, 'bar-bar-hop': 1.5, 'pair-bar': 1.5,
+                small: 0.4, bar: 0.4, large: 0.5, hole: 0.6, mover: 0.7,
+            },
+            hearts: { hurtBelow: 0.55, hurtEverySec: 9, topUpChance: 0.25, topUpEverySec: 22 },
             pickups: { hop: [0.5, 0.7], double: [0.4, 0.6] },
         },
         speed: [320, 360],
