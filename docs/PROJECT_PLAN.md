@@ -186,8 +186,9 @@ colours. Jump over it. It keeps to one running level (decision 11). The rules ar
 - **Ducking doesn't help**, and nothing can be done mid-drop. In the safe second after a hit he
   runs straight across a hole.
 - **Size:** 90px across, one jump at every speed.
-- **Where:** from about 15 seconds into stage 2, then all through stages 3 and 4: roughly 15–20
-  a stage. Patterns: a hole, hole then block, bar then hole, hole then bar.
+- **Where:** from about 35 seconds into stage 1 (moved from stage 2 on 24 October, when players
+  found stage 1 too easy), then all through stages 2–4, with stage 2 leaning on them. Patterns:
+  a hole, hole then block, bar then hole, hole then bar, and longer hole runs later.
 - Pickup arcs go over holes too, and How to Play has a row for them (the heart there is now a
   heart shape as well).
 - `holes.test.ts` checks the drop and the reset; the bot test plays every hole pattern and
@@ -241,15 +242,19 @@ time, and stage 2 was barely busier than stage 1. Now:
 - **Eight new patterns**, the longer ones for later stages: hole-hole, mover-bar, bar-bar-hop,
   pair-bar, hole-hop-hole, and three five-cost finales (quad, hole-bar-hole, gauntlet). All pass
   the bot at every speed.
-- **Teach, then combine:** an obstacle that's new part-way through a stage (holes in stage 2) comes
+- **Teach, then combine:** an obstacle that's new part-way through a stage (holes in stage 1) comes
   on its own for about 15 seconds before turning up mixed with others.
-- Stage 2's rests are shorter, so it's now busier than stage 1. Obstacles per stage: 125, 134,
-  138, 147. From 20 runs each:
+- **Stage 1 harder** (24 October, players found it too easy): holes from about 35 seconds,
+  every obstacle type sooner (bars 5 s, big blocks 11 s, spheres 27 s, wide block 81 s),
+  two-obstacle runs from the start, shorter rests and slightly fewer hearts. Stages 2–4 got
+  shorter rests to stay ahead of it. Obstacles per stage: 137, 137, 144, 157 (stage 2 has the
+  same number as stage 1 but more holes and combinations; its rests are at the fairness
+  minimum). From 20 runs each:
 
 | | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
 |---|---|---|---|---|
-| Beginner survives (target) | 80% (90%) | 60% (65%) | 50% (45%) | 35% (33%) |
-| Average player's hits | 4.5 | 4.8 | 5.4 | 5.8 |
+| Beginner survives | 90% | 60% | 40% | 25% |
+| Average player's hits | 5.0 | 4.8 | 6.2 | 6.3 |
 
 Still to do in step 8: calm and busy sections that follow the music (below).
 

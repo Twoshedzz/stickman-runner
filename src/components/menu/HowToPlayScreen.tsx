@@ -82,7 +82,7 @@ const PageOne = ({ keyboard }: { keyboard: boolean }) => (
             <Row icons={[{ kind: 'block', colour: COLOURS.block }, { kind: 'ball', colour: COLOURS.purple }]} text="JUMP OVER" />
             <Row icons={[{ kind: 'bar', colour: COLOURS.overhead }]} text="DUCK UNDER" />
             <Row icons={[{ kind: 'wide', colour: COLOURS.red }]} text="DOUBLE JUMP" />
-            <Row icons={[{ kind: 'hole', colour: PICKUP.glow }]} text="STAGE 2+ · JUMP IT OR FALL IN" />
+            <Row icons={[{ kind: 'hole', colour: PICKUP.glow }]} text="HOLE: JUMP IT OR FALL IN" />
             <Row icons={[{ kind: 'heart', colour: HEART }]} text="COLLECT FOR HEALTH" />
         </View>
     </>

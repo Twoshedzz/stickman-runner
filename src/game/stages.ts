@@ -170,14 +170,16 @@ export const STAGES: StageConfig[] = [
         audio: {
             musicTrack: 'music_city'
         },
-        // Duck bars from the first few seconds, a quicker ramp, and plenty of hearts to balance it.
+        // Something new every half minute or so, two-obstacle runs early, and hearts to balance it.
+        // Players found it too easy on 24 October, so it starts busier than it used to.
         pacing: {
-            budget: [1.5, 4],
-            rest: [1.2, 0.8],
-            unlocks: { small: 0, overhead: 0.05, large: 0.1, mover: 0.25, huge: 0.6 },
+            budget: [2, 4],
+            rest: [1.0, 0.65],
+            // Holes come about 35 seconds in: on their own first, then in simple pairs.
+            unlocks: { small: 0, overhead: 0.03, large: 0.06, mover: 0.15, hole: 0.2, huge: 0.45 },
             // The basics: the longer runs are saved for later stages.
-            favour: { 'bar-bar-hop': 0, 'pair-bar': 0, 'mover-bar': 0 },
-            hearts: { hurtBelow: 0.8, hurtEverySec: 6, topUpChance: 0.5, topUpEverySec: 12 },
+            favour: { 'bar-bar-hop': 0, 'pair-bar': 0, 'mover-bar': 0, 'hole-hole': 0, 'hole-hop-hole': 0 },
+            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.4, topUpEverySec: 14 },
             pickups: { hop: [0, 0], double: [0, 0] },
         },
         speed: [260, 300],
@@ -349,10 +351,9 @@ export const STAGES: StageConfig[] = [
         },
         pacing: {
             budget: [3, 4.5],
-            rest: [0.9, 0.55],
-            // Holes in the floor are new here: the first comes about 10 seconds in, on its
-            // own, and the stage leans on them from then on.
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0.05 },
+            rest: [0.8, 0.5],
+            // Holes, first met in stage 1, are this stage's speciality, combinations included.
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0 },
             favour: {
                 hole: 2, 'hole-hop': 2.5, 'bar-hole': 2, 'hole-bar': 2, 'hole-hole': 2, 'hole-hop-hole': 1.5,
                 small: 0.6, bar: 0.6, pair: 0.7,
@@ -405,7 +406,7 @@ export const STAGES: StageConfig[] = [
         },
         pacing: {
             budget: [3, 5.5],
-            rest: [0.95, 0.6],
+            rest: [0.75, 0.45],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.2 },
             // Moving spheres, the wide block and runs of three; the longest runs near the end.
             favour: {
@@ -449,7 +450,7 @@ export const STAGES: StageConfig[] = [
         },
         pacing: {
             budget: [4.5, 6],
-            rest: [0.85, 0.55],
+            rest: [0.65, 0.4],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
             // The finale: everything, in the longest runs.
             favour: {
