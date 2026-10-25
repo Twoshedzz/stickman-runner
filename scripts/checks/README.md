@@ -11,6 +11,7 @@ runs. Written during the architecture pass (A4, A5) and kept here since the SDK 
 | `frozen-clock.js` | the page | Replaces the clock and `requestAnimationFrame` with one stepped by hand, seeds `Math.random`, keeps a hidden page "visible", mutes the music. Sets up `window.__fk`. `__fk.set('B')` saves each stage at fixed moments (10s, 90s, 150s, 170s, the clear). |
 | `capture-screens.js` | the page, after `frozen-clock.js` | Walks through 35 screens (title, How to Play, banner, PAUSED, 3-2-1, debug, Stage Clear, Finished, Game Over, initials, world board with a pretend `/api/scores`, attract pages) saving each one's HTML without the canvas, the canvas pixels and the game numbers. Sets up `window.__a5`. |
 | `input-checks.js` | the page, after both above | Real touch events and key presses: tap and double jump, swipe-down duck and hold, swipe up from a duck, keyboard, pause and resume, the pause button. Prints PASS/FAIL lines. |
+| `music-in-tap.js` | a fresh page, after `frozen-clock.js` and `capture-screens.js` | Presses START GAME, RESUME, CONTINUE and PLAY AGAIN the way a tap does and logs whether the music started inside each press (iPhone Safari refuses it otherwise). `await __music.run()`; the log should match before and after. |
 | `compare.js` | node | Compares two runs in a folder: HTML byte for byte (minus id counters and the menu backdrop), PNGs pixel by pixel. |
 
 ## How to run a before/after
