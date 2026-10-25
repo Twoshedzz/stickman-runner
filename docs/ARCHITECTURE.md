@@ -169,6 +169,9 @@ since Expo's TypeScript settings leave `import`/`export` lines that Node can't l
 | Loop / stage timing | `src/game/loop/useGameLoop.ts` |
 | Pausing (the stage clock, the 3-2-1) | `src/game/pause.ts`; button and screen in `src/components/ui/PauseButton.tsx`, `src/components/menu/PausedScreen.tsx` |
 | Draw composition | `src/components/GameCanvas.tsx` |
+| Sky (colours, sun, moon, city lights) | `src/game/sky.ts`; per-stage `timeline` and `sky` in `src/game/stages.ts` |
+| Each stage's scenery | `src/components/backgrounds/scenery.ts` (by `backgroundType`) |
+| Obstacle drawing | `src/components/ObstacleLayer.tsx` (by the obstacle table's `shape` and `tint`) |
 | City strips | `src/components/backgrounds/NeonCityScenery.tsx` |
 | Overlays / input | `src/screens/GameScreen.tsx` |
 | Viewport / centering | `src/screens/GameScreen.tsx` (`viewWidth`), `src/components/GameCanvas.tsx` (`gameOffsetX`), `src/components/GridFloor.tsx` (`vanishX`) |

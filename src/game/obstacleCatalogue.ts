@@ -5,7 +5,7 @@
  * bar you duck under. The ROLE is the mechanic; the stage only changes the colours.
  *
  * Hand-drawn line art for these lives in assets/obstacle-art/ and can be turned back on
- * by regenerating it (scripts/generate-obstacle-art.js) and drawing it in GameCanvas.
+ * by regenerating it (scripts/generate-obstacle-art.js) and drawing it in ObstacleLayer.
  * It is parked rather than deleted: it looked out of place against the flat scenery, and
  * the generated path data added about 145KB to the app.
  *
@@ -18,7 +18,8 @@
  *
  * Each entry says what the obstacle does as well as how it looks, so the game logic asks
  * the table ("does this one wobble?") instead of checking for particular roles. A new
- * obstacle is one more entry here, plus its drawing in GameCanvas.
+ * obstacle is one more entry here; src/components/ObstacleLayer.tsx draws it by its `shape`
+ * and `tint` (a new shape needs a drawing there too).
  */
 import { OVERHEAD_TOP_OFFSET, RUNNER_GROUND_Y } from './constants';
 
@@ -28,11 +29,14 @@ export type ObstacleRole = 'small' | 'large' | 'mover' | 'huge' | 'overhead' | '
 /** Which of the stage's colours a role is drawn in. */
 export type ObstacleTint = 'block' | 'red' | 'purple' | 'overhead' | 'hole' | 'heart';
 
+/** What a role looks like: which drawing ObstacleLayer uses for it. */
+export type ObstacleShape = 'block' | 'sphere' | 'bar' | 'hole' | 'heart';
+
 /** What an obstacle asks the player to do. */
 export type Move = 'jump' | 'double' | 'duck' | 'collect';
 
 export interface RoleShape {
-    shape: 'block' | 'sphere' | 'bar' | 'hole';
+    shape: ObstacleShape;
     width: number;
     height: number;
     tint: ObstacleTint;
@@ -65,7 +69,7 @@ export const ROLE_SHAPES: Record<ObstacleRole, RoleShape> = {
     overhead: { shape: 'bar',    width: 28,  height: 144, tint: 'overhead', damage: 3, clearBy: 'duck', overhead: true },
     // Flat on the floor, so no height: nothing stands up out of it to hit.
     hole:     { shape: 'hole',   width: 90,  height: 0,   tint: 'hole',     damage: 3, clearBy: 'jump', fallIn: true, arcsOver: true },
-    heart:    { shape: 'sphere', width: 28,  height: 28,  tint: 'heart',    damage: 0, clearBy: 'collect', heals: true },
+    heart:    { shape: 'heart',  width: 28,  height: 28,  tint: 'heart',    damage: 0, clearBy: 'collect', heals: true },
 };
 
 export function shapeFor(role: ObstacleRole | undefined): RoleShape {

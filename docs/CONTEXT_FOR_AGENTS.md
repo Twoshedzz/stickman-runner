@@ -32,7 +32,7 @@
 | **Mobile viewport** | On mobile, the game **fills the screen** with a single uniform scale (no stretching). When the device is wide, the **drawn** width can be &gt; 600 so obstacles have a longer run-in; the **focus** (player, HUD) stays in the left 600. | `ARCHITECTURE.md` §11, `HISTORY.md` |
 | **Web viewport** | Web uses a **fixed 600×350** viewport; the game does **not** fill the browser. It’s a small preview window. | `ARCHITECTURE.md` §11, `HISTORY.md` |
 | **Web stability** | Web uses **Skia/CanvasKit (WASM)** for drawing. This setup is **inherently fragile** on web (code splitting + heavy rendering + WASM). We have patches and mitigations (texture-based city on web, fewer particles, one retry on “Aborted”), but **option C** is current: web is “preview only”; full experience is on mobile. A proper fix would be a **web-only renderer without Skia** (e.g. Canvas 2D). | `WEB_PATCHES_AND_ARCHITECTURE.md` |
-| **Where to tweak** | **Mechanics:** `src/game/constants.ts` (global) and `src/game/stages.ts` (per-stage). **Visuals:** `getTheme()` in `GameCanvas.tsx` and each stage’s `timeline` in `stages.ts`. | `STAGE1_REVIEW.md` |
+| **Where to tweak** | **Mechanics:** `src/game/constants.ts` (global) and `src/game/stages.ts` (per-stage). **Visuals:** each stage’s `timeline` and `sky` in `stages.ts` (worked out by `src/game/sky.ts`); its scenery from `backgrounds/scenery.ts`; obstacle drawings in `ObstacleLayer.tsx`. | `STAGE1_REVIEW.md` |
 
 ---
 
@@ -50,7 +50,7 @@
 ## Important paths in the repo
 
 - **Game logic:** `src/game/` (state, loop, physics, spawn, collisions, particles, constants, stages).
-- **Rendering:** `src/components/GameCanvas.tsx` (main canvas), `GridFloor.tsx`, `backgrounds/`, `Stickman.tsx`.
+- **Rendering:** `src/components/GameCanvas.tsx` (main canvas), `ObstacleLayer.tsx`, `GridFloor.tsx`, `backgrounds/` (`scenery.ts` picks each stage's), `Stickman.tsx`.
 - **Screen / viewport:** `src/screens/GameScreen.tsx` (viewport size, scale, web vs native).
 - **Web Skia/WASM:** `src/skiaWasmPreload.web.ts`, `src/components/WasmGate.web.tsx`, `app/_layout.tsx` (gating and lazy load).
 - **Patches:** `patches/expo+54.0.33.patch`, `patches/canvaskit-wasm+0.40.0.patch` (see `WEB_PATCHES_AND_ARCHITECTURE.md` for what they do).

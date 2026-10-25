@@ -29,10 +29,10 @@ How stage 1 works end-to-end, and how to keep mechanics easy to tweak while stay
    - AABB with small hit margin (5px). Heart = heal or score bonus; others = damage (or no damage in debug).  
    - Obstacle sizes: `OBSTACLE_SIZE` (standard/boulder), `OBSTACLE_SIZE_SMALL`, `OBSTACLE_SIZE_PURPLE`; all aligned to `RUNNER_GROUND_Y`.
 
-6. **Theme / visuals** (`src/components/GameCanvas.tsx`)  
+6. **Theme / visuals** (`src/game/sky.ts`, drawn by `src/components/GameCanvas.tsx`)  
    - `getTheme(distance, stage)` runs over `stage.timeline` and returns sky, sun/moon positions and opacities, `nightProgress`, `lightsDwindle`.  
-   - Stage 1 special case: when `distance >= courseLength` return fixed “day” theme so Continue screen doesn’t flip back to night.  
-   - City lights flicker fix: for `stage_1_city` and `distance in [3000, courseLength)`, `nightProgress = Math.max(nightProgress, 0.02)`.
+   - A stage's own touches are settings in its `sky` block in `stages.ts`. Stage 1 has three: `afterFinish` (a fixed “day” look once the stage is over, so the Continue screen doesn’t flip back to night), `lightsFloor` (city lights flicker fix: from 3000 to the finish, `nightProgress` is at least 0.02) and `moonPath` (the moon’s path over 5000–32000).  
+   - The stage's scenery is picked by `assets.backgroundType` from `src/components/backgrounds/scenery.ts`; obstacles are drawn by `src/components/ObstacleLayer.tsx`.
 
 7. **Grid** (`src/components/GridFloor.tsx`)  
    - Scroll derived from `distance` and `courseLength` so grid matches obstacle movement; `GRID_SPEED_NUDGE = 1.18` so grid doesn’t lag.  
@@ -75,14 +75,14 @@ When adding or tuning stages 2–4, keep this contract so behaviour stays consis
 | **Distance** | Loop | `distance = stageProgress * currentStage.courseLength`. All timeline and difficulty logic keyed to this. |
 | **Obstacle speed** | Physics | Uses `BASE_SPEED` from constants. Grid and obstacles stay in sync. |
 | **Spawn difficulty** | Spawn | Use `getDifficultyAtDistance(stage, state.distance)`; define `difficultySegments` in seconds for 30s ramping. |
-| **Theme** | GameCanvas | Use `getTheme(gameState.distance, currentStage)`. Stage defines `timeline` (and optional special cases in `getTheme` for that stage id). |
+| **Theme** | sky.ts | Use `getTheme(gameState.distance, currentStage)`. Stage defines `timeline`, and any touches of its own in its `sky` block (no stage id checks in `sky.ts`). |
 | **Grid** | GridFloor | Pass `courseLength` from current stage; grid formula uses `BASE_SPEED` and `STAGE_DURATION_SECONDS`. |
 | **Ground / collision** | Constants + collisions | `RUNNER_GROUND_Y`, `PLAYER_X`, obstacle sizes from constants; collisions use same ground Y for all obstacle types. |
 
 **Single place to tweak mechanics:**  
 - Global run speed and jump/gravity: `src/game/constants.ts`.  
 - Per-stage length and difficulty: `src/game/stages.ts` (courseLength, difficulty, difficultySegments, timeline).  
-- Visual quirks for one stage: `getTheme` in `GameCanvas.tsx` (e.g. stage id checks and `nightProgress` clamp).
+- Visual quirks for one stage: the stage's `sky` block in `stages.ts` (worked out in `src/game/sky.ts`).
 
 ---
 
@@ -95,7 +95,9 @@ When adding or tuning stages 2–4, keep this contract so behaviour stays consis
 | Movement, obstacles, scoring | `src/game/systems/physics.ts` |
 | Spawn rules | `src/game/systems/spawn.ts` |
 | Collisions | `src/game/systems/collisions.ts` |
-| Theme & sky/moon/lights | `src/components/GameCanvas.tsx` (`getTheme`, usage of `currentTheme`) |
+| Theme & sky/moon/lights | `src/game/sky.ts` (`getTheme`, `moonAt`); stage settings in `src/game/stages.ts` (`timeline`, `sky`) |
+| Each stage's scenery | `src/components/backgrounds/scenery.ts` (by `backgroundType`) |
+| Obstacle drawing | `src/components/ObstacleLayer.tsx` (by the obstacle table's `shape` and `tint`) |
 | Grid scroll | `src/components/GridFloor.tsx` |
 | City background | `src/components/backgrounds/NeonCityScenery.tsx` |
 | Design rules | `docs/STAGE_DESIGN.md` |

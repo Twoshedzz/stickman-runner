@@ -21,7 +21,7 @@
 import { GRAVITY, JUMP_FORCE, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from './constants';
 import { moveFor, shapeFor } from './obstacleCatalogue';
 import { spawnParticles } from './particles';
-import { STAGES, StagePacing } from './stages';
+import { stageById, StagePacing } from './stages';
 import { GameState } from './state';
 
 /** Half the height of the diamond a pickup is drawn as. Small; the glow does the rest. */
@@ -31,7 +31,7 @@ const COLLECT_REACH = 8;
 
 /** The stage's pickup colours. */
 export const pickupColours = (stageId: string) =>
-    (STAGES.find((s) => s.id === stageId) ?? STAGES[0]).theme.pickupColors;
+    stageById(stageId).theme.pickupColors;
 
 /** Seconds between pickups along a ground trail. */
 const TRAIL_SPACING_SEC = 0.15;
