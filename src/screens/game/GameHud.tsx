@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { fillParent } from '../../components/fillParent';
 import { EnergyBar } from '../../components/ui/EnergyBar';
 import { HealthBar } from '../../components/ui/HealthBar';
 import { PauseButton } from '../../components/ui/PauseButton';
@@ -37,7 +38,7 @@ export const GameHud = ({ gameState, gameMetrics, hudInsets, onPause }: Props) =
 
 const styles = StyleSheet.create({
     hudArea: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         pointerEvents: 'box-none',
     },
 });

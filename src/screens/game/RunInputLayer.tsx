@@ -5,6 +5,7 @@
 import React from 'react';
 import { GestureResponderEvent, Pressable, StyleSheet, View } from 'react-native';
 import { GestureDetector, GestureType } from 'react-native-gesture-handler';
+import { fillParent } from '../../components/fillParent';
 
 interface Props {
     /** A phone browser: one touch handler decides tap or swipe. Otherwise the gesture library and a tap button. */
@@ -37,7 +38,7 @@ export const RunInputLayer = ({ touchWeb, disabled, duckGesture, onTap, touchHan
 
 const styles = StyleSheet.create({
     inputLayer: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         zIndex: 10,
         backgroundColor: 'transparent',
     },

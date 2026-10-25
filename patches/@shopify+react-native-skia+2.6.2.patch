@@ -20,10 +20,10 @@ index 4671009..1deccbe 100644
    getAlphaf() {
      return this.getColor()[3];
 diff --git a/node_modules/@shopify/react-native-skia/lib/module/sksg/Container.web.js b/node_modules/@shopify/react-native-skia/lib/module/sksg/Container.web.js
-index ac3d693..7074486 100644
+index 728bc58..b5ed1f7 100644
 --- a/node_modules/@shopify/react-native-skia/lib/module/sksg/Container.web.js
 +++ b/node_modules/@shopify/react-native-skia/lib/module/sksg/Container.web.js
-@@ -13,15 +13,61 @@ import "../views/api";
+@@ -18,16 +18,61 @@ const {
  const drawOnscreen = (Skia, nativeId, recording) => {
    "worklet";
  
@@ -75,9 +75,9 @@ index ac3d693..7074486 100644
 +  const ctx = createDrawingContext(trackedSkia, recording.paintPool, canvas);
    replay(ctx, recording.commands);
    const picture = rec.finishRecordingAsPicture();
+   rec.dispose();
    //const end = performance.now();
    //console.log("Recording time: ", end - start);
-+  rec.dispose();
 +  // The pool's paints are among those freed, so it must not hand them out again.
 +  recording.paintPool.length = 0;
 +  created.forEach(object => object.dispose());
@@ -127,10 +127,10 @@ index 8d5f676..c71b38b 100644
  
    getAlphaf() {
 diff --git a/node_modules/@shopify/react-native-skia/src/sksg/Container.web.ts b/node_modules/@shopify/react-native-skia/src/sksg/Container.web.ts
-index e77b314..58e375e 100644
+index d71fc97..5db9ece 100644
 --- a/node_modules/@shopify/react-native-skia/src/sksg/Container.web.ts
 +++ b/node_modules/@shopify/react-native-skia/src/sksg/Container.web.ts
-@@ -14,15 +14,64 @@ import "../views/api";
+@@ -17,16 +17,64 @@ const { SkiaViewApi } = globalThis;
  
  const drawOnscreen = (Skia: Skia, nativeId: number, recording: Recording) => {
    "worklet";
@@ -185,9 +185,9 @@ index e77b314..58e375e 100644
 +  const ctx = createDrawingContext(trackedSkia, recording.paintPool, canvas);
    replay(ctx, recording.commands);
    const picture = rec.finishRecordingAsPicture();
+   rec.dispose();
    //const end = performance.now();
    //console.log("Recording time: ", end - start);
-+  rec.dispose();
 +  // The pool's paints are among those freed, so it must not hand them out again.
 +  recording.paintPool.length = 0;
 +  created.forEach((object) => object.dispose());

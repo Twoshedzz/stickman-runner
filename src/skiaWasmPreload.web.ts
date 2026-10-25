@@ -3,7 +3,7 @@
  * Try same-origin sync XHR first so __SKIA_WASM_BINARY__ is set before any
  * segment/chunk runs (avoids "Aborted()" in segment 5 when canvaskit loads before async fetch completes).
  */
-const CANVASKIT_VERSION = '0.40.0';
+const CANVASKIT_VERSION = '0.41.0';
 const WASM_URL = `https://unpkg.com/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full/canvaskit.wasm`;
 
 const g = globalThis as unknown as {
@@ -31,6 +31,11 @@ function trySyncSameOriginWasm(): Uint8Array | null {
     }
   }
   return null;
+}
+
+/** A local address for an already-downloaded .wasm file, for CanvasKit's `locateFile`. */
+function wasmObjectUrl(bin: Uint8Array): string {
+  return URL.createObjectURL(new Blob([bin as Uint8Array<ArrayBuffer>], { type: 'application/wasm' }));
 }
 
 // Set binary synchronously from same-origin if possible so any chunk (e.g. segment 5) sees it before ob() runs.
@@ -63,10 +68,16 @@ g.__SKIA_WASM_PROMISE__ = wasmPromise;
 // Load the CanvasKit module only AFTER we have the binary, so when the chunk runs ob() finds __SKIA_WASM_BINARY__.
 // (Loading it here before the binary was set caused the chunk to run and throw "Aborted()" in segment 4/5.)
 const canvaskitReady = wasmPromise.then(async (bin) => {
+  // The page is also pre-rendered in Node when it's built, where nothing is drawn (the app waits
+  // for the browser before mounting Skia) and a browser-only address can't be opened.
+  if (typeof window === 'undefined') return undefined;
   const { default: init } = await import('canvaskit-wasm/bin/full/canvaskit');
-  // wasmBinary is a real Emscripten init option (skips re-fetching the .wasm file) that this
-  // package's bundled types don't declare — only `locateFile` is typed.
-  const CanvasKit = await init({ wasmBinary: bin } as Parameters<typeof init>[0] & { wasmBinary: Uint8Array });
+  // CanvasKit 0.41 can't be handed the binary itself (the old `wasmBinary` option is gone);
+  // it only asks where the file is. Point it at the copy already downloaded, so it isn't
+  // fetched a second time.
+  const url = wasmObjectUrl(bin);
+  const CanvasKit = await init({ locateFile: () => url });
+  URL.revokeObjectURL(url);
   (globalThis as unknown as { CanvasKit?: unknown }).CanvasKit = CanvasKit;
   return CanvasKit;
 });

@@ -6,7 +6,7 @@
   // Blinking menu arrows and the loading flicker run on intervals: hold them still.
   window.setInterval = () => 0;
   const m = window.__stickmanMenuMusic;
-  if (m) { try { m.gain.disconnect(); } catch (e) {} m.ctx.suspend(); m.ctx.resume = () => Promise.resolve(); }
+  if (m) { try { m.gain.disconnect(); } catch {} m.ctx.suspend(); m.ctx.resume = () => Promise.resolve(); }
   const sleep = fk.sleep;
   const fiberOf = (el) => el[Object.keys(el).find(k => k.startsWith('__reactFiber'))];
   const findProp = (el, prop) => { let f = fiberOf(el); while (f && !(f.memoizedProps && typeof f.memoizedProps[prop] === 'function')) f = f.return; return f && f.memoizedProps[prop]; };
@@ -48,7 +48,6 @@
     log.push(name + ' | ' + (document.body.innerText.replace(/\s+/g, ' ').slice(0, 120)) + ' | started=' + g.gameStarted + ' over=' + g.gameOver + ' paused=' + g.paused);
   };
   const waitFor = async (text, ms = 15000) => {
-    const end = performance.now.call ? Date.now : null; // clock is frozen: count real sleeps
     for (let i = 0; i < ms / 100; i++) { if (document.body.innerText.includes(text)) return true; await sleep(100); fk.runAll(); }
     throw new Error('never saw ' + text);
   };

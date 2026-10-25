@@ -1,5 +1,6 @@
 import React, { PropsWithChildren, useRef } from 'react';
 import { GestureResponderEvent, Image, StyleSheet, View } from 'react-native';
+import { fillParent } from '../fillParent';
 import { MenuBackdropFx } from './MenuBackdropFx';
 
 const BACKDROP = require('../../../assets/images/menu-backdrop.jpg');
@@ -52,7 +53,7 @@ export const MenuScreen = ({ children, onSwipe }: PropsWithChildren<MenuScreenPr
 
 const styles = StyleSheet.create({
     screen: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         backgroundColor: '#04020c',
         zIndex: 30,
         overflow: 'hidden',

@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Must match @shopify/react-native-skia's canvaskit-wasm dependency
-const CANVASKIT_VERSION = '0.40.0';
+const CANVASKIT_VERSION = '0.41.0';
 
 const WASM_URL = `https://unpkg.com/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full/canvaskit.wasm`;
 
@@ -82,8 +82,9 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
                     return r.arrayBuffer();
                 })
                 .then((ab) => import('canvaskit-wasm/bin/full/canvaskit').then((m) => {
-                    // wasmBinary is a real Emscripten init option not declared in this package's types (see skiaWasmPreload.web.ts).
-                    return m.default({ wasmBinary: new Uint8Array(ab) } as Parameters<typeof m.default>[0] & { wasmBinary: Uint8Array });
+                    // CanvasKit only asks where the file is (see skiaWasmPreload.web.ts): point it at this copy.
+                    const url = URL.createObjectURL(new Blob([ab], { type: 'application/wasm' }));
+                    return m.default({ locateFile: () => url });
                 }))
                 .then((ck) => {
                     if (!cancelled) {

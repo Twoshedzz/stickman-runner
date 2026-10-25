@@ -3,7 +3,7 @@
 // menu music's fade ran inside the press. Run in a fresh page after frozen-clock.js and
 // capture-screens.js; compare the log before and after a change.
 (() => {
-  const fk = window.__fk, a5 = window.__a5, gs = fk.gs, sleep = fk.sleep;
+  const fk = window.__fk, a5 = window.__a5, gs = fk.gs;
   const fiberOf = (el) => el[Object.keys(el).find(k => k.startsWith('__reactFiber'))];
   const findProp = (el, prop) => { let f = fiberOf(el); while (f && !(f.memoizedProps && typeof f.memoizedProps[prop] === 'function')) f = f.return; return f && f.memoizedProps[prop]; };
   const byText = (text) => [...document.querySelectorAll('div')].filter(d => d.innerText?.trim() === text && d.children.length === 0);

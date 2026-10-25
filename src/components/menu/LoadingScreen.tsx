@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import { fillParent } from '../fillParent';
 import { RNText } from '../RNText';
 import { FONT, glow, NEON } from './menuStyle';
 
@@ -59,7 +60,7 @@ export const LoadingScreen = ({ label, percent }: { label: string; percent?: num
 
 const styles = StyleSheet.create({
     screen: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         zIndex: 40,
         backgroundColor: '#000',
     },

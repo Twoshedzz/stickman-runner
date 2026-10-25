@@ -6,6 +6,7 @@
 
 import React, { Suspense } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { fillParent } from '../components/fillParent';
 import { HowToPlayScreen } from '../components/menu/HowToPlayScreen';
 import { InitialsScreen } from '../components/menu/InitialsScreen';
 import { LoadingScreen } from '../components/menu/LoadingScreen';
@@ -215,12 +216,12 @@ const styles = StyleSheet.create({
         borderColor: '#444',
     },
     renderLayer: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         zIndex: 1,
         backgroundColor: '#000',
     },
     uiLayer: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         // Taps pass through to the jump layer except on buttons. This has to live here in the
         // stylesheet: on web, 'box-none' written inline is silently dropped, and the overlay
         // then swallows every tap, so tapping never jumped.

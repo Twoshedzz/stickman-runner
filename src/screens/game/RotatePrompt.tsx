@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { fillParent } from '../../components/fillParent';
 import { RNText } from '../../components/RNText';
 
 export const RotatePrompt = () => (
@@ -15,7 +16,7 @@ export const RotatePrompt = () => (
 
 const styles = StyleSheet.create({
     rotateOverlay: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         backgroundColor: '#0f0c29',
         justifyContent: 'center',
         alignItems: 'center',
