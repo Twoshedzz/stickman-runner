@@ -5,7 +5,7 @@
  * the game's vector lines), Orbitron for smaller text and scores.
  */
 
-/** Font files, loaded once by GameScreen. Each is required directly so only these get bundled. */
+/** Font files, loaded once by the game screen (src/screens/game/useGameLoading.ts). Each is required directly so only these get bundled. */
 export const MENU_FONT_FILES = {
     Audiowide: require('@expo-google-fonts/audiowide/400Regular/Audiowide_400Regular.ttf'),
     'Orbitron-Medium': require('@expo-google-fonts/orbitron/500Medium/Orbitron_500Medium.ttf'),

@@ -106,7 +106,8 @@ export const JUMP_BUFFER_SEC = 0.12;
 export const HIT_GRACE_SEC = 1;
 export const ENERGY_REGEN = 0.5;
 
-// Stage timing: each stage = 3 minutes real time (keeps audio in sync on slow devices)
+// The 3 minutes the sky's timeline is measured against. How long each stage really lasts is its
+// `durationSec` in stages.ts, where its music ends.
 export const STAGE_DURATION_SECONDS = 180;
 
 /**

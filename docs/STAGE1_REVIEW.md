@@ -1,57 +1,56 @@
 # Stage 1 review and stable platform checklist
 
-How stage 1 works end-to-end, and how to keep mechanics easy to tweak while staying efficient. Use this as the stable base for stages 2–4. For the bug fixes and performance work that got it here, see [HISTORY.md](./HISTORY.md).
+How stage 1 works end-to-end, and how to keep mechanics easy to tweak while staying efficient. Stages 2–4 are built on the same pattern. For the bug fixes and performance work that got it here, see [HISTORY.md](./HISTORY.md). For the whole code map and recipes, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ---
 
 ## 1. Stage 1 flow (end-to-end)
 
 1. **Stages** (`src/game/stages.ts`)  
-   - `stage_1_city`: `courseLength: 43200`, `STAGE_DURATION_SECONDS: 180`, `difficulty` + `difficultySegments` (30s steps), `timeline` (visual events by distance).
+   - `stage_1_city`: `durationSec: 180` (where its music ends), `speed: [260, 300]` (pixels a second, rising through the stage), `pacing` (how hard it gets and when each obstacle first turns up), `beat` (the music's tempo), `courseLength: COURSE_LENGTH` (43200: the sky's clock), `timeline` (visual events by distance) and a `sky` block.
 
 2. **Loop** (`src/game/loop/useGameLoop.ts`)  
    - `requestAnimationFrame` runs every frame.  
-   - **Time-based progress:** `stageStartTime` set on first frame (or on Continue when switching stage).  
-   - `elapsedSecInStage = now - stageStartTime`, `stageProgress = elapsedSec / 180`, `distance = stageProgress * courseLength`.  
-   - So distance and scroll are driven by real time (3 min per stage), not FPS.
+   - **Time-based progress:** `stageStartTime` set on the first frame (or when a stage starts: Continue, or the debug buttons).  
+   - `elapsedSecInStage = now - stageStartTime`, `stageProgress = elapsedSec / durationSec`, `distance = stageProgress * courseLength`, `speed` from `speedAt(stage, progress)`.  
+   - The stage clock is nudged gently towards where the music actually is (`musicSync.ts`), and stands still while paused (`pause.ts`).  
+   - Then it calls **`stepWorld`** (`src/game/step.ts`), the one frame order: scroll → physics → spawn → sparks → collisions → pickups.
 
 3. **Physics** (`src/game/systems/physics.ts`)  
-   - `applyPhysics(state, deltaTimeSec)`: gravity, ground clamp at `RUNNER_GROUND_Y - PLAYER_SIZE`, energy regen on ground, obstacle movement.  
-   - Obstacles move at **`BASE_SPEED`** from `constants.ts` (scale by `deltaTimeSec * 60` for frame-rate independence).  
-   - Score when obstacle right edge passes `PLAYER_X`. Off-screen obstacles filtered out.
+   - `applyPhysics(state, deltaTimeSec)`: gravity, jump and duck, ground clamp, energy regen on the ground, obstacle movement, and a `land` event in `state.events` when the feet touch down.  
+   - Obstacles move at **`state.speed`** (the stage's speed now), scaled by `deltaTimeSec * 60` for frame-rate independence.  
+   - Score when an obstacle's right edge passes `PLAYER_X`. Off-screen obstacles are filtered out. Falling into a hole is `systems/holes.ts`.
 
 4. **Spawn** (`src/game/systems/spawn.ts`)  
-   - `getDifficultyAtDistance(stage, state.distance)` maps distance → 30s segments → effective `spawnRate`, `allowedObstacles`, `allowDoubleSpawns`.  
-   - Spawn spacing uses **`difficulty.baseSpeed`** (and spawnRate) for min/max distance between obstacles.  
-   - **Note:** Actual obstacle speed in physics is `BASE_SPEED` (constants), not `stage.difficulty.baseSpeed`. So stage `baseSpeed` only affects spawn spacing.
+   - Picks whole **patterns** from `src/game/patterns.ts` (“a bar, then a block”), within the stage's current `pacing.budget`, with a rest after each.  
+   - Gaps are in **seconds**, so they stay fair at any speed, and obstacles reach the runner on the music's half-beat grid.
 
 5. **Collisions** (`src/game/systems/collisions.ts`)  
-   - AABB with small hit margin (5px). Heart = heal or score bonus; others = damage (or no damage in debug).  
-   - Obstacle sizes: `OBSTACLE_SIZE` (standard/boulder), `OBSTACLE_SIZE_SMALL`, `OBSTACLE_SIZE_PURPLE`; all aligned to `RUNNER_GROUND_Y`.
+   - Boxes with a small hit margin (5px). Hearts heal; other obstacles do damage (none in debug mode).  
+   - Sizes, damage and what each obstacle does come from the obstacle table, `src/game/obstacleCatalogue.ts`; everything stands on `RUNNER_GROUND_Y` except the bar, which hangs in the duck band.
 
-6. **Theme / visuals** (`src/game/sky.ts`, drawn by `src/components/GameCanvas.tsx`)  
+6. **Sky / visuals** (`src/game/sky.ts`, drawn by `src/components/GameCanvas.tsx`)  
    - `getTheme(distance, stage)` runs over `stage.timeline` and returns sky, sun/moon positions and opacities, `nightProgress`, `lightsDwindle`.  
    - A stage's own touches are settings in its `sky` block in `stages.ts`. Stage 1 has three: `afterFinish` (a fixed “day” look once the stage is over, so the Continue screen doesn’t flip back to night), `lightsFloor` (city lights flicker fix: from 3000 to the finish, `nightProgress` is at least 0.02) and `moonPath` (the moon’s path over 5000–32000).  
    - The stage's scenery is picked by `assets.backgroundType` from `src/components/backgrounds/scenery.ts`; obstacles are drawn by `src/components/ObstacleLayer.tsx`.
 
 7. **Grid** (`src/components/GridFloor.tsx`)  
-   - Scroll derived from `distance` and `courseLength` so grid matches obstacle movement; `GRID_SPEED_NUDGE = 1.18` so grid doesn’t lag.  
-   - Uses `BASE_SPEED` and `STAGE_DURATION_SECONDS` for pixels-per-distance.
+   - Scrolls with `state.scroll`, the pixels the world has actually moved, so it keeps pace with the obstacles at any speed; `GRID_SPEED_NUDGE = 1.18` so the grid doesn’t look as if it lags.  
+   - Also draws the landing glow and the beat pulse.
 
 8. **Continue to next stage**  
-   - `onContinue`: set `stageStatus = 'victory'`, then after 1s set `stageId`, `distance = 0`, `stageStatus = 'playing'`, **`stageStartTime = Date.now()/1000`**, clear obstacles, `resetSpawner()`.  
-   - **Critical:** Resetting `stageStartTime` on transition was added so stage 2+ progress starts from 0; without it, the next stage would instantly complete.
+   - `onContinue` calls `startStage`: the next `stageId`, `distance` and `scroll` back to 0, `stageStatus = 'playing'`, **`stageStartTime = Date.now()/1000`**, obstacles cleared, spawner reset. Straight in, with no pause.  
+   - **Critical:** Resetting `stageStartTime` on transition is what makes stage 2+ progress start from 0; without it, the next stage would instantly complete.
 
 ---
 
 ## 2. Design choices (no bugs, good to know)
 
-- **Single source for scroll speed:** Obstacle movement and grid scroll use **`BASE_SPEED`** (and time) from `constants.ts`. Stage `difficulty.baseSpeed` is used **only for spawn spacing** (min/max distance between obstacles). So one place to tweak “how fast the world moves” is `BASE_SPEED`; stage `baseSpeed` only tunes “how often obstacles appear” relative to that.  
-  - To make per-stage speeds later: pass effective speed (e.g. from stage) into `applyPhysics` and into `GridFloor`’s scroll formula.
+- **Speed per stage:** each stage's world speed rises between two numbers (`speed` in `stages.ts`), and each stage starts a little faster than the last. Obstacles, pickups, scenery and grid all move by `state.speed`, so they stay together. `BASE_SPEED` in `constants.ts` is now only the old speed that `COURSE_LENGTH`, the starting `speed` before the first frame, and the runner's leg pace are measured against.
 
-- **Distance is derived from time:** So `courseLength` is a “visual scale”: same 3 minutes always, but `distance` runs from 0 to `courseLength` so timeline events and difficulty segments line up with 30s steps (e.g. 7200 per 30s for 43200).
+- **Distance is derived from time:** so `courseLength` is the sky's clock, not a distance: `distance` runs from 0 to `courseLength` over the stage whatever the speed. How far the world has actually moved is `state.scroll`.
 
-- **gameState is a ref:** Loop mutates `stateRef.current`; React re-renders are forced by `setRenderTrigger(prev => prev + 1)` every frame. Components receive the same object reference; they re-render because `tick` (renderTrigger) changes. No redundant state copy.
+- **gameState is a ref:** The loop mutates `stateRef.current`. React redraws are asked for with `setRenderTrigger`: every frame while a stage is played or the 3-2-1 counts, and otherwise only when something the screen shows changes (`src/game/loop/redraw.ts`). Components receive the same object reference, so the React Compiler must not cache what they read from it (see “Rules that keep it safe” in ARCHITECTURE.md).
 
 ---
 
@@ -59,29 +58,32 @@ How stage 1 works end-to-end, and how to keep mechanics easy to tweak while stay
 
 - **City lights:** done. The city no longer draws a `Rect` per window: `NeonCityScenery.tsx` stacks pre-generated light overlays (`assets/city/lights/`) on the building strips, still driven by `currentTheme.nightProgress` / `lightsDwindle`.
 
-- **Grid:** `GridFloor` already memoizes `scrollOffset` and line content by `[isMoving, distance, courseLength, tick]`; no change needed unless you add more dynamic grid features.
+- **Menus:** done. The screen no longer redraws 60 times a second behind the menus (0 now).
+
+- **Grid:** `GridFloor` already memoizes `scrollOffset` and line content; no change needed unless you add more dynamic grid features.
 
 For the bugs and performance work already done to reach this stable base, see [HISTORY.md](./HISTORY.md).
 
 ---
 
-## 4. Stable platform checklist for stages 2–4
+## 4. Stable platform checklist for every stage
 
-When adding or tuning stages 2–4, keep this contract so behaviour stays consistent and predictable:
+When adding or tuning a stage, keep this contract so behaviour stays consistent and predictable:
 
 | Contract | Where | What to do |
 |----------|--------|------------|
-| **Time-based progress** | Loop | Use `stageStartTime` and `STAGE_DURATION_SECONDS`; never drive “stage complete” from distance or frames only. Reset `stageStartTime` when switching stage (e.g. in `onContinue`). |
-| **Distance** | Loop | `distance = stageProgress * currentStage.courseLength`. All timeline and difficulty logic keyed to this. |
-| **Obstacle speed** | Physics | Uses `BASE_SPEED` from constants. Grid and obstacles stay in sync. |
-| **Spawn difficulty** | Spawn | Use `getDifficultyAtDistance(stage, state.distance)`; define `difficultySegments` in seconds for 30s ramping. |
-| **Theme** | sky.ts | Use `getTheme(gameState.distance, currentStage)`. Stage defines `timeline`, and any touches of its own in its `sky` block (no stage id checks in `sky.ts`). |
-| **Grid** | GridFloor | Pass `courseLength` from current stage; grid formula uses `BASE_SPEED` and `STAGE_DURATION_SECONDS`. |
-| **Ground / collision** | Constants + collisions | `RUNNER_GROUND_Y`, `PLAYER_X`, obstacle sizes from constants; collisions use same ground Y for all obstacle types. |
+| **Time-based progress** | Loop | Use `stageStartTime` and the stage's `durationSec`; never drive “stage complete” from distance or frames only. Reset `stageStartTime` when switching stage (`startStage`). |
+| **Distance** | Loop | `distance = stageProgress * currentStage.courseLength`. The sky's timeline is keyed to this. |
+| **One frame order** | `step.ts` | Anything that happens each frame goes in `stepWorld`, so the pretend player plays it too. |
+| **Obstacle speed** | Physics | Uses `state.speed` from the stage's `speed`. Grid, scenery and obstacles stay in sync. |
+| **Spawn difficulty** | Spawn | Patterns from `patterns.ts`, gated by the stage's `pacing` (budget, rests, unlocks, favour, hearts). |
+| **Sky** | sky.ts | Use `getTheme(gameState.distance, currentStage)`. Stage defines `timeline`, and any touches of its own in its `sky` block (no stage id checks in `sky.ts`). |
+| **Scenery** | scenery.ts | One entry per `backgroundType`; scenery is handed plain numbers, never the state object. |
+| **Ground / collision** | Constants + obstacle table | `RUNNER_GROUND_Y`, `PLAYER_X`; obstacle sizes from `obstacleCatalogue.ts`, the same on every stage. |
 
 **Single place to tweak mechanics:**  
-- Global run speed and jump/gravity: `src/game/constants.ts`.  
-- Per-stage length and difficulty: `src/game/stages.ts` (courseLength, difficulty, difficultySegments, timeline).  
+- Jump, gravity, duck, energy: `src/game/constants.ts`.  
+- Per-stage length, speed and difficulty: `src/game/stages.ts` (`durationSec`, `speed`, `pacing`).  
 - Visual quirks for one stage: the stage's `sky` block in `stages.ts` (worked out in `src/game/sky.ts`).
 
 ---
@@ -90,11 +92,13 @@ When adding or tuning stages 2–4, keep this contract so behaviour stays consis
 
 | Area | Files |
 |------|--------|
-| Stage config & difficulty | `src/game/stages.ts` |
+| Stage config & difficulty | `src/game/stages.ts`, `src/game/patterns.ts` |
 | Loop, time, distance, Continue | `src/game/loop/useGameLoop.ts` |
+| One frame's order | `src/game/step.ts` |
 | Movement, obstacles, scoring | `src/game/systems/physics.ts` |
 | Spawn rules | `src/game/systems/spawn.ts` |
 | Collisions | `src/game/systems/collisions.ts` |
+| Obstacle table | `src/game/obstacleCatalogue.ts` |
 | Theme & sky/moon/lights | `src/game/sky.ts` (`getTheme`, `moonAt`); stage settings in `src/game/stages.ts` (`timeline`, `sky`) |
 | Each stage's scenery | `src/components/backgrounds/scenery.ts` (by `backgroundType`) |
 | Obstacle drawing | `src/components/ObstacleLayer.tsx` (by the obstacle table's `shape` and `tint`) |
@@ -102,4 +106,4 @@ When adding or tuning stages 2–4, keep this contract so behaviour stays consis
 | City background | `src/components/backgrounds/NeonCityScenery.tsx` |
 | Design rules | `docs/STAGE_DESIGN.md` |
 
-This gives you a stable, reviewed base for stage 1 and a clear pattern for stages 2–4, with one place to tweak mechanics and targeted performance improvements that don’t complicate that.
+This gives you a stable, reviewed base for stage 1 and a clear pattern for every stage, with one place to tweak mechanics and targeted performance improvements that don’t complicate that.

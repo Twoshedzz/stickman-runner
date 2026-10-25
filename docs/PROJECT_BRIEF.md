@@ -40,8 +40,9 @@ Stage 1 (Neon City) became the reference: night → dawn, difficulty segments ev
 Backgrounds moved from simple gradients/shapes toward a denser city look:
 
 - Procedural / neon city layers and grid floor  
-- Then **pre-generated city strip PNGs** (front and back parallax queues) keyed to night/lights theme, with careful scaling and no on-screen theme flipping  
-- Asset loading on web needed special handling (decode + cache SkImages) so “Get ready” waits for strips before play  
+- Then **pre-generated city strip PNGs** (front and back layers), now with the lit windows as overlays that fade in and out with the night  
+- Asset loading on web needed special handling (decode + cache SkImages) so play waits for the strips  
+- Stages 2–4 followed the same pattern: image strips plus a few drawn shapes each
 
 A working Stage 1 snapshot was marked on `main` (tag `stage-one-working` when present) so visual tweaks and later stages have a known good baseline.
 
@@ -51,35 +52,39 @@ Expo + Skia on **native** is the reliable path. On **web**, CanvasKit WASM plus 
 
 ### Gameplay systems that stuck
 
-- Auto-run; tap / double-tap for jump / double jump  
+- Auto-run; tap / double-tap for jump / double jump; swipe down and hold to duck  
 - Health vs energy (regen on ground)  
-- Hearts as heal pickups  
+- Hearts as heal pickups; glowing pickups and a streak multiplier between obstacles  
+- Hand-made obstacle patterns timed to the music's beat, and holes in the floor  
 - Frame-rate–independent vertical physics and run animation (so slow devices don’t feel “floaty” or stretch jumps)
 
-Four stage **configs** live in `stages.ts` (city, beach, mountains, victory). Only Stage 1 is fully realised as a playable visual/gameplay loop.
+All four stages (city, beach, mountains, victory) are playable, each with its own scenery, music, colours and arc.
 
 ## Current position
 
 | Area | Status |
 |------|--------|
-| Stage 1 Neon City | Stable playable baseline |
-| Stages 2–4 | Config + some background scaffolding; not finished |
-| Installable app (store / home screen) | Planned via EAS; still Expo Go–centric |
-| Web deploy | Buildable (`npm run build:web`); treat as preview |
-| Polish (UI, stickman poses, new obstacles) | Backlogged in [PROJECT_PLAN.md](./PROJECT_PLAN.md) |
+| Four stages | All playable end to end: Neon City, Sunset Beach, Midnight Mountains, Victory Dawn |
+| Menus | Full set of 80s-arcade screens: title, How to Play, PAUSED, Stage Clear, Game Over, Finished, best runs |
+| Gameplay | Duck, holes, patterns on the beat, pickups and streak, pause; the beat pulse shows on the floor |
+| World scoreboard | Live: a public top 10, three initials, nothing personal |
+| Code | Tidied in October 2026 so new obstacles, stages and mechanics are each a change in one or two places ([ARCHITECTURE.md](./ARCHITECTURE.md)) |
+| iPhone | Home screen web app works. Expo Go can't open the game until the SDK upgrade (below) |
+| Installable app (App Store / TestFlight) | Not started; needs EAS and the Apple Developer Program |
+| Web deploy | Live on Vercel from `main`; desktop browsers get a small preview |
 
 ## Next steps
 
-Priorities below follow the project plan; order can shift with playtesting.
+Priorities follow [PROJECT_PLAN.md](./PROJECT_PLAN.md); order can shift with playtesting.
 
-1. **Protect Stage 1** — Small visual tweaks only unless something is broken; keep the tagged baseline usable.  
-2. **Finish the stage roadmap** — Beach → mountains → victory lap: each with its own background, 3-minute track, and **at least one new obstacle or pickup** so stages teach something new.  
-3. **Decide “after Stage 4”** — Win/credits screen, loop, stage select, or New Game+ — and implement that branch so Continue after the last stage does not fall through.  
-4. **Installable builds** — EAS preview/production so the game can leave Expo Go.  
-5. **UI and feel** — Health/energy/score layout, instructions, stickman poses (land, hit, victory).  
-6. **Web stance** — Keep as shareable preview, or invest in a non-Skia web renderer if browser stability becomes a real goal.  
+1. **Upgrade Expo (step U1)** — SDK 54 → 58, so Expo Go opens the game again.  
+2. **The beat bonus (step 9)** — points and energy for landing on the beat, then a tally on the end-of-stage screens.  
+3. **Calm and busy sections that follow the music** — the last part of step 8.  
+4. **Tuning** — damage, speeds and colours, from play on the phone.  
+5. **Ideas waiting for Pete** — themed obstacle looks per stage, flying swarms to duck under, hit/victory/idle poses.  
+6. **Installable builds** — EAS, so the game can leave Expo Go.  
 
-Detailed checklists and obstacle ideas live in [PROJECT_PLAN.md](./PROJECT_PLAN.md). Stage timing rules stay in [STAGE_DESIGN.md](./STAGE_DESIGN.md).
+Stage timing rules stay in [STAGE_DESIGN.md](./STAGE_DESIGN.md).
 
 ## Success looks like
 
