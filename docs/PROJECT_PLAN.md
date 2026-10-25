@@ -9,7 +9,13 @@ game works today see [ARCHITECTURE.md](./ARCHITECTURE.md); for why it's shaped t
 
 **Work in step order.** Each step is small enough to test on the phone before moving on.
 
-*Last updated 24 October 2026.*
+*Last updated 25 October 2026.*
+
+**Who keeps this plan.** One Claude session is the **planner**: it owns this file, writes a short
+brief for each step and starts a separate session (in its own worktree) to build it, checks the
+work when it reports back, and ticks the step off here. Building sessions don't edit this file;
+they report what they did and the planner records it. New ideas go in the **Ideas inbox** (§7)
+first, with Pete's view, and become a step when he picks them.
 
 ---
 
@@ -30,10 +36,11 @@ back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the gameplay pass (§4). Steps 0–7 are done and live. Step 8 (sequencing and
-difficulty, measured with the pretend player) is done apart from calm and busy sections that
-follow the music. Step 9 (the beat pulse) has its pulse on the floor; the bonus for landing on
-the beat is next. Obstacles are now 3D and there's menu music.
+**Current focus:** the **architecture pass** (§4A, from 25 October): small tidy-ups that change
+nothing you can see or feel, so new obstacles, stages and mechanics are each a change in one or
+two places. Then back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
+from calm and busy sections that follow the music; step 9 has its pulse on the floor, and the
+bonus for landing on the beat comes straight after the architecture pass.
 
 ---
 
@@ -78,7 +85,92 @@ Don't re-open these without a reason — a lot depends on them.
 
 ---
 
-## 4. The gameplay pass (current work)
+## 4A. The architecture pass (current work)
+
+Pete asked on 25 October for the code to be made **optimised and extensible** before more
+features go in. Each step below is a tidy-up only: the game should look, sound and play exactly
+the same. Small steps, each played on the phone before the next (Pete's choice).
+
+### What a look through the code found
+
+1. **Each obstacle's behaviour is spread over about 11 files.** Whether you jump, duck or double
+   jump it, whether it moves, whether you fall in, whether pickup arcs go over it — each file
+   checks the obstacle's name itself (`patterns.ts`, `physics.ts`, `spawn.ts`, `collisions.ts`,
+   `holes.ts`, `pickups.ts`, `pretendPlayer.ts`, `GameCanvas.tsx`, `HowToPlayScreen.tsx`, …).
+   A new obstacle (a swarm of bats, say) means touching all of them.
+2. **The game's per-frame step is written twice**: once in the game loop and again by hand in
+   the pretend player. Something added to one (the beat bonus) would be missing from the other,
+   and the difficulty report would quietly be wrong.
+3. **Stage scenery and sky are wired into the main canvas**: a chain of "if this stage, draw
+   that", and stage 1 special cases in the sky code. Finding the current stage is copied out
+   about 15 times.
+4. **`GameScreen.tsx` is 791 lines** doing six jobs: screen size, pause, the world scoreboard,
+   loading, music, touch and keyboard input, and deciding which menu shows.
+5. **The loop does more than it should**: it saves the high score to the phone on every frame
+   the score goes up, and the whole screen redraws every frame even on the menus (the menus
+   quietly rely on this, so it has to be untangled carefully).
+6. **Leftovers**: three scenery files and some city pictures nothing uses, eight packages
+   nothing imports, `PLAYER_X` defined twice.
+7. **Docs out of date**: `PROJECT_BRIEF.md` still says stages 2–4 aren't finished.
+
+(The web drawing the scene twice per refresh, in §8, turned out to be inside the Skia library,
+not our code. It stays noted in HISTORY.md; nothing to do here.)
+
+### The steps
+
+**A1 — Clear the dead wood.** Delete the unused scenery files and the city pictures only they
+used, remove the unused packages, fix the lint error and the "Segment: N" debug label.
+
+**A2 — Obstacles describe themselves.** The obstacle table (`obstacleCatalogue.ts`) grows to say
+what each obstacle *does* — how it's cleared (jump, duck, double jump, collect), whether it moves,
+whether you fall in, whether pickup arcs go over it, how hard a hit feels — and every file reads
+the table instead of checking names. Afterwards a new obstacle is one table entry plus how it's
+drawn. This also makes room for **themed looks** later (a stage drawing its small block as a car
+or a rock) with no new rules.
+
+**A3 — One shared step.** The frame's order (scroll, physics, spawn, sparks, collisions,
+pickups) moves into one function that the game loop and the pretend player both use, so anything
+new is measured by the difficulty report from day one. Landing becomes an event other code can
+listen for (the beat bonus needs it).
+
+**A4 — Stages plug in their scenery and sky.** A small table of "this stage's scenery", one way
+to look up the current stage, the sky code moved out of the canvas into its own testable file,
+and stage 1's special cases turned into stage settings. Obstacles get their own drawing
+component. Also does the *sky timeline tidy-up* in §7 (stage 1 compared before and after).
+
+**A5 — Split the game screen.** `GameScreen.tsx` pulled apart into named pieces: input, music
+and loading, the world-scoreboard flow, and which menu shows. Target: under about 250 lines.
+
+**A6 — A lighter loop.** Save scores once when a run ends, not from inside the frame; stop
+redrawing every frame on the menus; shared music code between the phone and web versions.
+
+**A7 — Docs and recipes.** Bring `PROJECT_BRIEF.md` and `ARCHITECTURE.md` up to date, with three
+short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
+
+**Order:** A1 and A2 side by side → A3 and A4 side by side → A5 → A6 → A7. Then step 9's bonus.
+
+### How each architecture step is checked
+
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, `npm test` passing.
+- **The game plays the same:** `npm run difficulty` gives exactly the same DIFFICULTY.md before
+  and after (the pretend player uses fixed dice, so any change in the numbers means the game's
+  behaviour changed).
+- Played in the browser at phone size: title → stage 1 → pause → a hit → a hole → game over →
+  world scores. Then Pete and his son play it on the phone.
+
+| Step | Status |
+|---|---|
+| A1 Clear the dead wood | Next |
+| A2 Obstacles describe themselves | Next |
+| A3 One shared step | Waiting for A2 |
+| A4 Stages plug in scenery and sky | Waiting for A1 |
+| A5 Split the game screen | — |
+| A6 A lighter loop | — |
+| A7 Docs and recipes | — |
+
+---
+
+## 4. The gameplay pass (paused for §4A)
 
 ### What the research said
 
@@ -474,6 +566,17 @@ heart shapes on 24 October.
 The run, jump and landing were reworked on 23 October (§5). Still to do, if wanted: hit,
 victory and idle poses.
 
+### Ideas inbox
+
+Ideas waiting for Pete to place them. Each becomes a step when he picks it.
+
+| Idea | Where it came from | Notes |
+|---|---|---|
+| Themed obstacle looks per stage: cars, a van and a bus in the city; a dog, skater, car and bench on the beach; a bear, rock, log and shrub in the mountains | Pete's concept sheets, `assets/concepts/obstacle-prompts.md` | Same rules as today's blocks and bars, just drawn as things. Easier after A2 and A4. Drawn art was parked once (line weight, small objects hard to see), so try one stage first. |
+| Flying swarms: a tall, narrow flock of tiny birds, seagulls or bats to duck under | `assets/concepts/flying-swarm-prompt.md` | A new duck obstacle; after A2 it's a table entry plus its drawing. |
+| Hit, victory and idle poses for the runner | §7 Stickman | Pose choice is a chain of checks in `Stickman.tsx`; worth a small pose table first. |
+| A real app via EAS | §6 Route 2 | Needs the Apple Developer Program. |
+
 ---
 
 ## 8. Cleanup backlog
@@ -483,18 +586,22 @@ Not urgent, but each one removes a trap:
 - [x] `DEBUG_ENABLED` tied to `__DEV__`.
 - [x] One table of obstacle sizes, colours and damage (`obstacleCatalogue.ts`).
 - [x] The old pop-up menu styles in `GameScreen.tsx` removed with the menu redesign.
-- [ ] Delete dead scenery code: `NeonCityBackground.tsx`, `CityStripBackground.tsx` and
+Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A).
+
+- [ ] **(A1)** Delete dead scenery code: `NeonCityBackground.tsx`, `CityStripBackground.tsx` and
       `SynthwaveBeachBackground.tsx` are no longer used.
-- [ ] Delete the city PNGs only those dead files used: the old brightness strips (`back_all_*`,
+- [ ] **(A1)** Delete the city PNGs only those dead files used: the old brightness strips (`back_all_*`,
       `back_some*`, `front_all_*`, …) and placeholders (`back_no`, `front_no`, `placeholder`).
       Keep the `*_none_*` strips and `assets/city/lights/`.
-- [ ] Remove unused packages: `expo-av`, `expo-haptics`, `expo-image`, `expo-symbols`,
-      `expo-web-browser`, `@react-navigation/bottom-tabs`.
-- [ ] Fix the one lint error (missing display name in `ScoreDisplay.tsx`) and the 10 warnings.
-- [ ] `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
-- [ ] The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
-- [ ] The game loop re-renders every frame even on menu screens.
-- [ ] On web the scene is recorded twice per screen refresh.
+- [ ] **(A1)** Remove unused packages: `expo-av`, `expo-haptics`, `expo-image`, `expo-symbols`,
+      `expo-web-browser`, `@react-navigation/bottom-tabs`, `@react-navigation/elements`,
+      `@expo/vector-icons`, and the unused `hooks/use-theme-color.ts` / `constants/theme.ts`.
+- [ ] **(A1)** Fix the one lint error (missing display name in `ScoreDisplay.tsx`) and the 10 warnings.
+- [ ] **(A4)** `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
+- [ ] **(A1)** The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
+- [ ] **(A6)** The game loop re-renders every frame even on menu screens.
+- [x] On web the scene is recorded twice per screen refresh: this happens inside the Skia
+      library, not our code (see HISTORY.md). Nothing to do.
 
 ---
 
@@ -525,7 +632,8 @@ Not urgent, but each one removes a trap:
 | World scoreboard | ✅ Live (§6) |
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
-| Cleanup backlog | Partly done |
+| Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
+| Architecture pass (§4A) | Started 25 October: A1 and A2 next |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
