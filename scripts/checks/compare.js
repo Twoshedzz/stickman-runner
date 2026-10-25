@@ -3,9 +3,9 @@
 const fs = require('fs'), path = require('path');
 const { PNG } = require('pngjs');
 const [dir, a, b] = process.argv.slice(2);
-// Ids are counters, and the menu backdrop appears whenever the browser gets round to measuring it.
+// Ids and the logo's tint filter names are counters, and the menu backdrop appears whenever the browser gets round to measuring it.
 const norm = (h) => {
-  h = h.replace(/ id="\d+"/g, '');
+  h = h.replace(/ id="\d+"/g, '').replace(/tint-\d+/g, 'tint-N');
   for (;;) {
     const m = h.match(/<div class="css-view-g5y9jx" style="position: absolute; left: [-\d.]+px; top: [-\d.]+px; width: [\d.]+px; height: [\d.]+px;">/);
     const i = m ? m.index : -1;

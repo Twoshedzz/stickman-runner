@@ -111,9 +111,9 @@
     gs().score = 123; gs().gameOver = true; await settle(); await snap('22_game_over');
     worldMock();
     await press('PLAY AGAIN'); await sleep(500); fk.step(30); await snap('23_play_again_board');
-    gs().score = 456; gs().gameOver = true; await settle(); await sleep(300); await settle(); await snap('24_initials');
+    gs().score = 456; gs().gameOver = true; await settle(); await sleep(1000); await settle(); await snap('24_initials');
     const submit = findProp(byText('ENTER')[0], 'onPress'); // the initials screen's own ENTER
-    submit(); await sleep(300); await settle(); await snap('25_world_entered');
+    submit(); await sleep(1000); await settle(); await snap('25_world_entered');
     await press('CONTINUE'); await snap('26_game_over_world');
     await press('WORLD SCORES'); await snap('27_world_browse');
     await press('BACK'); await press('HOW TO PLAY'); await snap('28_gameover_howto');
