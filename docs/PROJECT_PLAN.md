@@ -36,11 +36,12 @@ back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the **architecture pass** (§4A, from 25 October): small tidy-ups that change
-nothing you can see or feel, so new obstacles, stages and mechanics are each a change in one or
-two places. Then back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
+**Current focus:** the **architecture pass** (§4A) is done and live (25 October): small tidy-ups
+that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
+in one or two places. Next is **U1**, the Expo SDK upgrade so Expo Go opens the game again, then
+back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
 from calm and busy sections that follow the music; step 9 has its pulse on the floor, and the
-bonus for landing on the beat comes straight after the architecture pass.
+bonus for landing on the beat comes straight after U1.
 
 ---
 
@@ -85,7 +86,7 @@ Don't re-open these without a reason — a lot depends on them.
 
 ---
 
-## 4A. The architecture pass (current work)
+## 4A. The architecture pass (done 25 October; U1 next)
 
 Pete asked on 25 October for the code to be made **optimised and extensible** before more
 features go in. Each step below is a tidy-up only: the game should look, sound and play exactly
@@ -167,13 +168,13 @@ pictures of every stage and screen. Until then, test in Safari on the phone.
 
 | Step | Status |
 |---|---|
-| A1 Clear the dead wood | ✅ Built 25 Oct (branch `claude/a1-dead-wood-fded9a`): 3 scenery files, 34 old city pictures, 8 packages and the unused theme helpers gone; lint down to 0 errors, 3 warnings. Merged into `main` 25 Oct, to try on the phone |
-| A2 Obstacles describe themselves | ✅ Built 25 Oct (branch `claude/a2-obstacle-catalogue-2c7aac`): each entry now says `clearBy`, `moves`, `fallIn`, `arcsOver`, `bigHit`, `heals`; one `moveFor` and one `topYFor` replace the copies. Only drawing still checks names (A4). Merged into `main` 25 Oct, to try on the phone |
-| A3 One shared step | ✅ Built 25 Oct (branch `claude/a3-shared-step-f735e9`): `stepWorld` in `src/game/step.ts` is the one frame order, used by the game and the pretend player; landings now show up in `state.events`. Merged into `main` 25 Oct, to try on the phone |
-| A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Merged into `main` 25 Oct, to try on the phone |
-| A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged into `main` 25 Oct, to try in Safari on the phone |
-| A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged into `main` 25 Oct, to try in Safari on the phone |
-| A7 Docs and recipes | ✅ Built 25 Oct (branch `claude/a7-docs-recipes-d78e31`): `ARCHITECTURE.md` has "How the code fits together", a rewritten "Where to change what", recipes (add an obstacle, a stage, a mechanic) and "Rules that keep it safe"; `CONTEXT_FOR_AGENTS.md` has "How to check a change"; brief, README and stage docs brought up to date; the pass is in `HISTORY.md`. Docs and 3 code comments only. Waiting to be merged |
+| A1 Clear the dead wood | ✅ Built 25 Oct (branch `claude/a1-dead-wood-fded9a`): 3 scenery files, 34 old city pictures, 8 packages and the unused theme helpers gone; lint down to 0 errors, 3 warnings. Merged and live 25 Oct |
+| A2 Obstacles describe themselves | ✅ Built 25 Oct (branch `claude/a2-obstacle-catalogue-2c7aac`): each entry now says `clearBy`, `moves`, `fallIn`, `arcsOver`, `bigHit`, `heals`; one `moveFor` and one `topYFor` replace the copies. Only drawing still checks names (A4). Merged and live 25 Oct |
+| A3 One shared step | ✅ Built 25 Oct (branch `claude/a3-shared-step-f735e9`): `stepWorld` in `src/game/step.ts` is the one frame order, used by the game and the pretend player; landings now show up in `state.events`. Merged and live 25 Oct |
+| A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Merged and live 25 Oct |
+| A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged and live 25 Oct |
+| A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged and live 25 Oct |
+| A7 Docs and recipes | ✅ Built 25 Oct (branch `claude/a7-docs-recipes-d78e31`): `ARCHITECTURE.md` has "How the code fits together", a rewritten "Where to change what", recipes (add an obstacle, a stage, a mechanic) and "Rules that keep it safe"; `CONTEXT_FOR_AGENTS.md` has "How to check a change"; brief, README and stage docs brought up to date; the pass is in `HISTORY.md`. Docs and 3 code comments only. Merged and live 25 Oct |
 | U1 Expo SDK 54 → 58 | After A7 |
 
 ---
@@ -656,7 +657,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | A1–A6 merged 25 October (not yet pushed); A7 built, waiting to be merged; then U1 |
+| Architecture pass (§4A) | ✅ A1–A7 done and pushed to Vercel 25 October; to play on the phone's home screen app before U1 |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
