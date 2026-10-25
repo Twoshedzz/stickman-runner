@@ -6,7 +6,7 @@ Made as a learning and collaboration project (adult + child): readable code, pla
 
 ## How to play
 
-- **Tap / Space / Up**: Jump  
+- **Tap / Space / Up**: Jump (a swipe up jumps too, as the finger lifts)  
 - **Tap again in the air**: Double jump (uses half the energy bar)  
 - **Swipe down and hold / Down / S**: Duck (slide under bars); from a held duck, swipe up to jump  
 - **Pause button / P / Esc**: Pause  

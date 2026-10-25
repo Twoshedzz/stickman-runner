@@ -40,9 +40,13 @@ export const useRunInput = ({ gameState, onJump, onDuck, onDuckRelease }: Option
                     onDuck(true); // again as the finger moves, so a duck swiped in the air lands ducked
                 }
             })
-            .onFinalize(() => {
+            .onFinalize((_e, success) => {
+                const swipe = gestureSwipeRef.current;
                 gestureSwipeRef.current = null;
                 onDuckRelease();
+                // A swipe that wasn't a duck (up, or sideways) jumps as the finger lifts, as in a
+                // phone browser. `success`: the swipe won the race, so the tap didn't jump already.
+                if (success && swipe && endSwipe(swipe) === 'tap') handleInteraction();
             }),
         [onDuck, onDuckRelease, handleInteraction]
     );
