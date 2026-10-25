@@ -84,8 +84,8 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     // Synthwave Stickman: White with Neon Glow
     // Limbs are drawn as lit tubes (see Tube): the near side bright, the far arm and leg a
     // darker blue-grey, thinner and set slightly back, so he reads as a solid figure.
-    const near = { width: 5.5, shade: "#c9cde6", light: "#ffffff" };
-    const far = { width: 4.6, shade: "#6f7596", light: "#aab0cc" };
+    const near = { width: 5.5, shade: "#dcdff0", light: "#ffffff" };
+    const far = { width: 4.6, shade: "#8e94b4", light: "#bfc4dc" };
     const farShift = [{ translateX: 1.2 * (size / 40) }, { translateY: -0.8 * (size / 40) }];
 
     // Dimensions
@@ -231,7 +231,7 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
                 <RadialGradient
                     c={vec(headCenter.x - headRadius * 0.35, headCenter.y - headRadius * 0.4)}
                     r={headRadius * 1.5}
-                    colors={["#ffffff", "#e9ebf6", "#8f94b4"]}
+                    colors={["#ffffff", "#eef0f8", "#a9aec9"]}
                     positions={[0, 0.35, 1]}
                 />
             </Circle>
