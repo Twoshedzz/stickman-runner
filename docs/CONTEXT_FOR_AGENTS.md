@@ -29,6 +29,8 @@ The game is on **Expo SDK 58** (step U1, October 2026), the version Expo Go on t
 
 SDK 58 needs **Node 22.13 or newer**. The Mac's default Node is 20; Node 24 is installed through `fnm`, so run commands as `fnm exec --using=24 npm …` (or put `~/.local/share/fnm/node-versions/v24.14.1/installation/bin` first on the PATH). `package.json` says so in `engines`, which also tells Vercel which Node to build with.
 
+Expo Go 58 refuses a project from a Mac that isn't signed in to Expo when the phone's Expo Go is signed in ("not signed in to Expo CLI"). The Mac was signed in as twoshedzz on 2026-10-25 (`npx expo login`, with `NODE_EXTRA_CA_CERTS` set for the office network's filter); restart the dev server after signing in.
+
 ---
 
 ## Key technical decisions (as of now)
