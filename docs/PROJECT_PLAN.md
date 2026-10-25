@@ -175,7 +175,7 @@ pictures of every stage and screen. Until then, test in Safari on the phone.
 | A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged and live 25 Oct |
 | A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged and live 25 Oct |
 | A7 Docs and recipes | ✅ Built 25 Oct (branch `claude/a7-docs-recipes-d78e31`): `ARCHITECTURE.md` has "How the code fits together", a rewritten "Where to change what", recipes (add an obstacle, a stage, a mechanic) and "Rules that keep it safe"; `CONTEXT_FOR_AGENTS.md` has "How to check a change"; brief, README and stage docs brought up to date; the pass is in `HISTORY.md`. Docs and 3 code comments only. Merged and live 25 Oct |
-| U1 Expo SDK 54 → 58 | After A7 |
+| U1 Expo SDK 54 → 58 | In progress (started 25 Oct, after Pete played the tidied game on his phone: fine) |
 
 ---
 
