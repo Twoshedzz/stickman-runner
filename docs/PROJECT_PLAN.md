@@ -175,7 +175,7 @@ pictures of every stage and screen. Until then, test in Safari on the phone.
 | A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged and live 25 Oct |
 | A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged and live 25 Oct |
 | A7 Docs and recipes | ✅ Built 25 Oct (branch `claude/a7-docs-recipes-d78e31`): `ARCHITECTURE.md` has "How the code fits together", a rewritten "Where to change what", recipes (add an obstacle, a stage, a mechanic) and "Rules that keep it safe"; `CONTEXT_FOR_AGENTS.md` has "How to check a change"; brief, README and stage docs brought up to date; the pass is in `HISTORY.md`. Docs and 3 code comments only. Merged and live 25 Oct |
-| U1 Expo SDK 54 → 58 | In progress (started 25 Oct, after Pete played the tidied game on his phone: fine) |
+| U1 Expo SDK 54 → 58 | ✅ Built 25 Oct (branch `claude/u1-expo-sdk-58-b50281`, 11 commits): Expo 58, React Native 0.88, Skia 2.14, Reanimated 4.7, Gesture Handler 3.3, Jest 30, TypeScript 6. All three web patches gone: Skia 2.14 frees each frame's objects itself (10 minutes of play: 128 MB at the start and the end). Difficulty report identical, all 35 screens match, 255 tests pass; lint warnings 3 → 40 (the new React Compiler checks, set to warnings on purpose). Needs Node 22.13+ (Node 24 via `fnm` on the Mac). The before/after checks are now in `scripts/checks/`. **Waiting for:** Pete to try it in Expo Go, and a Vercel test build of the branch (Node version) before merging |
 
 ---
 
@@ -621,9 +621,9 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 - [ ] `state.timeOfDay` is worked out every frame and read by nothing (found in A7).
 - [ ] `GridFloor` is handed the whole game state and only stays fresh because `tick` changes every
       frame; give it the plain numbers it uses, like the scenery (found in A7).
-- [ ] Put the before/after check scripts from the A-steps (frozen clock, capture all screens,
-      input checks, compare) in `scripts/checks/` with a short README, ideally as part of U1,
-      which needs exactly those checks (suggested by A7).
+- [x] Put the before/after check scripts from the A-steps (frozen clock, capture all screens,
+      input checks, compare) in `scripts/checks/` with a short README (done in U1, with a music
+      check and a memory test added).
 - [x] On web the scene is recorded twice per screen refresh: this happens inside the Skia
       library, not our code (see HISTORY.md). Nothing to do.
 
