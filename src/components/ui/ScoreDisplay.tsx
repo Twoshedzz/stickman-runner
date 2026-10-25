@@ -38,6 +38,7 @@ export const ScoreDisplay = React.memo(({ score, stageNumber, streak = 0, colour
         prevProps.streak === nextProps.streak &&
         prevProps.colour === nextProps.colour;
 });
+ScoreDisplay.displayName = 'ScoreDisplay';
 
 const styles = StyleSheet.create({
     scoreContainer: {

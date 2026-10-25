@@ -613,7 +613,7 @@ export const GameScreen = () => {
                             <RNText style={{ color: 'white' }}>Obs: {gameState.obstacles.length}</RNText>
                             <RNText style={{ color: 'white' }}>Started: {String(gameState.gameStarted)}</RNText>
                             <RNText style={{ color: 'white', fontWeight: 'bold' }}>Distance: {Math.floor(gameState.distance)}</RNText>
-                            <RNText style={{ color: 'white' }}>Segment: {Math.min(6, 1 + Math.floor(gameState.distance / 7200))} (30s each)</RNText>
+                            <RNText style={{ color: 'white' }}>Stage time: {Math.floor(gameState.elapsedSecInStage)}s</RNText>
                             <RNText style={{ color: 'white', opacity: 0.8 }}>tick: {tick}</RNText>
                             {/* Jump to a stage, so stages 2-4 can be checked without playing through. */}
                             <View style={{ flexDirection: 'row', marginTop: 8 }}>
