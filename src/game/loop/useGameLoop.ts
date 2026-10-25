@@ -8,6 +8,7 @@ import { createInitialState, GameState } from '../state';
 import { stepWorld } from '../step';
 import { jump, releaseDuck, startDuck } from '../systems/physics';
 import { resetSpawner } from '../systems/spawn';
+import { movesEveryFrame, shownKey } from './redraw';
 import { useScoreTable } from './useScoreTable';
 
 export type { ScoreEntry } from './useScoreTable';
@@ -105,9 +106,20 @@ export const useGameLoop = () => {
     const [gameMetrics, setGameMetrics] = useState(startingMetrics);
     const metricsRef = useRef(gameMetrics); // Ref to avoid closure staleness in loop check
 
-    const [renderTrigger, setRenderTrigger] = useState(0); // For Canvas (60fps)
+    // Bumped to make the screen draw again: every frame while play moves, otherwise when what it shows changes.
+    const [renderTrigger, setRenderTrigger] = useState(0);
 
     useEffect(() => {
+        /** What the screen showed when the loop last had it drawn (see redraw.ts). */
+        let shown = '';
+        /** Draw again if something on screen moves, or what it shows has changed. */
+        const redraw = (state: GameState) => {
+            const key = shownKey(state);
+            if (key === shown && !movesEveryFrame(state)) return;
+            shown = key;
+            setRenderTrigger(prev => prev + 1);
+        };
+
         const loop = () => {
             const state = stateRef.current;
 
@@ -122,7 +134,7 @@ export const useGameLoop = () => {
                 // Paused: nothing moves and the stage clock stands still until the 3-2-1 runs out.
                 if (state.paused) {
                     if (!tickPause(state, nowSec)) {
-                        setRenderTrigger(prev => prev + 1);
+                        redraw(state);
                         requestRef.current = requestAnimationFrame(loop);
                         return;
                     }
@@ -194,8 +206,7 @@ export const useGameLoop = () => {
             // A run just ended: into the score table, once (see useScoreTable).
             if (state.gameOver) recordRun(state);
 
-            // Force React to re-render for Canvas (60fps when possible for smooth animation).
-            setRenderTrigger(prev => prev + 1);
+            redraw(state);
 
             requestRef.current = requestAnimationFrame(loop);
         };
