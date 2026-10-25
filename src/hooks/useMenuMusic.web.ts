@@ -16,10 +16,8 @@
  */
 import { Asset } from 'expo-asset';
 import { useCallback, useEffect } from 'react';
+import { MENU_VOLUME } from './musicShared';
 import { MENU_TRACK } from './musicTracks';
-
-/** How loud the loop plays, compared with the stage music. */
-const MENU_VOLUME = 0.8;
 
 type Wanted = { fadeInSec: number; delaySec: number };
 

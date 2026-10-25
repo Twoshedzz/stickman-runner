@@ -4,6 +4,7 @@
  */
 import { Asset } from 'expo-asset';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { fadeOut, resumeLeadIn } from './musicShared';
 import { DEFAULT_TRACK, MUSIC_TRACKS } from './musicTracks';
 
 interface TrackLoad {
@@ -254,19 +255,13 @@ export const useBackgroundMusic = () => {
     const stopMusic = useCallback(async () => {
         const audio = webAudioRef.current;
         if (!audio) return;
-        // The fade takes ~2 seconds. If a new run starts in that time, this fade must not
-        // touch the new audio, or the rest of that run plays in silence.
+        // A new run starting during the fade overtakes it (see fadeOut).
         const generation = playGenerationRef.current;
         const overtaken = () => playGenerationRef.current !== generation || webAudioRef.current !== audio;
         try {
             wantPlayingRef.current = false;
             setMusicStatus('Stopping...');
-            for (let i = 20; i >= 0; i--) {
-                if (overtaken()) return;
-                audio.volume = i / 20;
-                await new Promise((r) => setTimeout(r, 100));
-            }
-            if (overtaken()) return;
+            if (!(await fadeOut((volume) => { audio.volume = volume; }, overtaken))) return;
             audio.pause();
             audio.currentTime = 0;
             currentTrackRef.current = null;
@@ -297,15 +292,13 @@ export const useBackgroundMusic = () => {
         const audio = webAudioRef.current;
         if (!audio) return;
         wantPlayingRef.current = true;
-        const back = Math.min(leadInSec, audio.currentTime);
-        audio.currentTime -= back;
+        const { rewindSec, waitSec } = resumeLeadIn(leadInSec, audio.currentTime);
+        audio.currentTime -= rewindSec;
         const start = () => {
             resumeTimerRef.current = null;
             audio.play()?.catch(() => {});
         };
-        // Paused in the first seconds of the track: not enough to rewind, so start later instead.
-        const wait = leadInSec - back;
-        if (wait > 0.05) resumeTimerRef.current = setTimeout(start, wait * 1000);
+        if (waitSec) resumeTimerRef.current = setTimeout(start, waitSec * 1000);
         else start();
     }, []);
 
