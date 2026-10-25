@@ -1,43 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ObstacleRole, shapeFor } from '../../game/obstacleCatalogue';
 import { STAGES } from '../../game/stages';
+import { tintColours } from '../obstacleColours';
 import { RNText } from '../RNText';
 import { ArcadeMenu, useBlink } from './ArcadeMenu';
 import { MenuScreen } from './MenuScreen';
 import { FONT, glow, NEON } from './menuStyle';
 
 /** Obstacles and pickups are shown in stage 1's colours, which is where the player first meets them. */
-const COLOURS = STAGES[0].theme.obstacleColors!;
-const HEART = '#FF1493';
-const PICKUP = STAGES[0].theme.pickupColors;
+const THEME = STAGES[0].theme;
+const PICKUP = THEME.pickupColors;
 
-type Shape = { kind: 'block' | 'ball' | 'bar' | 'wide' | 'hole' | 'heart'; colour: string };
-
-/** A small drawing of the obstacle itself, so the player knows exactly what to look for. */
-const Icon = ({ kind, colour }: Shape) => {
+/**
+ * A small drawing of the obstacle itself, so the player knows exactly what to look for. Its
+ * shape and colour come from the obstacle table, like the game's; the drawings are plain
+ * views rather than the game's Skia ones, which the menus don't load.
+ */
+const Icon = ({ role }: { role: ObstacleRole }) => {
+    const { shape, width, height, tint } = shapeFor(role);
+    const { colour } = tintColours(tint, THEME);
     // A hole: a dark opening in the floor with a lit rim, flattened like the game draws it.
-    if (kind === 'hole') {
+    if (shape === 'hole') {
         return (
             <View style={styles.iconBox}>
                 <View style={[styles.hole, { borderColor: colour, boxShadow: `0 0 8px ${colour}` }]} />
             </View>
         );
     }
-    if (kind === 'heart') {
+    if (shape === 'heart') {
         return (
             <View style={styles.iconBox}>
                 <RNText style={[styles.heart, { color: colour, textShadowColor: colour }]}>♥</RNText>
             </View>
         );
     }
-    const shape =
-        kind === 'ball' ? { width: 16, height: 16, borderRadius: 8 }
-        : kind === 'bar' ? { width: 7, height: 22 }
-        : kind === 'wide' ? { width: 30, height: 12 }
+    const size =
+        shape === 'sphere' ? { width: 16, height: 16, borderRadius: 8 }
+        : shape === 'bar' ? { width: 7, height: 22 }
+        : width > height ? { width: 30, height: 12 }
         : { width: 15, height: 15 };
     return (
         <View style={styles.iconBox}>
-            <View style={[shape, { backgroundColor: colour, boxShadow: `0 0 8px ${colour}` }]} />
+            <View style={[size, { backgroundColor: colour, boxShadow: `0 0 8px ${colour}` }]} />
         </View>
     );
 };
@@ -52,10 +57,10 @@ const Pickups = ({ lifts }: { lifts: number[] }) => (
     <View style={styles.pickups}>{lifts.map((lift, i) => <Diamond key={i} lift={lift} />)}</View>
 );
 
-const Row = ({ keyText, text, icons, pickups }: { keyText?: string; text: string; icons?: Shape[]; pickups?: number[] }) => (
+const Row = ({ keyText, text, icons, pickups }: { keyText?: string; text: string; icons?: ObstacleRole[]; pickups?: number[] }) => (
     <View style={styles.row}>
         {icons ? (
-            <View style={styles.icons}>{icons.map((s, i) => <Icon key={i} {...s} />)}</View>
+            <View style={styles.icons}>{icons.map((role) => <Icon key={role} role={role} />)}</View>
         ) : pickups ? (
             <Pickups lifts={pickups} />
         ) : (
@@ -79,11 +84,11 @@ const PageOne = ({ keyboard }: { keyboard: boolean }) => (
 
         <View style={styles.column}>
             <RNText style={styles.heading}>OBSTACLES</RNText>
-            <Row icons={[{ kind: 'block', colour: COLOURS.block }, { kind: 'ball', colour: COLOURS.purple }]} text="JUMP OVER" />
-            <Row icons={[{ kind: 'bar', colour: COLOURS.overhead }]} text="DUCK UNDER" />
-            <Row icons={[{ kind: 'wide', colour: COLOURS.red }]} text="DOUBLE JUMP" />
-            <Row icons={[{ kind: 'hole', colour: PICKUP.glow }]} text="HOLE: JUMP IT OR FALL IN" />
-            <Row icons={[{ kind: 'heart', colour: HEART }]} text="COLLECT FOR HEALTH" />
+            <Row icons={['small', 'mover']} text="JUMP OVER" />
+            <Row icons={['overhead']} text="DUCK UNDER" />
+            <Row icons={['huge']} text="DOUBLE JUMP" />
+            <Row icons={['hole']} text="HOLE: JUMP IT OR FALL IN" />
+            <Row icons={['heart']} text="COLLECT FOR HEALTH" />
         </View>
     </>
 );

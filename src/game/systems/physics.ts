@@ -61,6 +61,7 @@ const runAndJump = (state: GameState, scale: number) => {
     if (player.y >= groundY) {
         // Landing Event
         if (!player.isGrounded) {
+            state.events.push({ type: 'land' });
             // The grid lights up under his feet. Obstacles arrive on the beat, so landings
             // tend to fall on it too, and the grid pulses in time with the music.
             player.landGlow = 1;

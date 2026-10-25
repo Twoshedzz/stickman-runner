@@ -1,5 +1,6 @@
 import { COURSE_LENGTH } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
+import type { SkyLook } from './sky';
 
 export type VisualEventType = 'sky_gradient' | 'celestial_sun' | 'celestial_moon' | 'night_lights' | 'night_lights_dwindle';
 
@@ -61,6 +62,25 @@ export interface StagePacing {
     };
 }
 
+/**
+ * A stage's own touches to the sky, on top of its timeline (worked out in sky.ts).
+ * Distances are on the same dusk-to-dawn clock as the timeline (`courseLength`).
+ */
+export interface StageSky {
+    /** Held once the stage is over, so the Stage Clear screen doesn't flip back to night. */
+    afterFinish?: SkyLook;
+    /** From this distance to the finish, the city lights never drop below `level` (0-1). */
+    lightsFloor?: { from: number; level: number };
+    /**
+     * The moon's path between two distances, in place of the timeline's moon: down the sky
+     * from `fromY` to `toY`, fading in over the first `fadeIn` of the way.
+     */
+    moonPath?: { from: number; to: number; fromY: number; toY: number; fadeIn: number };
+}
+
+/** Which scenery a stage is drawn with (src/components/backgrounds/scenery.ts). */
+export type BackgroundType = 'city' | 'beach' | 'mountains' | 'city_victory';
+
 export interface StageConfig {
     id: string;
     name: string;
@@ -77,7 +97,7 @@ export interface StageConfig {
          * what ties them to the scenery. Hearts are deliberately NOT here: they stay pink on
          * every stage so "this one helps you" always reads the same.
          */
-        obstacleColors?: {
+        obstacleColors: {
             block: string;      // standard, small and boulder
             blockGlow: string;
             red: string;
@@ -91,7 +111,7 @@ export interface StageConfig {
         pickupColors: { core: string; glow: string };
     };
     assets: {
-        backgroundType: 'city' | 'beach' | 'mountains' | 'city_victory';
+        backgroundType: BackgroundType;
     };
     audio: {
         musicTrack: string; // Key for the music mapping
@@ -121,7 +141,11 @@ export interface StageConfig {
      */
     courseLength: number;
     timeline?: VisualEvent[]; // Optional ordered list of visual changes
+    sky?: StageSky;
 }
+
+/** The stage with this id, or the first stage if there's no such stage. */
+export const stageById = (id: string): StageConfig => STAGES.find((s) => s.id === id) ?? STAGES[0];
 
 /** World speed in pixels per second at a point in the stage (0 = start, 1 = end). */
 export const speedAt = (stage: StageConfig, progress: number) =>
@@ -329,7 +353,21 @@ export const STAGES: StageConfig[] = [
                 trigger: { start: 43200, end: 999999 },
                 values: { startY: 120, endY: 120, startColor: '#FDB813', endColor: '#FDB813' }
             }
-        ]
+        ],
+        sky: {
+            // Daytime, with every light off, once the stage is over.
+            afterFinish: {
+                skyTop: '#00b4db', skyMid: '#48c6ef', skyBottom: '#88defb',
+                sunColor: '#FDB813', sunY: 120,
+                moonY: -100, moonOpacity: 0,
+                nightProgress: 0, lightsDwindle: 1,
+            },
+            // Once the lights start coming on, a few always show.
+            lightsFloor: { from: 3000, level: 0.02 },
+            // The moon comes down from above the screen (-80) to behind the buildings (300)
+            // over 5k-32k, clearer as night draws in.
+            moonPath: { from: 5000, to: 32000, fromY: -80, toY: 300, fadeIn: 5000 },
+        },
     },
     {
         id: 'stage_2_beach',

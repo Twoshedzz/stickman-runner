@@ -2,16 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // Assumin
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
-import { frameScale } from '../frame';
-import { updateParticles } from '../particles';
 import { cancelResume, pauseRun, startResume, tickPause } from '../pause';
 import { musicNudge } from '../musicSync';
-import { collectPickups } from '../pickups';
 import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
-import { checkCollisions } from '../systems/collisions';
-import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
-import { resetSpawner, spawnObstacle } from '../systems/spawn';
+import { stepWorld } from '../step';
+import { jump, releaseDuck, startDuck } from '../systems/physics';
+import { resetSpawner } from '../systems/spawn';
 
 /** One run in the score table. */
 export interface ScoreEntry {
@@ -191,15 +188,7 @@ export const useGameLoop = () => {
                     // stops and starts (pauses, other apps). See musicSync.ts.
                     const musicSec = musicClockRef.current?.(currentStage.audio?.musicTrack || 'music_city');
                     if (musicSec != null) state.stageStartTime += musicNudge(elapsedSec, musicSec, deltaTimeSec);
-                    // Same step the obstacles take, so the scenery and grid move with them.
-                    state.scroll += (state.speed / 60) * frameScale(deltaTimeSec);
-                    applyPhysics(state, deltaTimeSec);
-                    if (state.distance < currentStage.courseLength - 1000) {
-                        spawnObstacle(state, currentStage, deltaTimeSec);
-                    }
-                    state.particles = updateParticles(state.particles, deltaTimeSec);
-                    checkCollisions(state);
-                    collectPickups(state);
+                    stepWorld(state, currentStage, deltaTimeSec);
                 }
 
                 // Check High Score

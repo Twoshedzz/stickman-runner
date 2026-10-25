@@ -27,6 +27,14 @@ export const createSpawnerState = (): SpawnerState => ({
     recent: [],
 });
 
+/**
+ * Something that happened this frame, for other code to react to. The list is emptied at the
+ * start of every frame (see step.ts), so it only ever holds this frame's events.
+ */
+export type GameEvent =
+    /** The runner's feet touched down after a jump. */
+    | { type: 'land' };
+
 export interface GameState {
     player: {
         y: number;
@@ -67,6 +75,8 @@ export interface GameState {
     /** Neon pickups to collect, by the centre of each. They move with the obstacles. */
     pickups: { id: number; x: number; y: number }[];
     particles: Particle[];
+    /** What happened this frame (landings, so far). Nothing listens yet. */
+    events: GameEvent[];
     score: number;
     /** Obstacles cleared in a row without a hit. Sets the score multiplier (see pickups.ts). */
     streak: number;
@@ -122,6 +132,7 @@ export const createInitialState = (): GameState => ({
     obstacles: [],
     pickups: [],
     particles: [],
+    events: [],
     score: 0,
     streak: 0,
     stageStatus: 'playing',

@@ -19,7 +19,7 @@ import { ScoreDisplay } from '../components/ui/ScoreDisplay';
 import { DEBUG_ENABLED, SCREEN_HEIGHT, SCREEN_WIDTH } from '../game/constants';
 import { useGameLoop } from '../game/loop/useGameLoop';
 import { canPause, countdownLeft, isCountingDown, RESUME_COUNTDOWN_SEC } from '../game/pause';
-import { STAGES } from '../game/stages';
+import { stageById, STAGES } from '../game/stages';
 import { endSwipe, moveSwipe, startSwipe, Swipe } from '../game/swipe';
 import { BOARD_SIZE } from '../scoreboard/rules';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
@@ -166,7 +166,7 @@ export const GameScreen = () => {
     const [musicPercent, setMusicPercent] = useState(0);
     useEffect(() => {
         let cancelled = false;
-        const stage = STAGES.find((s) => s.id === gameState.stageId) || STAGES[0];
+        const stage = stageById(gameState.stageId);
         preloadTrack(stage.audio?.musicTrack || 'music_city', (fraction) => {
             if (!cancelled) setMusicPercent(Math.floor(fraction * 100));
         }).finally(() => {
@@ -233,7 +233,7 @@ export const GameScreen = () => {
     useEffect(() => {
         if (gameState.gameStarted && !gameState.gameOver && !musicStartedForRunRef.current) {
             musicStartedForRunRef.current = true;
-            const currentStage = STAGES.find(s => s.id === gameState.stageId) || STAGES[0];
+            const currentStage = stageById(gameState.stageId);
             playMusic(currentStage.audio?.musicTrack || 'music_city');
         }
     }, [gameState.gameStarted, gameState.gameOver, gameState.stageId, playMusic]);
@@ -311,7 +311,7 @@ export const GameScreen = () => {
      * as it arrives; starting the same track again later does nothing.
      */
     const startGame = useCallback(() => {
-        const stage = STAGES.find((st) => st.id === gameState.stageId) || STAGES[0];
+        const stage = stageById(gameState.stageId);
         playMusic(stage.audio?.musicTrack || 'music_city');
         handleInteraction();
     }, [gameState.stageId, playMusic, handleInteraction]);
@@ -521,7 +521,7 @@ export const GameScreen = () => {
                                 STAGE {STAGES.findIndex(s => s.id === gameState.stageId) + 1}
                             </RNText>
                             <RNText style={styles.stageBannerName}>
-                                {(STAGES.find(s => s.id === gameState.stageId) || STAGES[0]).name}
+                                {stageById(gameState.stageId).name}
                             </RNText>
                         </View>
                     )}
@@ -540,7 +540,7 @@ export const GameScreen = () => {
                                 score={gameMetrics.score}
                                 stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
                                 streak={gameMetrics.streak}
-                                colour={(STAGES.find(s => s.id === gameState.stageId) ?? STAGES[0]).theme.pickupColors.glow}
+                                colour={stageById(gameState.stageId).theme.pickupColors.glow}
                             />
                             {canPause(gameState) && <PauseButton onPress={pauseRun} />}
                         </View>
@@ -557,7 +557,7 @@ export const GameScreen = () => {
                     {gameState.paused && !countingDown && !showInstructions && (
                         <PausedScreen
                             stageNumber={STAGES.findIndex(s => s.id === gameState.stageId) + 1}
-                            stageName={(STAGES.find(s => s.id === gameState.stageId) ?? STAGES[0]).name}
+                            stageName={stageById(gameState.stageId).name}
                             score={gameState.score}
                             onResume={resumeRun}
                             onHowToPlay={() => setShowInstructions(true)}
