@@ -1,4 +1,4 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
 /**
@@ -9,8 +9,11 @@ import type { PropsWithChildren } from 'react';
  * scrolling or bouncing when you tap and swipe to play.
  */
 export default function Root({ children }: PropsWithChildren) {
+    // Since SDK 58 the page's own scripts and styles come from here, and must be placed below:
+    // without them the page is only its "Loading…" shell and the game never starts.
+    const { htmlAttributes, headNodes, bodyAttributes, bodyNodes } = useServerDocumentContext();
     return (
-        <html lang="en">
+        <html lang="en" {...htmlAttributes}>
             <head>
                 <meta charSet="utf-8" />
                 <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -33,8 +36,12 @@ export default function Root({ children }: PropsWithChildren) {
 
                 <ScrollViewStyleReset />
                 <style dangerouslySetInnerHTML={{ __html: pageStyle }} />
+                {headNodes}
             </head>
-            <body>{children}</body>
+            <body {...bodyAttributes}>
+                {children}
+                {bodyNodes}
+            </body>
         </html>
     );
 }

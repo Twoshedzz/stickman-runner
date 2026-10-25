@@ -5,6 +5,7 @@
 import { Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../../game/constants';
+import { useWebSafeAreaSides } from './useWebSafeAreaSides';
 
 const LOGICAL_WIDTH = SCREEN_WIDTH;   // 600 – game logic (spawn, player, focus) stays in this width
 const LOGICAL_HEIGHT = SCREEN_HEIGHT; // 350
@@ -37,7 +38,9 @@ export const useViewport = () => {
 
     // The game fills the whole screen, notch included; the score and health bars stay clear of
     // the notch and rounded corners. Insets are in screen points, so divide by the game's scale.
-    const insets = useSafeAreaInsets();
+    // In a phone browser they're read from the browser itself (see useWebSafeAreaSides).
+    const appInsets = useSafeAreaInsets();
+    const insets = useWebSafeAreaSides() ?? appInsets;
 
     // Single uniform scale → no stretch (aspect ratio preserved). Scale to fill viewport.
     const scale = Math.max(viewportWidth / viewWidth, viewportHeight / viewHeight);
