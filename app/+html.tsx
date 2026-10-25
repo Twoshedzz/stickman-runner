@@ -19,7 +19,7 @@ export default function Root({ children }: PropsWithChildren) {
                     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
                 />
                 {/* viewport-fit=cover: run edge to edge on iPhones, instead of leaving bars either
-                    side of the notch. The score and health bars are kept clear of it in GameScreen. */}
+                    side of the notch. The score and health bars are kept clear of it (src/screens/game/useViewport.ts). */}
                 <title>Stickman Runner</title>
 
                 {/* Home screen: icon, name, and opening full screen like an app */}

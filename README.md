@@ -1,22 +1,24 @@
 # Stickman Runner
 
-A landscape **endless / staged runner** with a retro neon synthwave look. Built with **Expo**, **React Native**, and **Shopify Skia** — a small custom game loop, not a heavy engine.
+A landscape **staged runner** with a retro neon synthwave look. Built with **Expo**, **React Native**, and **Shopify Skia** — a small custom game loop, not a heavy engine.
 
-Made as a learning and collaboration project (adult + child): readable code, playable milestones, phone-first via Expo Go, with web as a secondary preview.
+Made as a learning and collaboration project (adult + child): readable code, playable milestones, phone-first, with web as a secondary preview.
 
 ## How to play
 
 - **Tap / Space / Up**: Jump  
-- **Double tap (in air)**: Double jump (uses energy)  
-- **Goal**: Survive the stage, collect hearts, reach dawn  
+- **Tap again in the air**: Double jump (uses half the energy bar)  
+- **Swipe down and hold / Down / S**: Duck (slide under bars); from a held duck, swipe up to jump  
+- **Pause button / P / Esc**: Pause  
+- **Goal**: Survive all four stages, each as long as its song (about 3 minutes)  
 
 **Rules**
 
-- Avoid yellow (and other) obstacles — hits cost health  
+- Jump blocks, spheres and holes, duck under bars, double jump the wide block — hits cost health  
 - Energy regenerates on the ground; double jump spends it  
-- Pink hearts restore health  
+- Pink hearts restore health; glowing pickups and a streak of clean clears add to the score  
 
-Stage 1 (Neon City) is the current stable playable stage: ~3 minutes of real time, night → dawn, parallax city strips, grid floor, health/energy UI.
+Four stages: Neon City, Sunset Beach, Midnight Mountains and Victory Dawn, each with its own scenery, music, colours and arc, then a win screen and best runs. A public world top 10 takes three initials.
 
 ## Tech stack
 
@@ -33,29 +35,42 @@ Stage 1 (Neon City) is the current stable playable stage: ~3 minutes of real tim
 ```
 /src
   /game
-    constants.ts       # Physics, sizes, colours, stage duration
-    state.ts           # Game state shape
-    stages.ts          # Stage configs (themes, difficulty, timeline)
-    particles.ts
-    animations.ts
+    constants.ts       # Physics, sizes, colours
+    state.ts           # Game state shape, and this frame's events
+    stages.ts          # Stage configs (colours, pacing, speed, length, beat, sky)
+    step.ts            # One frame: scroll, physics, spawn, sparks, collisions, pickups
+    obstacleCatalogue.ts # What each obstacle is and does
+    patterns.ts        # Hand-made obstacle patterns
+    sky.ts             # The sky at any moment of a stage
+    pickups.ts, particles.ts, animations.ts, …
     /loop
-      useGameLoop.ts   # requestAnimationFrame update loop
+      useGameLoop.ts   # requestAnimationFrame loop and the stage clock
+      redraw.ts        # When the screen draws again
+      useScoreTable.ts # High score and best runs
     /systems
-      physics.ts       # Gravity, jump, obstacle motion (delta-time)
-      collisions.ts    # AABB player vs obstacles / hearts
-      spawn.ts         # Obstacle spawning from stage difficulty
+      physics.ts       # Gravity, jump, duck, obstacle motion (delta-time)
+      collisions.ts    # Player vs obstacles / hearts
+      holes.ts         # Falling into a hole
+      spawn.ts         # Picks patterns from the stage's pacing
+    /difficulty
+      pretendPlayer.ts # Plays whole stages for `npm run difficulty`
   /components
     GameCanvas.tsx     # Skia canvas composition
+    ObstacleLayer.tsx  # Draws obstacles from the obstacle table
     Stickman.tsx
     GridFloor.tsx
-    /backgrounds       # City strips, neon city, beach, …
-    /ui                # Health, energy, score
+    /backgrounds       # Each stage's scenery (scenery.ts picks it)
+    /menu              # Title, How to Play, PAUSED, Stage Clear, Game Over, …
+    /ui                # Health, energy, score, pause button
   /screens
-    GameScreen.tsx     # Input, overlays, “Get ready”
+    GameScreen.tsx     # The game screen
+    /game              # Its pieces: which screen shows, input, music, loading, …
   /hooks
-    useBackgroundMusic.ts (+ .web)
+    useBackgroundMusic.ts, useMenuMusic.ts (+ .web), musicShared.ts
+  /scoreboard          # World scoreboard rules (game side)
+/api                   # The world scoreboard server (a Vercel function)
 /app                   # Expo Router entry
-/assets/city           # Front/back city strip PNGs
+/assets                # Scenery strips, music
 /docs                  # Plans, stage design, architecture
 ```
 
@@ -70,7 +85,7 @@ npm start                 # Expo dev server (LAN)
 npm run start:tunnel      # Easier for phone when LAN QR fails
 ```
 
-- **Phone:** Expo Go → scan QR, or enter the `exp://…` URL manually  
+- **Phone:** Expo Go → scan QR, or enter the `exp://…` URL manually. *For now Expo Go can't open the game (it needs Expo SDK 58; the game is on 54, and the upgrade is next in the plan), so open the web version in Safari instead.*  
 - **Web:** press `w` in the Expo terminal (or `npm run web`)  
 - **Static web export:** `npm run build:web` → see [DEPLOY_WEB.md](./DEPLOY_WEB.md)
 
@@ -83,17 +98,18 @@ Orientation is **landscape**. Primary testing target is a real phone.
 | [docs/PROJECT_BRIEF.md](./docs/PROJECT_BRIEF.md) | Why the project exists, how it evolved, what’s next |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Architectural decisions and trade-offs |
 | [docs/STAGE_DESIGN.md](./docs/STAGE_DESIGN.md) | 3-minute stages, time-based progress, music sync |
-| [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) | The plan to finish the game: duck mechanic, obstacle sequencing, stages 2–4, music, polish |
-| [docs/STAGE1_REVIEW.md](./docs/STAGE1_REVIEW.md) | Stage 1 as stable base |
+| [docs/PROJECT_PLAN.md](./docs/PROJECT_PLAN.md) | The plan: where things stand, and each step still to do |
+| [docs/CONTEXT_FOR_AGENTS.md](./docs/CONTEXT_FOR_AGENTS.md) | Start here (people and AI agents), and how to check a change |
+| [docs/STAGE1_REVIEW.md](./docs/STAGE1_REVIEW.md) | Stage 1 end to end, and the contract every stage keeps |
 | [docs/HISTORY.md](./docs/HISTORY.md) | Project history: debugging sessions and completed plans |
 | [project.md](./project.md) | Original goals and principles |
 | [HOW_WE_WORK.md](./HOW_WE_WORK.md) | Collaboration preferences for contributors / AI |
 
 ## Status
 
-- **Stage 1 (Neon City)** — playable and tagged as a working baseline (`stage-one-working` on `main` when present)  
-- **Stages 2–4** — configs/scaffolding exist; full art, music, and unique obstacles still planned  
-- **Web** — useful for sharing; Skia/CanvasKit can be fragile under load — see architecture doc  
+- **All four stages** — playable end to end, with menus, pause, pickups and a world scoreboard  
+- **Next** — the Expo SDK upgrade, then a bonus for landing on the beat (see the project plan)  
+- **Web** — live on Vercel from `main`; the iPhone home screen version is how the game is tested for now  
 
 ## Credits
 

@@ -34,7 +34,7 @@ This patch is about **when and how** the WASM binary is supplied to CanvasKit, s
 
 ### 3. Skia patch (`@shopify+react-native-skia+2.2.12.patch`) – the memory leak
 
-**This was the main cause of `Aborted()` on web.** On web, Skia objects (paints, paths, gradients, pictures) live in CanvasKit's own memory and are never freed automatically — something has to call `dispose()` on each one. The library's web renderer didn't, for the objects it creates while drawing each frame. Since the game redraws the whole scene every frame, CanvasKit's memory grew by about 5MB a second until it hit its 2GB ceiling — roughly 7 minutes of play, which is why crashes tended to come late in stage 2 — and then aborted.
+**This was the main cause of `Aborted()` on web.** On web, Skia objects (paints, paths, gradients, pictures) live in CanvasKit's own memory and are never freed automatically — something has to call `dispose()` on each one. The library's web renderer didn't, for the objects it creates while drawing each frame. Since the game redraws the whole scene every frame during play, CanvasKit's memory grew by about 5MB a second until it hit its 2GB ceiling — roughly 7 minutes of play, which is why crashes tended to come late in stage 2 — and then aborted.
 
 **What we changed** (web-only files; the phone app doesn't use them):
 
@@ -75,9 +75,9 @@ expo@54.0.33 ✔
 **If you see an error instead of the ticks:**
 
 - **“could not be parsed”** – the patch file itself is broken, usually from being edited by hand. Don’t hand-edit patch files; regenerate them (below).
-- **“Failed to apply patch”** – usually Expo or CanvasKit was upgraded, so the code the patch expects has changed. The patch needs redoing for the new version (the version is in the file name).
+- **“Failed to apply patch”** – usually Expo, Skia or CanvasKit was upgraded, so the code the patch expects has changed. The patch needs redoing for the new version (the version is in the file name). The Expo SDK upgrade (step U1 in the plan) will need all three looked at.
 - The `postinstall` script has a fallback that hides errors, so always look for the ticks rather than assuming it worked.
-- Without the patches, web may still load but will hit `Aborted()` errors more often. The phone app (Expo Go) doesn’t use these patches.
+- Without the patches, web may still load but will hit `Aborted()` errors more often. The phone app doesn’t use these patches.
 
 **To regenerate a patch:**
 
@@ -110,7 +110,7 @@ On web you have:
    - Runs on the main thread, has its own memory and lifecycle, and can **abort** (e.g. assertions, OOM, or internal errors) when something goes wrong.
 
 3. **Heavy, frequent work**  
-   - 60fps game loop, many Skia draw calls (canvas, grid, city, particles), and state updates.
+   - 60fps game loop, many Skia draw calls (canvas, grid, scenery, particles), and state updates. (Since October 2026 the screen only redraws every frame during play; the menus redraw only when something on them changes.)
 
 4. **Lazy loading**  
    - Some code (e.g. from `react-native-worklets` or Skia) is loaded in chunks. When a chunk is loaded, Expo fetches it and runs `eval(body)`. That chunk may:
