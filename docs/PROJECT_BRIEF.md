@@ -69,7 +69,7 @@ All four stages (city, beach, mountains, victory) are playable, each with its ow
 | Gameplay | Duck, holes, patterns on the beat, pickups and streak, pause; the beat pulse shows on the floor |
 | World scoreboard | Live: a public top 10, three initials, nothing personal |
 | Code | Tidied in October 2026 so new obstacles, stages and mechanics are each a change in one or two places ([ARCHITECTURE.md](./ARCHITECTURE.md)) |
-| iPhone | Home screen web app works. Expo Go can't open the game until the SDK upgrade (below) |
+| iPhone | Home screen web app works, and Expo Go opens the game again (SDK 58, step U1) |
 | Installable app (App Store / TestFlight) | Not started; needs EAS and the Apple Developer Program |
 | Web deploy | Live on Vercel from `main`; desktop browsers get a small preview |
 

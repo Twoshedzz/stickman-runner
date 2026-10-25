@@ -78,14 +78,17 @@ Four stages: Neon City, Sunset Beach, Midnight Mountains and Victory Dawn, each 
 
 ## Running locally
 
+Needs **Node 22.13 or newer** (Expo SDK 58). On this Mac the Terminal's own Node is 20, and Node 24
+is installed through `fnm`, so put `fnm exec --using=24` in front of each command:
+
 ```bash
-npm install
-npm start                 # Expo dev server (LAN)
+fnm exec --using=24 npm install
+fnm exec --using=24 npm start               # Expo dev server (LAN)
 # or
-npm run start:tunnel      # Easier for phone when LAN QR fails
+fnm exec --using=24 npm run start:tunnel    # Easier for phone when LAN QR fails
 ```
 
-- **Phone:** Expo Go → scan QR, or enter the `exp://…` URL manually. *For now Expo Go can't open the game (it needs Expo SDK 58; the game is on 54, and the upgrade is next in the plan), so open the web version in Safari instead.*  
+- **Phone:** Expo Go → scan QR, or enter the `exp://…` URL manually (the game is on Expo SDK 58, which is what Expo Go opens).  
 - **Web:** press `w` in the Expo terminal (or `npm run web`)  
 - **Static web export:** `npm run build:web` → see [DEPLOY_WEB.md](./DEPLOY_WEB.md)
 

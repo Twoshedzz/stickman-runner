@@ -23,9 +23,11 @@
 
 ---
 
-## Testing on the phone: Expo Go is blocked for now
+## Testing on the phone
 
-Expo Go on the iPhone updated itself to Expo SDK 58 and only opens projects on that version. The game is on SDK 54, and an older Expo Go can't be installed on an iPhone. The upgrade is step **U1** in the plan, straight after the architecture pass. Until then, phone tests are in **Safari**: the home screen web app (https://stickman-runner-twoshedzzs-projects.vercel.app, updated by a push to `main`), or a development server on the Mac opened in Safari on the same Wi-Fi.
+The game is on **Expo SDK 58** (step U1, October 2026), the version Expo Go on the iPhone opens. Expo Go only opens projects on its own SDK version and updates itself, so when Expo Go moves on, the game needs the next upgrade. The other phone test is **Safari**: the home screen web app (https://stickman-runner-twoshedzzs-projects.vercel.app, updated by a push to `main`), or a development server on the Mac opened in Safari on the same Wi-Fi.
+
+SDK 58 needs **Node 22.13 or newer**. The Mac's default Node is 20; Node 24 is installed through `fnm`, so run commands as `fnm exec --using=24 npm …` (or put `~/.local/share/fnm/node-versions/v24.14.1/installation/bin` first on the PATH). `package.json` says so in `engines`, which also tells Vercel which Node to build with.
 
 ---
 
@@ -39,7 +41,7 @@ Expo Go on the iPhone updated itself to Expo SDK 58 and only opens projects on t
 | **Obstacles describe themselves** | What each obstacle is and does lives in one table, `src/game/obstacleCatalogue.ts`; nothing else checks obstacle names. | `ARCHITECTURE.md` recipes |
 | **Mobile viewport** | On phones (the app and phone browsers), the game **fills the screen** with a single uniform scale (no stretching). When the device is wide, the **drawn** width can be &gt; 600 so obstacles have a longer run-in; the action stays centred (`gameOffsetX`). | `ARCHITECTURE.md` §11, `HISTORY.md` |
 | **Web viewport** | Desktop browsers get a **fixed 600×350** viewport; the game does **not** fill the browser. It’s a small preview window. | `ARCHITECTURE.md` §11, `HISTORY.md` |
-| **Web stability** | Web uses **Skia/CanvasKit (WASM)** for drawing. The old `Aborted()` crashes turned out to be a memory leak in Skia's web renderer, fixed by a patch; the setup is still heavier and more delicate than the phone's. | `WEB_PATCHES_AND_ARCHITECTURE.md` |
+| **Web stability** | Web uses **Skia/CanvasKit (WASM)** for drawing. The old `Aborted()` crashes turned out to be a memory leak in Skia's web renderer, fixed by a patch until SDK 58 and by Skia itself since; the setup is still heavier and more delicate than the phone's. | `WEB_PATCHES_AND_ARCHITECTURE.md` |
 | **React Compiler** | On for the whole app (`app.json`). The game state object changes every frame without React being told, so the game screen files start with `'use no memo'`, and drawing components are handed plain numbers. | `ARCHITECTURE.md` “Rules that keep it safe” |
 | **Where to tweak** | **Mechanics:** `src/game/constants.ts` (global) and `src/game/stages.ts` (per-stage). **Visuals:** each stage’s `timeline` and `sky` in `stages.ts` (worked out by `src/game/sky.ts`); its scenery from `backgrounds/scenery.ts`; obstacle drawings in `ObstacleLayer.tsx`. | `ARCHITECTURE.md` “Where to change what” |
 
@@ -64,7 +66,8 @@ Expo Go on the iPhone updated itself to Expo SDK 58 and only opens projects on t
 - **Rendering:** `src/components/GameCanvas.tsx` (main canvas), `ObstacleLayer.tsx`, `GridFloor.tsx`, `backgrounds/` (`scenery.ts` picks each stage's), `Stickman.tsx`; menus in `src/components/menu/`.
 - **Screen:** `src/screens/GameScreen.tsx`, with its jobs in `src/screens/game/` (which screen shows, input, music, loading, pause, world scoreboard, viewport size and scale).
 - **Web Skia/WASM:** `src/skiaWasmPreload.web.ts`, `src/components/WasmGate.web.tsx`, `app/_layout.tsx` (gating and lazy load).
-- **Patches:** `patches/expo+54.0.33.patch`, `patches/canvaskit-wasm+0.40.0.patch`, `patches/@shopify+react-native-skia+2.2.12.patch` (see `WEB_PATCHES_AND_ARCHITECTURE.md` for what they do). The SDK upgrade (U1) will need them redone.
+- **Patches:** none since SDK 58; `WEB_PATCHES_AND_ARCHITECTURE.md` has what the old ones did, why they went, and how to add one.
+- **Before/after checks:** `scripts/checks/` (the browser scripts below: frozen clock, every screen, input, music in the tap, web memory). Its README says how to run them.
 
 ---
 
@@ -81,9 +84,9 @@ Expo Go on the iPhone updated itself to Expo SDK 58 and only opens projects on t
 
 What the architecture-pass sessions learned (October 2026). The plan's “How each step is checked” has the list for each step; these are the how-tos.
 
-- **The basics:** `npx tsc --noEmit` clean, `npx expo lint` no worse, `npm test` passing. In a worktree, check `npx jest --listTests` finds the tests (it should list 16 or more files): the rules that skip other sessions' copies once skipped your own too (fixed in October 2026).
+- **The basics:** `npx tsc --noEmit` clean, `npx expo lint` no worse (since SDK 58: 0 errors, 40 warnings, most of them the React Compiler's checks flagging the ref-held game state on purpose), `npm test` passing. In a worktree, check `npx jest --listTests` finds the tests (it should list 16 or more files): the rules that skip other sessions' copies once skipped your own too (fixed in October 2026).
 - **“Nothing changed” for gameplay:** `npm run difficulty` before and after must give byte-identical DIFFICULTY.md files. Compare two fresh runs with each other, not with the committed file: the default is 12 runs per stage and skill (about 2½ minutes), and the committed file was made with `DIFFICULTY_RUNS=20` (about 5). Put DIFFICULTY.md back afterwards if it was only a check.
-- **“Nothing changed” on screen:** capture the page before and after and compare. The page's layout (the HTML with the canvas taken out) and the game's numbers are exact; canvas pixels differ slightly even between two runs of the same code (dust, sparks), so use them as a rough check. Away from play the canvas no longer redraws, and a canvas that hasn't just drawn reads as blank, so behind a menu compare the HTML and numbers only.
+- **“Nothing changed” on screen:** capture the page before and after and compare. The page's layout (the HTML with the canvas taken out) and the game's numbers are exact; canvas pixels differ slightly even between two runs of the same code (dust, sparks), so use them as a rough check. Away from play the canvas no longer redraws, and a canvas that hasn't just drawn reads as blank, so behind a menu compare the HTML and numbers only. Since Skia 2.14 (SDK 58) the canvas is drawn straight after each update rather than on the next frame, so read it the moment Skia finishes (`scripts/checks/frozen-clock.js` does, via `Surface.flush`).
 - **A frozen stand-in clock for the browser pane.** When the pane is hidden, the browser barely runs the game's frames, and a hidden page counts as “the app went to the background”, which pauses the run. What works: replace `Date.now`, `performance.now` and `requestAnimationFrame` with your own clock, step frames by hand, seed `Math.random`, block `visibilitychange`, and mute the music (`HTMLMediaElement.prototype.play`) with its clock ignored. Take one screenshot after installing it so the loop's waiting frame moves onto your clock, and watch for the old loop joining as a second one. Reload the page afterwards, or the music stays muted.
 - **Phone size in the pane:** 740×360 counts as a phone (touch on, the phone-browser layout); 900×500 is the desktop preview.
 - **Touch:** use touch events. Synthetic pointer events break the gesture library (a `setPointerCapture` error).
