@@ -1,26 +1,40 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Assuming React Native for AsyncStorage
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { MAX_HEALTH, TIME_CYCLE_DURATION } from '../constants';
 import { cancelResume, pauseRun, startResume, tickPause } from '../pause';
 import { musicNudge } from '../musicSync';
-import { speedAt, STAGES } from '../stages';
+import { speedAt, stageById, StageConfig, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { stepWorld } from '../step';
 import { jump, releaseDuck, startDuck } from '../systems/physics';
 import { resetSpawner } from '../systems/spawn';
+import { movesEveryFrame, shownKey } from './redraw';
+import { useScoreTable } from './useScoreTable';
 
-/** One run in the score table. */
-export interface ScoreEntry {
-    score: number;
-    /** ISO date the run ended. */
-    date: string;
-    /** Cleared every stage, rather than running out of health. */
-    completed: boolean;
-}
+export type { ScoreEntry } from './useScoreTable';
 
-const SCORE_TABLE_KEY = 'SCORE_TABLE';
-const SCORE_TABLE_SIZE = 5;
+/** The numbers the HUD shows, as at the start of a run. A new object each time, so setting it always redraws. */
+const startingMetrics = () => ({
+    score: 0,
+    health: MAX_HEALTH,
+    energy: 100,
+    maxHealth: MAX_HEALTH,
+    streak: 0,
+});
+
+/**
+ * Start a stage from its beginning: the clock, the scroll and the obstacles. Used by
+ * Continue (on to the next stage) and the debug jump to a stage.
+ */
+const startStage = (state: GameState, stageId: string) => {
+    state.stageId = stageId;
+    state.distance = 0;
+    state.scroll = 0;
+    state.stageStatus = 'playing';
+    state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
+    state.obstacles = [];
+    resetSpawner(state);
+};
 
 export const useGameLoop = () => {
     const stateRef = useRef<GameState>(createInitialState());
@@ -54,6 +68,9 @@ export const useGameLoop = () => {
     const lastFrameTimeRef = useRef<number>(0);
     /** Where the music is in a track, or null when it isn't playing it (see setMusicClock). */
     const musicClockRef = useRef<((trackKey: string) => number | null) | null>(null);
+    /** The stage being played, looked up again only when the stage changes. */
+    const stageRef = useRef<StageConfig>(stageById(stateRef.current.stageId));
+    const { highScore, scoreTable, newScoreIndex, noteScore, saveHighScore, recordRun, unrecordRun, newRun } = useScoreTable();
 
     /**
      * Leaving the app (another app, or the phone locked) pauses a run that's going, so it
@@ -68,6 +85,8 @@ export const useGameLoop = () => {
         const subscription = AppState.addEventListener('change', (next) => {
             const state = stateRef.current;
             if (next !== 'active') {
+                // The app may be closed while it's away: keep the high score.
+                saveHighScore();
                 if (awaySince === null) awaySince = Date.now() / 1000;
                 if (!pauseRun(state, awaySince)) cancelResume(state);
                 return;
@@ -81,63 +100,32 @@ export const useGameLoop = () => {
             lastFrameTimeRef.current = 0;
         });
         return () => subscription.remove();
-    }, []);
+    }, [saveHighScore]);
 
     // UI State Sync (Optimized)
-    const [gameMetrics, setGameMetrics] = useState({
-        score: 0,
-        health: MAX_HEALTH,
-        energy: 100,
-        maxHealth: MAX_HEALTH,
-        streak: 0,
-    });
+    const [gameMetrics, setGameMetrics] = useState(startingMetrics);
     const metricsRef = useRef(gameMetrics); // Ref to avoid closure staleness in loop check
 
-    const [renderTrigger, setRenderTrigger] = useState(0); // For Canvas (60fps)
-    const [highScore, setHighScore] = useState(0);
-    const highScoreRef = useRef(0);
-
-    // The best runs, kept between sessions. Every run that scores goes in, not only ones
-    // that finish, so a big score that died in stage 4 still counts.
-    const [scoreTable, setScoreTable] = useState<ScoreEntry[]>([]);
-    const scoreTableRef = useRef<ScoreEntry[]>([]);
-    /** Where the run that just ended landed in the table, or -1 if it didn't make it. */
-    const [newScoreIndex, setNewScoreIndex] = useState(-1);
-    const recordedRef = useRef(false);
-
-    // Load the score table
-    useEffect(() => {
-        AsyncStorage.getItem(SCORE_TABLE_KEY).then((raw) => {
-            if (!raw) return;
-            try {
-                const saved = JSON.parse(raw);
-                if (Array.isArray(saved)) {
-                    scoreTableRef.current = saved;
-                    setScoreTable(saved);
-                }
-            } catch {
-                // A corrupt table just starts empty again.
-            }
-        });
-    }, []);
-
-    // Load High Score
-    useEffect(() => {
-        AsyncStorage.getItem('HIGH_SCORE').then(value => {
-            if (value) {
-                const score = parseInt(value, 10);
-                setHighScore(score);
-                highScoreRef.current = score;
-            }
-        });
-    }, []);
+    // Bumped to make the screen draw again: every frame while play moves, otherwise when what it shows changes.
+    const [renderTrigger, setRenderTrigger] = useState(0);
 
     useEffect(() => {
+        /** What the screen showed when the loop last had it drawn (see redraw.ts). */
+        let shown = '';
+        /** Draw again if something on screen moves, or what it shows has changed. */
+        const redraw = (state: GameState) => {
+            const key = shownKey(state);
+            if (key === shown && !movesEveryFrame(state)) return;
+            shown = key;
+            setRenderTrigger(prev => prev + 1);
+        };
+
         const loop = () => {
             const state = stateRef.current;
 
             if (!state.gameOver && state.gameStarted) {
-                const currentStage = STAGES.find(s => s.id === state.stageId) || STAGES[0];
+                if (stageRef.current.id !== state.stageId) stageRef.current = stageById(state.stageId);
+                const currentStage = stageRef.current;
 
                 // Time-based stage progress: 3 minutes per stage so audio and visuals stay in sync (see docs/STAGE_DESIGN.md)
                 const nowSec = Date.now() / 1000;
@@ -146,7 +134,7 @@ export const useGameLoop = () => {
                 // Paused: nothing moves and the stage clock stands still until the 3-2-1 runs out.
                 if (state.paused) {
                     if (!tickPause(state, nowSec)) {
-                        setRenderTrigger(prev => prev + 1);
+                        redraw(state);
                         requestRef.current = requestAnimationFrame(loop);
                         return;
                     }
@@ -191,12 +179,8 @@ export const useGameLoop = () => {
                     stepWorld(state, currentStage, deltaTimeSec);
                 }
 
-                // Check High Score
-                if (state.score > highScoreRef.current) {
-                    highScoreRef.current = state.score;
-                    setHighScore(state.score);
-                    AsyncStorage.setItem('HIGH_SCORE', state.score.toString());
-                }
+                // The high score on screen keeps up with the score (it's saved when the run ends or pauses).
+                noteScore(state.score);
 
                 // Sync UI State (Throttled by actual changes)
                 // Use floor for energy to reduce updates (only update on integer changes)
@@ -219,30 +203,10 @@ export const useGameLoop = () => {
                 }
             }
 
-            // A run just ended: put it in the score table once. Debug runs are left out,
-            // since debug mode switches off damage and would flood the table.
-            if (state.gameOver && !recordedRef.current) {
-                recordedRef.current = true;
-                if (state.score > 0 && !state.debugMode) {
-                    const entry: ScoreEntry = {
-                        score: state.score,
-                        date: new Date().toISOString(),
-                        completed: state.gameComplete,
-                    };
-                    const table = [...scoreTableRef.current, entry]
-                        .sort((a, b) => b.score - a.score)
-                        .slice(0, SCORE_TABLE_SIZE);
-                    scoreTableRef.current = table;
-                    setScoreTable(table);
-                    setNewScoreIndex(table.indexOf(entry));
-                    AsyncStorage.setItem(SCORE_TABLE_KEY, JSON.stringify(table));
-                } else {
-                    setNewScoreIndex(-1);
-                }
-            }
+            // A run just ended: into the score table, once (see useScoreTable).
+            if (state.gameOver) recordRun(state);
 
-            // Force React to re-render for Canvas (60fps when possible for smooth animation).
-            setRenderTrigger(prev => prev + 1);
+            redraw(state);
 
             requestRef.current = requestAnimationFrame(loop);
         };
@@ -251,27 +215,22 @@ export const useGameLoop = () => {
         return () => {
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         };
-    }, []);
+    }, [noteScore, recordRun]);
 
-    // Dedicated Restart Function
-    const restartGame = useCallback(() => {
+    /** A fresh game state, not yet recorded, with the HUD numbers reset. `started`: straight into the run. */
+    const resetRun = useCallback((started: boolean) => {
         stateRef.current = createInitialState();
         lastFrameTimeRef.current = 0;
-        stateRef.current.gameStarted = true;
-        recordedRef.current = false;
-        setNewScoreIndex(-1);
+        stateRef.current.gameStarted = started;
+        newRun();
         resetSpawner(stateRef.current);
-        // Reset Metrics immediately
-        const initialMetrics = {
-            score: 0,
-            health: MAX_HEALTH,
-            energy: 100,
-            maxHealth: MAX_HEALTH,
-            streak: 0,
-        };
-        metricsRef.current = initialMetrics;
-        setGameMetrics(initialMetrics);
-    }, []);
+        const metrics = startingMetrics();
+        metricsRef.current = metrics;
+        setGameMetrics(metrics);
+    }, [newRun]);
+
+    /** Play again from the start. */
+    const restartGame = useCallback(() => resetRun(true), [resetRun]);
 
     /** Tell the game where the music is, so the stage clock can follow it. */
     const setMusicClock = useCallback((clock: ((trackKey: string) => number | null) | null) => {
@@ -281,9 +240,12 @@ export const useGameLoop = () => {
     /** Pause the run. False if there's nothing to pause (menus, Stage Clear, Game Over). */
     const pauseGame = useCallback(() => {
         const paused = pauseRun(stateRef.current, Date.now() / 1000);
-        if (paused) setRenderTrigger(prev => prev + 1);
+        if (paused) {
+            saveHighScore();
+            setRenderTrigger(prev => prev + 1);
+        }
         return paused;
-    }, []);
+    }, [saveHighScore]);
 
     /** Start the 3-2-1; play carries on when it runs out. */
     const resumeGame = useCallback(() => {
@@ -292,22 +254,7 @@ export const useGameLoop = () => {
     }, []);
 
     /** Give up this run and go back to the title. It isn't recorded: it didn't end. */
-    const quitToTitle = useCallback(() => {
-        stateRef.current = createInitialState();
-        lastFrameTimeRef.current = 0;
-        recordedRef.current = false;
-        setNewScoreIndex(-1);
-        resetSpawner(stateRef.current);
-        const initialMetrics = {
-            score: 0,
-            health: MAX_HEALTH,
-            energy: 100,
-            maxHealth: MAX_HEALTH,
-            streak: 0,
-        };
-        metricsRef.current = initialMetrics;
-        setGameMetrics(initialMetrics);
-    }, []);
+    const quitToTitle = useCallback(() => resetRun(false), [resetRun]);
 
     // Input Handler
     const onJump = useCallback(() => {
@@ -325,23 +272,19 @@ export const useGameLoop = () => {
     /** Debug only: jump straight to a stage so you don't have to play through to reach it. */
     const jumpToStage = useCallback((stageId: string) => {
         const state = stateRef.current;
-        state.stageId = stageId;
-        state.distance = 0;
-        state.scroll = 0;
+        startStage(state, stageId);
+        // Unlike Continue, this can come from anywhere (mid-stage, Stage Clear, Game Over), so
+        // it also clears the stage's clock readings, the end-of-run flags and the particles.
         state.stageProgress = 0;
         state.elapsedSecInStage = 0;
-        state.stageStartTime = Date.now() / 1000;
-        state.stageStatus = 'playing';
         state.showContinue = false;
         state.gameOver = false;
         state.gameComplete = false;
         state.gameStarted = true;
-        state.obstacles = [];
         state.particles = [];
-        recordedRef.current = false;
-        resetSpawner(state);
+        unrecordRun();
         setRenderTrigger(prev => prev + 1);
-    }, []);
+    }, [unrecordRun]);
 
     /** `hold`: stay down until onDuckRelease (finger kept on the screen, or the key held). */
     const onDuck = useCallback((hold = false) => {
@@ -373,13 +316,7 @@ export const useGameLoop = () => {
         const nextStage = STAGES[nextIndex];
 
         if (nextStage) {
-            state.stageId = nextStage.id;
-            state.distance = 0;
-            state.scroll = 0;
-            state.stageStatus = 'playing';
-            state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
-            state.obstacles = [];
-            resetSpawner(state);
+            startStage(state, nextStage.id);
         } else {
             // No stage after this one. The loop normally catches the last stage before
             // Continue is ever offered; this is only a safety net.

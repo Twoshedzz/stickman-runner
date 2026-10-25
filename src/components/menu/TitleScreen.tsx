@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { ScoreEntry } from '../../game/loop/useGameLoop';
+import type { ScoreEntry } from '../../game/loop/useScoreTable';
 import type { WorldEntry } from '../../scoreboard/rules';
 import { RNText } from '../RNText';
 import { ArcadeMenu } from './ArcadeMenu';

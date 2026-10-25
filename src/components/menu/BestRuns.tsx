@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { ScoreEntry } from '../../game/loop/useGameLoop';
+import type { ScoreEntry } from '../../game/loop/useScoreTable';
 import { RNText } from '../RNText';
 import { FONT, glow, NEON } from './menuStyle';
 

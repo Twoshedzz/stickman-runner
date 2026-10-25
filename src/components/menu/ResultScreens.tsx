@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { ScoreEntry } from '../../game/loop/useGameLoop';
+import type { ScoreEntry } from '../../game/loop/useScoreTable';
 import { BOARD_SIZE } from '../../scoreboard/rules';
 import type { SendOutcome } from '../../scoreboard/worldBoard';
 import { RNText } from '../RNText';

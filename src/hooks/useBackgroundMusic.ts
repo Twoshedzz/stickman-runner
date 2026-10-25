@@ -4,6 +4,7 @@
  */
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { fadeOut, resumeLeadIn } from './musicShared';
 import { DEFAULT_TRACK, MUSIC_TRACKS } from './musicTracks';
 
 export const useBackgroundMusic = () => {
@@ -116,18 +117,12 @@ export const useBackgroundMusic = () => {
     const stopMusic = useCallback(async () => {
         const player = playerRef.current;
         if (!player) return;
-        // The fade takes ~2 seconds. If a new run starts in that time, this fade must not
-        // touch the new audio, or the rest of that run plays in silence.
+        // A new run starting during the fade overtakes it (see fadeOut).
         const generation = playGenerationRef.current;
         const overtaken = () => playGenerationRef.current !== generation || playerRef.current !== player;
         try {
             setMusicStatus('Stopping...');
-            for (let i = 20; i >= 0; i--) {
-                if (overtaken()) return;
-                player.volume = i / 20;
-                await new Promise((r) => setTimeout(r, 100));
-            }
-            if (overtaken()) return;
+            if (!(await fadeOut((volume) => { player.volume = volume; }, overtaken))) return;
             player.pause();
             player.seekTo(0);
             currentTrackRef.current = null;
@@ -151,19 +146,17 @@ export const useBackgroundMusic = () => {
     const resumeMusic = useCallback(async (leadInSec = 0) => {
         const player = playerRef.current;
         if (!player) return;
-        const back = Math.min(leadInSec, player.currentTime);
+        const { rewindSec, waitSec } = resumeLeadIn(leadInSec, player.currentTime);
         try {
-            await player.seekTo(player.currentTime - back);
+            await player.seekTo(player.currentTime - rewindSec);
         } catch {
             // Couldn't rewind: carry on from where it is.
         }
-        // Paused in the first seconds of the track: not enough to rewind, so start later instead.
-        const wait = leadInSec - back;
-        if (wait > 0.05) {
+        if (waitSec) {
             resumeTimerRef.current = setTimeout(() => {
                 resumeTimerRef.current = null;
                 player.play();
-            }, wait * 1000);
+            }, waitSec * 1000);
         } else {
             player.play();
         }

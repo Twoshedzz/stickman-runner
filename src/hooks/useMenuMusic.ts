@@ -5,10 +5,9 @@
  */
 import { createAudioPlayer } from 'expo-audio';
 import { useCallback, useEffect, useRef } from 'react';
+import { MENU_VOLUME } from './musicShared';
 import { MENU_TRACK } from './musicTracks';
 
-/** How loud the loop plays, compared with the stage music. */
-const MENU_VOLUME = 0.8;
 /** How often a fade takes a step, in milliseconds. */
 const FADE_STEP_MS = 50;
 
