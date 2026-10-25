@@ -173,7 +173,7 @@ pictures of every stage and screen. Until then, test in Safari on the phone.
 | A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Merged into `main` 25 Oct, to try on the phone |
 | A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged into `main` 25 Oct, to try in Safari on the phone |
 | A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged into `main` 25 Oct, to try in Safari on the phone |
-| A7 Docs and recipes | In progress |
+| A7 Docs and recipes | ✅ Built 25 Oct (branch `claude/a7-docs-recipes-d78e31`): `ARCHITECTURE.md` has "How the code fits together", a rewritten "Where to change what", recipes (add an obstacle, a stage, a mechanic) and "Rules that keep it safe"; `CONTEXT_FOR_AGENTS.md` has "How to check a change"; brief, README and stage docs brought up to date; the pass is in `HISTORY.md`. Docs and 3 code comments only. Waiting to be merged |
 | U1 Expo SDK 54 → 58 | After A7 |
 
 ---
@@ -419,7 +419,7 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
 
 ### How each step is checked
 
-- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (211 tests).
+- `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (253 tests on 25 October).
 - `npm test` runs a bot that plays the real jump and duck physics with human-sized timing,
   against every pattern at the slowest, middle and fastest speeds and full generated runs of
   every stage. It also checks the held duck and that the finish line arrives on time.
@@ -513,11 +513,11 @@ to Expo SDK 58 and only opens projects on that version; the game is on SDK 54, a
 Go can't be installed on an iPhone. Until the project is upgraded, test in Safari instead: the
 home screen web app (Route 1, needs a push to update), or a development server on the Mac opened
 in Safari on the same Wi-Fi. The phone app's own swipe code can't be checked that way. The
-upgrade (54 → 58: React Native, Skia and the web patches all move) is in the Ideas inbox (§7).
+upgrade (54 → 58: React Native, Skia and the web patches all move) is step U1 (§4A), after A7.
 
 **Route 2 — a real app via EAS.** Not started. Needs the Apple Developer Program ($99/year) to
 install via a link or TestFlight. Before building: a proper display name, icon and splash screen
-for the native app (still Expo's defaults), and the exact commands in `docs/RELEASE.md`.
+for the native app (still Expo's defaults), and the exact commands written down (there's no release doc yet).
 
 ### World scoreboard
 
@@ -602,20 +602,27 @@ Not urgent, but each one removes a trap:
 - [x] `DEBUG_ENABLED` tied to `__DEV__`.
 - [x] One table of obstacle sizes, colours and damage (`obstacleCatalogue.ts`).
 - [x] The old pop-up menu styles in `GameScreen.tsx` removed with the menu redesign.
-Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A).
+Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (§4A).
 
-- [ ] **(A1)** Delete dead scenery code: `NeonCityBackground.tsx`, `CityStripBackground.tsx` and
+- [x] **(A1)** Delete dead scenery code: `NeonCityBackground.tsx`, `CityStripBackground.tsx` and
       `SynthwaveBeachBackground.tsx` are no longer used.
-- [ ] **(A1)** Delete the city PNGs only those dead files used: the old brightness strips (`back_all_*`,
+- [x] **(A1)** Delete the city PNGs only those dead files used: the old brightness strips (`back_all_*`,
       `back_some*`, `front_all_*`, …) and placeholders (`back_no`, `front_no`, `placeholder`).
       Keep the `*_none_*` strips and `assets/city/lights/`.
-- [ ] **(A1)** Remove unused packages: `expo-av`, `expo-haptics`, `expo-image`, `expo-symbols`,
+- [x] **(A1)** Remove unused packages: `expo-av`, `expo-haptics`, `expo-image`, `expo-symbols`,
       `expo-web-browser`, `@react-navigation/bottom-tabs`, `@react-navigation/elements`,
       `@expo/vector-icons`, and the unused `hooks/use-theme-color.ts` / `constants/theme.ts`.
-- [ ] **(A1)** Fix the one lint error (missing display name in `ScoreDisplay.tsx`) and the 10 warnings.
-- [ ] **(A4)** `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
-- [ ] **(A1)** The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
+- [x] **(A1)** Fix the one lint error (missing display name in `ScoreDisplay.tsx`) and the 10 warnings (3 harmless warnings left).
+- [x] **(A4)** `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
+- [x] **(A1)** The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
 - [x] **(A6)** The game loop re-renders every frame even on menu screens: now 0 redraws a second on menus.
+- [ ] Unused `OBSTACLE_SIZE` constants in `constants.ts` (found in A7).
+- [ ] `state.timeOfDay` is worked out every frame and read by nothing (found in A7).
+- [ ] `GridFloor` is handed the whole game state and only stays fresh because `tick` changes every
+      frame; give it the plain numbers it uses, like the scenery (found in A7).
+- [ ] Put the before/after check scripts from the A-steps (frozen clock, capture all screens,
+      input checks, compare) in `scripts/checks/` with a short README, ideally as part of U1,
+      which needs exactly those checks (suggested by A7).
 - [x] On web the scene is recorded twice per screen refresh: this happens inside the Skia
       library, not our code (see HISTORY.md). Nothing to do.
 
@@ -649,7 +656,7 @@ Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A)
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | A1–A6 merged 25 October (not yet pushed); A7 in progress |
+| Architecture pass (§4A) | A1–A6 merged 25 October (not yet pushed); A7 built, waiting to be merged; then U1 |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
