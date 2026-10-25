@@ -164,8 +164,8 @@ short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
 |---|---|
 | A1 Clear the dead wood | ✅ Built 25 Oct (branch `claude/a1-dead-wood-fded9a`): 3 scenery files, 34 old city pictures, 8 packages and the unused theme helpers gone; lint down to 0 errors, 3 warnings. Merged into `main` 25 Oct, to try on the phone |
 | A2 Obstacles describe themselves | ✅ Built 25 Oct (branch `claude/a2-obstacle-catalogue-2c7aac`): each entry now says `clearBy`, `moves`, `fallIn`, `arcsOver`, `bigHit`, `heals`; one `moveFor` and one `topYFor` replace the copies. Only drawing still checks names (A4). Merged into `main` 25 Oct, to try on the phone |
-| A3 One shared step | In progress |
-| A4 Stages plug in scenery and sky | In progress |
+| A3 One shared step | ✅ Built 25 Oct (branch `claude/a3-shared-step-f735e9`): `stepWorld` in `src/game/step.ts` is the one frame order, used by the game and the pretend player; landings now show up in `state.events`. Waiting to be merged |
+| A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Waiting to be merged |
 | A5 Split the game screen | — |
 | A6 A lighter loop | — |
 | A7 Docs and recipes | — |
@@ -544,9 +544,9 @@ Until then the server answers "not set up" and the game simply leaves the world 
 
 ### Sky timeline tidy-up
 
-Stage 1's sky runs on absolute distances plus stage-1-only special cases in `getTheme`
-(`GameCanvas.tsx`); stages 2–4 now use the same timeline plus their own scenery code. Tidying it
-into fractions of the stage is optional; compare stage 1 before and after if it's done.
+Stage 1's special cases moved out of the sky code into stage settings in A4 (§4A); the sky is now
+in `src/game/sky.ts`. Its timeline still uses absolute distances; turning those into fractions of
+the stage is optional, and `sky.test.ts` will show any change it makes.
 
 ### Drawn obstacles (parked)
 
@@ -635,7 +635,7 @@ Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A)
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | A1 and A2 merged 25 October (not yet pushed); A3 and A4 in progress |
+| Architecture pass (§4A) | A1 and A2 merged 25 October (not yet pushed); A3 and A4 built, waiting to be merged; A5 next |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
