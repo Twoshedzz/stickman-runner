@@ -36,21 +36,21 @@ export const isFalling = (state: GameState) => state.player.falling > 0;
 export const checkHoles = (state: GameState): boolean => {
     const { player } = state;
     if (isFalling(state) || !player.isGrounded) return false;
-    const width = shapeFor('hole').width;
     for (const obs of state.obstacles) {
-        if (obs.role !== 'hole' || obs.passed) continue;
+        const { fallIn, width, damage } = shapeFor(obs.role);
+        if (!fallIn || obs.passed) continue;
         if (FEET_X <= obs.x + RIM_MARGIN || FEET_X >= obs.x + width - RIM_MARGIN) continue;
         // Over it, so it isn't a clean clear whatever happens next.
         obs.grazed = true;
         // Just been hit: safe for a moment, so run straight across.
         if (player.hurtTimer > 0) continue;
-        startFall(state, obs.id);
+        startFall(state, obs.id, damage);
         return true;
     }
     return false;
 };
 
-const startFall = (state: GameState, holeId: number) => {
+const startFall = (state: GameState, holeId: number, damage: number) => {
     const { player } = state;
     player.falling = FALL_SEC;
     player.fallHoleId = holeId;
@@ -62,7 +62,7 @@ const startFall = (state: GameState, holeId: number) => {
     player.jumpBuffer = 0;
     player.dy = STUMBLE_DY;
     breakStreak(state);
-    if (!state.debugMode) player.health = Math.max(0, player.health - shapeFor('hole').damage);
+    if (!state.debugMode) player.health = Math.max(0, player.health - damage);
 };
 
 /**

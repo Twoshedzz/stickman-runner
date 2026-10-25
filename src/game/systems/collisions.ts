@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
-import { HEART_HEAL, HIT_GRACE_SEC, OVERHEAD_TOP_OFFSET, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
-import { shapeFor } from '../obstacleCatalogue';
+import { HEART_HEAL, HIT_GRACE_SEC, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from '../constants';
+import { shapeFor, topYFor } from '../obstacleCatalogue';
 import { spawnParticles } from '../particles';
 import { addScore, breakStreak } from '../pickups';
 import { GameState } from '../state';
@@ -22,18 +22,18 @@ export const checkCollisions = (state: GameState) => {
         const obs = state.obstacles[i];
 
         const role = obs.role ?? 'small';
-        // Holes are fallen into, not bumped into (above).
-        if (role === 'hole') continue;
-        const isHeart = role === 'heart';
         // The hitbox is the shape's own size, so what you see is what you hit.
         const art = shapeFor(role);
+        // Holes are fallen into, not bumped into (above).
+        if (art.fallIn) continue;
+        const isHeart = art.heals;
         const size = art.width;
         const damage = art.damage;
 
         const obsX = obs.x;
         const obsR = obsX + art.width;
         // Everything sits on the ground except a swarm, which hangs in the air.
-        const obsY = art.overhead ? RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET : RUNNER_GROUND_Y - art.height;
+        const obsY = topYFor(role);
         const obsB = obsY + art.height;
 
         // AABB Collision with Forgiveness (Hitbox reduction)
@@ -99,7 +99,7 @@ export const checkCollisions = (state: GameState) => {
             }
 
             // Explosion scaling; fewer particles on web to reduce CanvasKit load (avoids Aborted).
-            const isBig = role === 'large' || role === 'huge';
+            const isBig = !!art.bigHit;
             const burstY = art.overhead ? obsB - 10 : obsY + art.height / 2;
             const particleCount = Platform.OS === 'web' ? (isBig ? 12 : 6) : (isBig ? 30 : 15);
             state.particles = spawnParticles(

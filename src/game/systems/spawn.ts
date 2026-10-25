@@ -1,6 +1,6 @@
 import { JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X, SCREEN_WIDTH } from '../constants';
 import { frameScale } from '../frame';
-import { shapeFor } from '../obstacleCatalogue';
+import { moveFor, shapeFor } from '../obstacleCatalogue';
 import { minGapSec, Pattern, PATTERNS } from '../patterns';
 import { placePickups, resetPickups } from '../pickups';
 import { beatGridSec, StageConfig, StagePacing } from '../stages';
@@ -56,7 +56,7 @@ export const availablePatterns = (
             unlocked(p) &&
             // Never two of the hardest patterns back to back
             !(p.cost >= 4 && lastCost >= 4) &&
-            (hugeAllowed || !p.steps.some((s) => s.role === 'huge'))
+            (hugeAllowed || !p.steps.some((s) => moveFor(s.role) === 'double'))
     );
 };
 
@@ -163,11 +163,11 @@ export const spawnObstacle = (
             x,
             id: nextId++,
             role: step.role,
-            phase: step.role === 'mover' ? random() * Math.PI : undefined,
+            phase: shapeFor(step.role).moves ? random() * Math.PI : undefined,
         });
         endX = Math.max(endX, x + shapeFor(step.role).width);
     }
-    if (pattern.steps.some((s) => s.role === 'huge')) spawner.lastHugeSec = nowSec;
+    if (pattern.steps.some((s) => moveFor(s.role) === 'double')) spawner.lastHugeSec = nowSec;
 
     const rest = blend(pacing.rest, progress) + pattern.cost * REST_PER_COST + random() * REST_JITTER;
 

@@ -117,7 +117,7 @@ const moveWorld = (state: GameState, scale: number) => {
     // Move Obstacles (scale by deltaTime so movement is in sync with real time)
     obstacles.forEach(obs => {
         let speed = state.speed / 60; // pixels per 60fps frame
-        if (obs.role === 'mover') {
+        if (shapeFor(obs.role).moves) {
             obs.phase = (obs.phase || 0) + 0.1 * scale;
             speed += Math.cos(obs.phase) * 3;
         }
@@ -133,7 +133,7 @@ const moveWorld = (state: GameState, scale: number) => {
             obs.passed = true;
             // A missed heart isn't an obstacle cleared, and one brushed straight after a hit
             // wasn't cleanly cleared.
-            if (obs.role !== 'heart' && !obs.grazed) clearedObstacle(state);
+            if (!shapeFor(obs.role).heals && !obs.grazed) clearedObstacle(state);
         }
     });
 
