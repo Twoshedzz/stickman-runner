@@ -147,7 +147,12 @@ redrawing every frame on the menus; shared music code between the phone and web 
 **A7 — Docs and recipes.** Bring `PROJECT_BRIEF.md` and `ARCHITECTURE.md` up to date, with three
 short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
 
-**Order:** A1 and A2 side by side → A3 and A4 side by side → A5 → A6 → A7. Then step 9's bonus.
+**Order:** A1 and A2 side by side → A3 and A4 side by side → A5 → A6 → A7 → **U1** → step 9's bonus.
+
+**U1 — Upgrade Expo SDK 54 → 58** (Pete, 25 October: after A7, before the beat bonus), so Expo Go
+opens the game again (§6). React Native, Skia, reanimated and the web patches in `patches/` all
+move. Checked like the architecture steps: tests, an identical difficulty report, and before/after
+pictures of every stage and screen. Until then, test in Safari on the phone.
 
 ### How each architecture step is checked
 
@@ -166,9 +171,10 @@ short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
 | A2 Obstacles describe themselves | ✅ Built 25 Oct (branch `claude/a2-obstacle-catalogue-2c7aac`): each entry now says `clearBy`, `moves`, `fallIn`, `arcsOver`, `bigHit`, `heals`; one `moveFor` and one `topYFor` replace the copies. Only drawing still checks names (A4). Merged into `main` 25 Oct, to try on the phone |
 | A3 One shared step | ✅ Built 25 Oct (branch `claude/a3-shared-step-f735e9`): `stepWorld` in `src/game/step.ts` is the one frame order, used by the game and the pretend player; landings now show up in `state.events`. Merged into `main` 25 Oct, to try on the phone |
 | A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Merged into `main` 25 Oct, to try on the phone |
-| A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Waiting to be merged |
-| A6 A lighter loop | — |
+| A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged into `main` 25 Oct, to try in Safari on the phone |
+| A6 A lighter loop | In progress |
 | A7 Docs and recipes | — |
+| U1 Expo SDK 54 → 58 | After A7 |
 
 ---
 
@@ -584,7 +590,7 @@ Ideas waiting for Pete to place them. Each becomes a step when he picks it.
 | Themed obstacle looks per stage: cars, a van and a bus in the city; a dog, skater, car and bench on the beach; a bear, rock, log and shrub in the mountains | Pete's concept sheets, `assets/concepts/obstacle-prompts.md` | Same rules as today's blocks and bars, just drawn as things. Easier after A2 and A4. Drawn art was parked once (line weight, small objects hard to see), so try one stage first. |
 | Flying swarms: a tall, narrow flock of tiny birds, seagulls or bats to duck under | `assets/concepts/flying-swarm-prompt.md` | A new duck obstacle; after A2 it's a table entry plus its drawing. |
 | Hit, victory and idle poses for the runner | §7 Stickman | Pose choice is a chain of checks in `Stickman.tsx`; worth a small pose table first. |
-| Upgrade Expo SDK 54 → 58, so Expo Go opens the game again | Found 25 October (§6) | A big step of its own: four SDK versions, React Native, Skia, reanimated, and the web patches in `patches/`. Do it on a branch, checked by the tests, the difficulty report and the before/after pictures from §4A. |
+| Upgrade Expo SDK 54 → 58, so Expo Go opens the game again | Found 25 October (§6) | **Placed: step U1, after A7** (§4A). A big step of its own: four SDK versions, React Native, Skia, reanimated, and the web patches in `patches/`. Do it on a branch, checked by the tests, the difficulty report and the before/after pictures from §4A. |
 | A real app via EAS | §6 Route 2 | Needs the Apple Developer Program. A development build would also free testing from Expo Go's version. |
 
 ---
@@ -643,7 +649,7 @@ Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A)
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | A1–A4 merged 25 October (not yet pushed); A5 built, waiting to be merged |
+| Architecture pass (§4A) | A1–A5 merged 25 October (not yet pushed); A6 in progress |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
