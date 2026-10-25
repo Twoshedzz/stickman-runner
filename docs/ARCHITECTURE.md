@@ -167,6 +167,7 @@ since Expo's TypeScript settings leave `import`/`export` lines that Node can't l
 | Obstacle cadence | `src/game/systems/spawn.ts`, stage `difficultySegments` |
 | Stage themes / music ids | `src/game/stages.ts` |
 | Loop / stage timing | `src/game/loop/useGameLoop.ts` |
+| One frame's order (shared by the game and the pretend player) | `src/game/step.ts` |
 | Pausing (the stage clock, the 3-2-1) | `src/game/pause.ts`; button and screen in `src/components/ui/PauseButton.tsx`, `src/components/menu/PausedScreen.tsx` |
 | Draw composition | `src/components/GameCanvas.tsx` |
 | City strips | `src/components/backgrounds/NeonCityScenery.tsx` |

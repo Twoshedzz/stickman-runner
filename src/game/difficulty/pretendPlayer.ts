@@ -3,7 +3,7 @@
  * measure how hard each stage is instead of guessing.
  *
  * It runs the real game code (physics, collisions, the live spawner, hearts, the energy bar)
- * frame by frame, in the same order as the game loop. For each obstacle (or tight group, like
+ * frame by frame, through the game loop's own step (step.ts). For each obstacle (or tight group, like
  * two blocks one jump clears) it:
  *   1. works out the window of moments it could jump, duck or double jump and get past, by
  *      trying every one of them on a copy of the game;
@@ -15,12 +15,11 @@
  */
 import { PLAYER_X } from '../constants';
 import { moveFor, ObstacleRole, shapeFor } from '../obstacleCatalogue';
-import { collectPickups } from '../pickups';
 import { speedAt, StageConfig } from '../stages';
 import { createInitialState, GameState } from '../state';
-import { checkCollisions } from '../systems/collisions';
-import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
-import { resetSpawner, spawnObstacle } from '../systems/spawn';
+import { stepWorld } from '../step';
+import { jump, releaseDuck, startDuck } from '../systems/physics';
+import { resetSpawner } from '../systems/spawn';
 
 export interface Skill {
     name: string;
@@ -80,7 +79,7 @@ const spawnerRandom = (sim: Sim) => () => {
 
 const copy = (sim: Sim): Sim => ({ ...sim, state: JSON.parse(JSON.stringify(sim.state)) });
 
-/** One frame, in the game loop's order. True if the runner was hit. */
+/** One frame, the game loop's own step (step.ts) on a frame-counted clock. True if the runner was hit. */
 const step = (sim: Sim): boolean => {
     const { state, stage } = sim;
     sim.frame++;
@@ -88,14 +87,7 @@ const step = (sim: Sim): boolean => {
     state.stageProgress = Math.min(sim.frame / stageFrames(stage), 1);
     state.distance = state.stageProgress * stage.courseLength;
     state.speed = speedAt(stage, state.stageProgress);
-    state.scroll += state.speed / 60;
-    applyPhysics(state, DT);
-    if (state.distance < stage.courseLength - 1000) spawnObstacle(state, stage, DT, spawnerRandom(sim));
-    // Sparks don't change anything, and copying them every frame is slow.
-    state.particles = [];
-    const hit = checkCollisions(state);
-    collectPickups(state);
-    return hit;
+    return stepWorld(state, stage, DT, { random: spawnerRandom(sim), sparks: false });
 };
 
 const isHazard = (o: GameState['obstacles'][number]) =>
