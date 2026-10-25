@@ -90,15 +90,25 @@ export const STAND_POSE: Pose = {
     lArm: { upper: -0.85, lower: 1.6 }
 };
 
+/**
+ * Ducking under a bar: a feet-first slide. The front leg reaches out along the floor, the back
+ * leg folds under it, the body leans back with one hand down behind for balance and the other
+ * arm forward. The body itself is placed by DUCK_BODY (the torso leans back, so it isn't the
+ * usual upright figure).
+ */
 export const DUCK_POSE: Pose = {
-    // Crouched under a bar: thighs up, shins folded back beneath, arms low and forward
-    // for balance. Feet stay on the ground; it's the head that drops.
-    rLeg: { upper: 1.5, lower: -2.2 },
-    lLeg: { upper: 1.2, lower: -2.4 },
-
-    rArm: { upper: 1.3, lower: 0.5 },
-    lArm: { upper: 1.0, lower: 0.7 }
+    rLeg: { upper: 1.3, lower: 0 },     // front leg out along the floor
+    lLeg: { upper: 1.9, lower: -2.6 },  // back leg folded under, knee up
+    rArm: { upper: 1.75, lower: 0.5 },  // front arm forward for balance
+    lArm: { upper: -0.85, lower: 0.1 }, // back hand down on the floor behind
 };
+
+/**
+ * Where the body goes in the slide, at the normal size (scaled with the runner): the hip this
+ * far back from the middle and this high off the floor, and the torso leaning back by this
+ * angle (radians from upright). Keeps the whole figure under the bar's 26px clearance.
+ */
+export const DUCK_BODY = { hipBack: 6, hipHeight: 5, torso: -1.0 };
 
 export const EXHAUSTED_POSE: Pose = {
     // Exhausted: Hands on knees

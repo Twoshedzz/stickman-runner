@@ -1,6 +1,6 @@
 import { Circle, Group, Line, RadialGradient, vec } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
-import { DUCK_POSE, EXHAUSTED_POSE, FALL_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
+import { DUCK_BODY, DUCK_POSE, EXHAUSTED_POSE, FALL_POSE, JUMP_POSE, Limb, Pose, RUN_POSES, STAND_POSE } from "../game/animations";
 
 interface StickmanProps {
     x: number;
@@ -45,6 +45,27 @@ const curveLimb = (a: Limb, b: Limb, c: Limb, d: Limb, t: number): Limb => ({
     lower: curve(a.lower, b.lower, c.lower, d.lower, t),
 });
 
+type Point = { x: number; y: number };
+
+/**
+ * A limb drawn as a lit tube: a shaded core with a bright stripe along the edge facing the
+ * light (the upper left, as on the obstacles).
+ */
+const Tube = ({ a, b, width, shade, light }: { a: Point; b: Point; width: number; shade: string; light: string }) => {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    // Across the limb, pointing towards the upper left.
+    let nx = -dy / len, ny = dx / len;
+    if (nx + ny > 0) { nx = -nx; ny = -ny; }
+    const o = width * 0.22;
+    return (
+        <>
+            <Line p1={a} p2={b} color={shade} strokeWidth={width} strokeCap="round" />
+            <Line p1={{ x: a.x + nx * o, y: a.y + ny * o }} p2={{ x: b.x + nx * o, y: b.y + ny * o }} color={light} strokeWidth={width * 0.4} strokeCap="round" />
+        </>
+    );
+};
+
 // Mirror function to generate the other half of the cycle
 const getMirroredPose = (p: Pose): Pose => ({
     lLeg: p.rLeg,
@@ -61,12 +82,10 @@ const FULL_CYCLE: Pose[] = [
 
 export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDucking = false, size, status = 'playing', verticalSpeed = 0, landing = 0 }: StickmanProps) => {
     // Synthwave Stickman: White with Neon Glow
-    const color = "white";
-    const strokeWidth = 5; // Thicker for pictogram style
-    // The far arm and leg: a cooler grey, a little thinner and set slightly back, so he reads
-    // as a solid figure with one side further away rather than a flat drawing.
-    const farColor = "#a9aec8";
-    const farStrokeWidth = 4.2;
+    // Limbs are drawn as lit tubes (see Tube): the near side bright, the far arm and leg a
+    // darker blue-grey, thinner and set slightly back, so he reads as a solid figure.
+    const near = { width: 5.5, shade: "#c9cde6", light: "#ffffff" };
+    const far = { width: 4.6, shade: "#6f7596", light: "#aab0cc" };
     const farShift = [{ translateX: 1.2 * (size / 40) }, { translateY: -0.8 * (size / 40) }];
 
     // Dimensions
@@ -145,25 +164,37 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     const exhaustedBendY = status === 'exhausted' ? 12 * scale : 0;
     const exhaustedBendX = status === 'exhausted' ? 8 * scale : 0;
 
-    // Ducking drops the head and tucks the hips slightly; the feet don't move.
-    const duckNeckDrop = isDucking ? 14 * scale : 0;
-    const duckHipDrop = isDucking ? 2 * scale : 0;
+    // Where the feet touch the floor, in the figure's own coordinates.
+    const groundY = anchorY + headRadius + bodyLength + limbLen1 + limbLen2;
+    const sliding = isDucking && status === 'playing';
 
-    const neck = {
-        x: anchorX + leanOffset + exhaustedBendX,
-        y: anchorY + headRadius + exhaustedBendY + duckNeckDrop
-    };
-
-    // Hip stays roughly same place, maybe slightly lower in squat
-    const hip = { x: anchorX, y: anchorY + headRadius + bodyLength + (status === 'exhausted' ? 4 * scale : 0) + duckHipDrop };
-
-    // Shoulders
-    const shoulders = {
-        x: neck.x - (leanOffset * 0.2),
-        y: neck.y + 4 * scale
-    };
-
-    const headCenter = { x: neck.x, y: neck.y - headRadius }; // Head follows neck
+    let neck: { x: number; y: number };
+    let hip: { x: number; y: number };
+    let shoulders: { x: number; y: number };
+    let headCenter: { x: number; y: number };
+    if (sliding) {
+        // The slide: hip low on the floor, the body leaning back from it.
+        hip = { x: anchorX - DUCK_BODY.hipBack * scale, y: groundY - DUCK_BODY.hipHeight * scale };
+        const along = (len: number) => ({
+            x: hip.x + Math.sin(DUCK_BODY.torso) * len,
+            y: hip.y - Math.cos(DUCK_BODY.torso) * len,
+        });
+        neck = along(bodyLength);
+        shoulders = along(bodyLength - 4 * scale);
+        headCenter = along(bodyLength + headRadius);
+    } else {
+        neck = {
+            x: anchorX + leanOffset + exhaustedBendX,
+            y: anchorY + headRadius + exhaustedBendY
+        };
+        // Hip stays roughly same place, maybe slightly lower in squat
+        hip = { x: anchorX, y: anchorY + headRadius + bodyLength + (status === 'exhausted' ? 4 * scale : 0) };
+        shoulders = {
+            x: neck.x - (leanOffset * 0.2),
+            y: neck.y + 4 * scale
+        };
+        headCenter = { x: neck.x, y: neck.y - headRadius }; // Head follows neck
+    }
 
     // Limbs
     const lKnee = getJoint(hip, pose.lLeg.upper, limbLen1);
@@ -178,43 +209,39 @@ export const Stickman = ({ x, y, animationTimeSec, isGrounded, isRunning, isDuck
     const rElbow = getJoint(shoulders, pose.rArm.upper, limbLen1);
     const rHand = getJoint(rElbow, pose.rArm.upper + pose.rArm.lower, foreArmLen);
 
-    // Plant the feet when ducking. The duck pose folds the legs up, so drawn from the usual
-    // position the feet hang in the air and it reads as a flying kick. Shift the whole figure
-    // down until the lowest foot sits where straight legs would touch the ground.
-    const groundY = anchorY + headRadius + bodyLength + limbLen1 + limbLen2;
+    // Landing: shift the figure down so the bent knees lower the body instead of lifting the
+    // feet off the floor. (The slide is placed on the floor already.)
     const lowestFoot = Math.max(lFoot.y, rFoot.y);
-    // Landing does the same, so the bent knees lower the body instead of lifting the feet.
-    const plantShift = isDucking ? Math.max(0, groundY - lowestFoot)
-        : absorb > 0 ? Math.max(0, groundY - lowestFoot) * absorb : 0;
+    const plantShift = !sliding && absorb > 0 ? Math.max(0, groundY - lowestFoot) * absorb : 0;
 
     return (
         <Group transform={[{ translateX: x }, { translateY: y + plantShift + bounce }]}>
             {/* Render Back Limbs First (Left side usually, depends on direction) */}
             <Group transform={farShift}>
-                <Line p1={hip} p2={lKnee} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
-                <Line p1={lKnee} p2={lFoot} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
-                <Line p1={shoulders} p2={lElbow} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
-                <Line p1={lElbow} p2={lHand} color={farColor} strokeWidth={farStrokeWidth} strokeCap="round" />
+                <Tube a={hip} b={lKnee} {...far} />
+                <Tube a={lKnee} b={lFoot} {...far} />
+                <Tube a={shoulders} b={lElbow} {...far} />
+                <Tube a={lElbow} b={lHand} {...far} />
             </Group>
 
             {/* Body & Head */}
-            <Line p1={neck} p2={hip} color={color} strokeWidth={strokeWidth} strokeCap="round" />
+            <Tube a={neck} b={hip} {...near} />
             {/* The head as a ball, lit from the upper left like the obstacles. */}
             <Circle cx={headCenter.x} cy={headCenter.y} r={headRadius}>
                 <RadialGradient
                     c={vec(headCenter.x - headRadius * 0.35, headCenter.y - headRadius * 0.4)}
                     r={headRadius * 1.5}
-                    colors={["#ffffff", "#ffffff", "#b9bdd6"]}
-                    positions={[0, 0.45, 1]}
+                    colors={["#ffffff", "#e9ebf6", "#8f94b4"]}
+                    positions={[0, 0.35, 1]}
                 />
             </Circle>
 
             {/* Front Limbs */}
             <Group>
-                <Line p1={hip} p2={rKnee} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-                <Line p1={rKnee} p2={rFoot} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-                <Line p1={shoulders} p2={rElbow} color={color} strokeWidth={strokeWidth} strokeCap="round" />
-                <Line p1={rElbow} p2={rHand} color={color} strokeWidth={strokeWidth} strokeCap="round" />
+                <Tube a={hip} b={rKnee} {...near} />
+                <Tube a={rKnee} b={rFoot} {...near} />
+                <Tube a={shoulders} b={rElbow} {...near} />
+                <Tube a={rElbow} b={rHand} {...near} />
             </Group>
         </Group>
     );
