@@ -154,7 +154,9 @@ short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
 - `npx tsc --noEmit` clean, `npx expo lint` no worse, `npm test` passing.
 - **The game plays the same:** `npm run difficulty` gives exactly the same DIFFICULTY.md before
   and after (the pretend player uses fixed dice, so any change in the numbers means the game's
-  behaviour changed).
+  behaviour changed). Compare two fresh runs with each other, not with the committed file: that
+  one was made with `DIFFICULTY_RUNS=20`, and the default is 12. Checked 25 October: two runs on
+  `main` came out identical.
 - Played in the browser at phone size: title → stage 1 → pause → a hit → a hole → game over →
   world scores. Then Pete and his son play it on the phone.
 
