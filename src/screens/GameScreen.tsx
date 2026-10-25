@@ -52,7 +52,7 @@ export const GameScreen = () => {
     const { pauseRun, resumeRun } = usePauseControls({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition });
     const { world, enterInitials, worldResult, worldScreen, myPlace, ownKeysOpenRef, submitInitials, skipInitials, browseWorld, closeWorld } = useWorldScoreFlow(gameState);
     const { readyToStart, musicReady, musicPercent, nextMusicPercent, onAssetsReady } = useGameLoading({ stageId: gameState.stageId, showContinue: gameState.showContinue, preloadTrack });
-    const { handleInteraction, duckGesture, touchHandlers } = useRunInput({ gameState, onJump, onDuck, onDuckRelease });
+    const { handleInteraction, runGesture, touchHandlers } = useRunInput({ gameState, onJump, onDuck, onDuckRelease });
     const { quitRun, playAgain, startGame, continueToNextStage, jumpToStageWithMusic } = useStageMusic({ gameState, playMusic, stopMusic, restartGame, quitToTitle, onContinue, jumpToStage, setShowInstructions, handleInteraction });
     useWebKeyboard({ gameState, onJump, onDuck, onDuckRelease, pauseRun, resumeRun, playAgain, showInstructions, ownKeysOpenRef });
 
@@ -90,8 +90,7 @@ export const GameScreen = () => {
                 <RunInputLayer
                     touchWeb={isTouchWeb}
                     disabled={gameState.showContinue}
-                    duckGesture={duckGesture}
-                    onTap={handleInteraction}
+                    runGesture={runGesture}
                     touchHandlers={touchHandlers}
                 />
 

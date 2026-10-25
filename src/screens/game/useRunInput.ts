@@ -25,7 +25,7 @@ export const useRunInput = ({ gameState, onJump, onDuck, onDuckRelease }: Option
     // Swipe down to duck, and keep the finger down to stay ducked; swipe back up from there
     // to jump. Tap still jumps. (The phone app: react-native-gesture-handler.)
     const gestureSwipeRef = useRef<Swipe | null>(null);
-    const duckGesture = useMemo(
+    const swipeGesture = useMemo(
         () => Gesture.Pan()
             .runOnJS(true)
             .minDistance(12)
@@ -45,6 +45,20 @@ export const useRunInput = ({ gameState, onJump, onDuck, onDuckRelease }: Option
                 onDuckRelease();
             }),
         [onDuck, onDuckRelease, handleInteraction]
+    );
+    // The tap races the swipe, so each touch is one or the other. (Until SDK 58 a plain button
+    // took the tap and the gesture library cancelled it once a swipe began; since Gesture
+    // Handler 3 it doesn't, so lifting the finger after a duck also jumped.) No time limit: a
+    // long press still jumps on release, as the button did.
+    const runGesture = useMemo(
+        () => Gesture.Race(
+            swipeGesture,
+            Gesture.Tap()
+                .runOnJS(true)
+                .maxDuration(60_000)
+                .onEnd((_e, success) => { if (success) handleInteraction(); }),
+        ),
+        [swipeGesture, handleInteraction]
     );
 
     /**
@@ -82,5 +96,5 @@ export const useRunInput = ({ gameState, onJump, onDuck, onDuckRelease }: Option
         if (action === 'tap') handleInteraction();
     }, [handleInteraction, onDuckRelease]);
 
-    return { handleInteraction, duckGesture, touchHandlers: { onTouchStart, onTouchMove, onTouchEnd } };
+    return { handleInteraction, runGesture, touchHandlers: { onTouchStart, onTouchMove, onTouchEnd } };
 };
