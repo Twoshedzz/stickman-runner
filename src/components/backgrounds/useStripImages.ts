@@ -3,8 +3,7 @@
  *
  * Why this exists: Skia's own `useImage` does not resolve bundled assets on web — the
  * files are never even requested — so images have to be fetched and decoded by hand.
- * CityStripBackground carries its own copy of this; new scenery should use this hook
- * instead, and that one can move over to it later.
+ * All the scenery uses this hook.
  *
  * Loads are shared and cached per key, so a set is fetched once no matter how many
  * components ask for it or how often they remount. Without the in-flight sharing, a

@@ -14,7 +14,7 @@
  * Run the full report with `npm run difficulty` (see difficulty.report.test.ts).
  */
 import { PLAYER_X } from '../constants';
-import { ObstacleRole, shapeFor } from '../obstacleCatalogue';
+import { moveFor, ObstacleRole, shapeFor } from '../obstacleCatalogue';
 import { collectPickups } from '../pickups';
 import { speedAt, StageConfig } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -99,7 +99,7 @@ const step = (sim: Sim): boolean => {
 };
 
 const isHazard = (o: GameState['obstacles'][number]) =>
-    o.role !== 'heart' && !o.passed && o.x + shapeFor(o.role).width > PLAYER_X;
+    !shapeFor(o.role).heals && !o.passed && o.x + shapeFor(o.role).width > PLAYER_X;
 
 /** The next thing to get past: the nearest hazard and anything arriving right behind it. */
 const nextGroup = (state: GameState) => {
@@ -155,16 +155,15 @@ const gaussian = (random: () => number) => {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * random());
 };
 
-const kindFor = (role: ObstacleRole | undefined): Move['kind'] =>
-    role === 'overhead' ? 'duck' : role === 'huge' ? 'double' : 'jump';
-
 /** Choose a move for the group ahead: the middle of its window, missed by a human amount. */
 const plan = (
     sim: Sim, ids: number[], skill: Skill, random: () => number, windows: RunResult['windows']
 ): Move | 'none' | 'no way' => {
     const slipped = random() < skill.slipChance;
     const role = sim.state.obstacles.find((o) => o.id === ids[0])?.role ?? 'small';
-    const kind = kindFor(role);
+    const clearBy = moveFor(role);
+    // Only hazards are planned for, never a heart; a plain jump keeps the types happy.
+    const kind = clearBy === 'collect' ? 'jump' : clearBy;
     let window: { start: number; end: number } | null = null;
     let delay: number | undefined;
     for (const d of kind === 'double' ? DOUBLE_DELAYS : [undefined]) {
@@ -203,7 +202,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     for (let f = 0; f < stageFrames(stage); f++) {
         const s = sim.state;
         for (const o of s.obstacles) {
-            if (o.role !== 'heart' && !seen.has(o.id)) { seen.add(o.id); result.obstacles++; }
+            if (!shapeFor(o.role).heals && !seen.has(o.id)) { seen.add(o.id); result.obstacles++; }
         }
 
         if (current && groupPassed(s, current.ids)) {

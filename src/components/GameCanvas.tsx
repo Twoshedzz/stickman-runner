@@ -4,11 +4,11 @@ import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
     BASE_SPEED, COLOR_HP_DEEP, HIT_GRACE_SEC, COLOR_OBSTACLE, COLOR_OBSTACLE_GLOW,
-    GROUND_HEIGHT, HEART_SIZE, OVERHEAD_TOP_OFFSET,
+    GROUND_HEIGHT, HEART_SIZE,
     PLAYER_SIZE, RUNNER_GROUND_Y, SCREEN_HEIGHT, SCREEN_WIDTH
 } from "../game/constants";
 import { pulseBand } from "../game/beatPulse";
-import { shapeFor } from "../game/obstacleCatalogue";
+import { shapeFor, topYFor } from "../game/obstacleCatalogue";
 import { PICKUP_RADIUS } from "../game/pickups";
 import { remainingScroll, STAGES, StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
@@ -384,9 +384,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
 
                     const art = shapeFor(role);
                     // The bar hangs in the air; everything else stands on the ground.
-                    const y = art.overhead
-                        ? RUNNER_GROUND_Y - OVERHEAD_TOP_OFFSET
-                        : RUNNER_GROUND_Y - art.height;
+                    const y = topYFor(role);
 
                     const colour = art.tint === 'red' ? palette.red
                         : art.tint === 'purple' ? palette.purple

@@ -130,7 +130,7 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
                 />
             </SkiaErrorBoundary>
         );
-    } catch (e) {
+    } catch {
         return (
             <div style={{ padding: 24, color: '#fff', background: '#111' }}>
                 Skia failed to load. Use Expo Go on a device or refresh.

@@ -57,7 +57,7 @@ How stage 1 works end-to-end, and how to keep mechanics easy to tweak while stay
 
 ## 3. Further performance options (without changing “one place to tweak”)
 
-- **City lights:** `NeonCityLayer` draws many small `Rect`s per window every frame (path + per-window visibility). `NeonCityBackground.tsx` also has a texture-based `NeonCitySprites` that uses pre-baked textures per lights step. Switching stage 1 to `NeonCitySprites` (or using it when available) would reduce per-frame draw calls while keeping the same `currentTheme.nightProgress` / `lightsDwindle` contract. Mechanics and tweaking stay in timeline + theme.
+- **City lights:** done. The city no longer draws a `Rect` per window: `NeonCityScenery.tsx` stacks pre-generated light overlays (`assets/city/lights/`) on the building strips, still driven by `currentTheme.nightProgress` / `lightsDwindle`.
 
 - **Grid:** `GridFloor` already memoizes `scrollOffset` and line content by `[isMoving, distance, courseLength, tick]`; no change needed unless you add more dynamic grid features.
 
@@ -97,7 +97,7 @@ When adding or tuning stages 2–4, keep this contract so behaviour stays consis
 | Collisions | `src/game/systems/collisions.ts` |
 | Theme & sky/moon/lights | `src/components/GameCanvas.tsx` (`getTheme`, usage of `currentTheme`) |
 | Grid scroll | `src/components/GridFloor.tsx` |
-| City background | `src/components/backgrounds/NeonCityBackground.tsx` |
+| City background | `src/components/backgrounds/NeonCityScenery.tsx` |
 | Design rules | `docs/STAGE_DESIGN.md` |
 
 This gives you a stable, reviewed base for stage 1 and a clear pattern for stages 2–4, with one place to tweak mechanics and targeted performance improvements that don’t complicate that.

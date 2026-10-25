@@ -1,37 +1,17 @@
-# City background strips (pre-generated)
+# City background strips (stage 1)
 
-Strip size: **1200 × 350** px (CITY_WIDTH × SCREEN_HEIGHT).
+Drawn by `src/components/backgrounds/NeonCityScenery.tsx`.
 
-The repo includes **placeholder** PNGs (solid colours) so the strip approach can be tested. Regenerate them with:
+- `front_none_1.png` … `front_none_4.png`, `back_none_1.png` … `back_none_4.png` – the
+  hand-drawn buildings with no lights on, four variants per layer.
+- `lights/` – the lit windows, as overlays stacked on top of the buildings at the current
+  light level. Generated from the `*_none_*` strips; regenerate with:
 
 ```bash
-node scripts/generate-city-placeholders.js
+node scripts/generate-city-lights.js
 ```
 
-That overwrites the 6 strip files and `placeholder.png` with 1200×350 images (back = purple tones, front = black tones). Replace these with your own art when ready.
+- `*.psd` – the source art the strips were made from.
 
-## Option B (6 strips)
-
-Place PNGs here with these names (used until you add Option A variants):
-
-- `back_no.png` – back layer, no lights (building silhouettes only)
-- `back_some.png` – back layer, some lights on
-- `back_all.png` – back layer, all lights on
-- `front_no.png` – front layer, no lights
-- `front_some.png` – front layer, some lights on
-- `front_all.png` – front layer, all lights on
-
-Until these exist, the app uses `placeholder.png` for all slots so you can test the scroll and no/some/all switching.
-
-## Option A (60 strips, variety)
-
-For 10 variants per state, name files:
-
-- `back_no_00.png` … `back_no_09.png`
-- `back_some_00.png` … `back_some_09.png`
-- `back_all_00.png` … `back_all_09.png`
-- `front_no_00.png` … `front_no_09.png`
-- `front_some_00.png` … `front_some_09.png`
-- `front_all_00.png` … `front_all_09.png`
-
-See "City lights: from per-frame drawing to pre-generated strips" in `docs/HISTORY.md` for the generation and runtime logic behind this.
+See "City lights: from per-frame drawing to pre-generated strips" in `docs/HISTORY.md` for how
+the city got here.

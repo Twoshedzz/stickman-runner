@@ -11,17 +11,7 @@
  * Every pattern here is checked against the real jump and duck physics by
  * src/game/__tests__/patterns.test.ts - run `npm test` after changing anything.
  */
-import { ObstacleRole, shapeFor } from './obstacleCatalogue';
-
-/** What an obstacle asks the player to do. */
-export type Move = 'jump' | 'double' | 'duck' | 'collect';
-
-export const moveFor = (role: ObstacleRole): Move => {
-    if (role === 'overhead') return 'duck';
-    if (role === 'huge') return 'double';
-    if (role === 'heart') return 'collect';
-    return 'jump';
-};
+import { Move, moveFor, ObstacleRole, shapeFor } from './obstacleCatalogue';
 
 export interface PatternStep {
     role: ObstacleRole;
@@ -92,8 +82,8 @@ const MOVER_SLACK = 0.15;
 
 export const minGapSec = (prev: ObstacleRole, next: ObstacleRole) =>
     MIN_GAP[moveFor(prev)][moveFor(next)] +
-    (prev === 'mover' ? MOVER_SLACK : 0) +
-    (next === 'mover' ? MOVER_SLACK : 0);
+    (shapeFor(prev).moves ? MOVER_SLACK : 0) +
+    (shapeFor(next).moves ? MOVER_SLACK : 0);
 
 /** How long a pattern takes to pass the runner, from its first obstacle's front edge. */
 export const patternLengthSec = (pattern: Pattern, speedPxPerSec: number) =>

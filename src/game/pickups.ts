@@ -19,7 +19,7 @@
  * the jump exactly at any speed. src/game/__tests__/pickups.test.ts plays them to check.
  */
 import { GRAVITY, JUMP_FORCE, PLAYER_DUCK_HEIGHT, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y, SCREEN_WIDTH } from './constants';
-import { ObstacleRole, shapeFor } from './obstacleCatalogue';
+import { moveFor, shapeFor } from './obstacleCatalogue';
 import { spawnParticles } from './particles';
 import { STAGES, StagePacing } from './stages';
 import { GameState } from './state';
@@ -103,12 +103,6 @@ let nextId = 0;
 const blend = ([start, end]: [number, number], progress: number) =>
     start + (end - start) * progress;
 
-/**
- * What a plain jump clears: the blocks and the hole. Not the purple sphere (it wobbles) or
- * the wide block (double jump).
- */
-const arcsOver = (role: ObstacleRole | undefined) => role === 'small' || role === 'large' || role === 'hole';
-
 /** Pickups along a flight path, for a jump that peaks (or would peak) over `peakX`. */
 const placeAlong = (state: GameState, path: number[], frames: number[], peakX: number) => {
     for (const frame of frames) {
@@ -144,7 +138,7 @@ export const placePickups = (
     if (random() < ARC_CHANCE) {
         const groups: number[][] = [];
         for (const obs of placed) {
-            if (!arcsOver(obs.role)) continue;
+            if (!shapeFor(obs.role).arcsOver) continue;
             const centre = obs.x + shapeFor(obs.role).width / 2;
             const last = groups[groups.length - 1];
             if (last && centre - last[last.length - 1] < ONE_JUMP_SEC * speed) last.push(centre);
@@ -169,7 +163,7 @@ export const placePickups = (
     }
 
     if (heartPlaced) return;
-    const afterHuge = placed[placed.length - 1]?.role === 'huge';
+    const afterHuge = moveFor(placed[placed.length - 1]?.role) === 'double';
 
     // A hop: an arc in mid-air through the rest, for an extra jump. Taking off anywhere in
     // the window still lands before the next pattern needs you.
