@@ -172,8 +172,8 @@ pictures of every stage and screen. Until then, test in Safari on the phone.
 | A3 One shared step | ✅ Built 25 Oct (branch `claude/a3-shared-step-f735e9`): `stepWorld` in `src/game/step.ts` is the one frame order, used by the game and the pretend player; landings now show up in `state.events`. Merged into `main` 25 Oct, to try on the phone |
 | A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Merged into `main` 25 Oct, to try on the phone |
 | A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged into `main` 25 Oct, to try in Safari on the phone |
-| A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Waiting to be merged |
-| A7 Docs and recipes | — |
+| A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged into `main` 25 Oct, to try in Safari on the phone |
+| A7 Docs and recipes | In progress |
 | U1 Expo SDK 54 → 58 | After A7 |
 
 ---
@@ -649,7 +649,7 @@ Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A)
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | A1–A5 merged 25 October (not yet pushed); A6 built, waiting to be merged; then A7 |
+| Architecture pass (§4A) | A1–A6 merged 25 October (not yet pushed); A7 in progress |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
