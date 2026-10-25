@@ -6,6 +6,9 @@ const [dir, a, b] = process.argv.slice(2);
 // Ids and the logo's tint filter names are counters, and the menu backdrop appears whenever the browser gets round to measuring it.
 const norm = (h) => {
   h = h.replace(/ id="\d+"/g, '').replace(/tint-\d+/g, 'tint-N');
+  // Not part of the game: the hidden box that measures the notch (its shape changed in SDK 58),
+  // and the error-message holder SDK 58's development server adds.
+  h = h.replace(/\n?<div style="[^"]*env\(safe-area-inset-[^"]*"><\/div>/g, '').replace('<div id="error-toast" style="position: absolute;"></div>', '');
   for (;;) {
     const m = h.match(/<div class="css-view-g5y9jx" style="position: absolute; left: [-\d.]+px; top: [-\d.]+px; width: [\d.]+px; height: [\d.]+px;">/);
     const i = m ? m.index : -1;

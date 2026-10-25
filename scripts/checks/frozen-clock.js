@@ -17,6 +17,23 @@
   Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', { get() { return 1e6; }, set(v) {}, configurable: true });
   Math.random = () => { s = (s + 0x6D2B79F5) | 0; let r = Math.imul(s ^ (s >>> 15), 1 | s); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; };
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  // Since Skia 2.14 the picture is drawn straight after each update, and WebGL clears the canvas
+  // once the browser has shown it, so reading it later comes back blank. While `grabbing`, keep
+  // a copy made the moment Skia finishes drawing (Surface.flush). Older Skia drew on the next
+  // frame, which this catches too.
+  let grabbing = false, grabbed = null;
+  const surface = window.CanvasKit?.Surface?.prototype;
+  if (surface && !surface.__checksGrab) {
+    const flush = surface.flush;
+    surface.flush = function (...args) {
+      const r = flush.apply(this, args);
+      const c = grabbing && document.querySelector('canvas');
+      if (c) { const d = c.toDataURL(); if (d.length > 50000) grabbed = d; }
+      return r;
+    };
+    surface.__checksGrab = true;
+  }
+  const grab = { start: () => { grabbing = true; grabbed = null; }, stop: () => { grabbing = false; return grabbed; } };
   const runAll = () => { const cbs = q.splice(0); for (const cb of cbs) { try { cb(perf); } catch (e) { console.error(e); } } };
   const runDraws = () => { const cbs = q.splice(0); for (const cb of cbs) { if (cb.name === 'loop') q.push(cb); else { try { cb(perf); } catch (e) { console.error(e); } } } };
   const step = (n, dt = 1000 / 60) => { for (let i = 0; i < n; i++) { t += dt; perf += dt; runAll(); } };
@@ -44,9 +61,10 @@
   const shot = async (frames, name) => {
     step(frames);
     // Frames of zero length: the game stands still while the picture catches up.
+    grab.start();
     for (let i = 0; i < 6; i++) { await sleep(120); runAll(); }
     await sleep(150); runDraws();
-    const d = document.querySelector('canvas').toDataURL();
+    const d = grab.stop() ?? document.querySelector('canvas').toDataURL();
     await save(name + '.png', d);
     let h = 0; for (let i = 0; i < d.length; i++) h = (h * 31 + d.charCodeAt(i)) | 0;
     return name + ' | ' + info() + ' | #' + d.length + ':' + h;
@@ -60,6 +78,6 @@
     }
     return r;
   };
-  window.__fk = { reset: () => { t = T0; perf = 1e7; s = 1; }, set, step, runAll, runDraws, info, jump, start, shot, sleep, gs, save, qnames: () => q.map(c => c.name || 'anon') };
+  window.__fk = { grab, reset: () => { t = T0; perf = 1e7; s = 1; }, set, step, runAll, runDraws, info, jump, start, shot, sleep, gs, save, qnames: () => q.map(c => c.name || 'anon') };
   return 'installed';
 })()

@@ -13,7 +13,7 @@
   HTMLMediaElement.prototype.play = function () {
     // Blob addresses change every load, so name the kind of source rather than the address.
     const src = String(this.src);
-    const what = !src ? '(no source yet)' : src.startsWith('blob:') ? '(downloaded track)' : src.split('/').pop().split('?')[0];
+    const what = src.startsWith('blob:') ? '(downloaded track)' : src.split('/').pop().split('?')[0] || '(no track set yet)';
     log.push('  play ' + what + (inTap ? ' INSIDE ' + inTap : ' outside a tap'));
     return muted.call(this);
   };

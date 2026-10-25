@@ -33,12 +33,13 @@
   const log = [];
   let stops = new Set(), go = null;
   const snap = async (name) => {
+    fk.grab.start();
     await settle();
     if (stops.has(name)) { window.__a5.at = name; await new Promise(r => { go = r; }); go = null; }
     await sleep(150); fk.runDraws();
     const html = dom();
     // The canvas is sometimes caught blank, between pictures: try again.
-    let png = document.querySelector('canvas')?.toDataURL() ?? '';
+    let png = fk.grab.stop() ?? document.querySelector('canvas')?.toDataURL() ?? '';
     for (let i = 0; i < 8 && png && png.length < 50000; i++) { await sleep(150); fk.runDraws(); png = document.querySelector('canvas').toDataURL(); }
     await fk.save(prefix + '_' + name + '.html', html);
     if (png) await fk.save(prefix + '_' + name + '.png', png);
