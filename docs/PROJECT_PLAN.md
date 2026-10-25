@@ -162,10 +162,10 @@ short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
 
 | Step | Status |
 |---|---|
-| A1 Clear the dead wood | Next |
-| A2 Obstacles describe themselves | Next |
-| A3 One shared step | Waiting for A2 |
-| A4 Stages plug in scenery and sky | Waiting for A1 |
+| A1 Clear the dead wood | ✅ Built 25 Oct (branch `claude/a1-dead-wood-fded9a`): 3 scenery files, 34 old city pictures, 8 packages and the unused theme helpers gone; lint down to 0 errors, 3 warnings. Waiting to be merged |
+| A2 Obstacles describe themselves | ✅ Built 25 Oct (branch `claude/a2-obstacle-catalogue-2c7aac`): each entry now says `clearBy`, `moves`, `fallIn`, `arcsOver`, `bigHit`, `heals`; one `moveFor` and one `topYFor` replace the copies. Only drawing still checks names (A4). Waiting to be merged |
+| A3 One shared step | Next, once A2 is merged |
+| A4 Stages plug in scenery and sky | Next, once A1 and A2 are merged |
 | A5 Split the game screen | — |
 | A6 A lighter loop | — |
 | A7 Docs and recipes | — |
@@ -635,7 +635,7 @@ Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A)
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | Started 25 October: A1 and A2 next |
+| Architecture pass (§4A) | A1 and A2 built 25 October, waiting to be merged; A3 and A4 next |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
