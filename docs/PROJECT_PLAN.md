@@ -166,7 +166,7 @@ short recipes: *add an obstacle*, *add a stage*, *add a mechanic*.
 | A2 Obstacles describe themselves | ✅ Built 25 Oct (branch `claude/a2-obstacle-catalogue-2c7aac`): each entry now says `clearBy`, `moves`, `fallIn`, `arcsOver`, `bigHit`, `heals`; one `moveFor` and one `topYFor` replace the copies. Only drawing still checks names (A4). Merged into `main` 25 Oct, to try on the phone |
 | A3 One shared step | ✅ Built 25 Oct (branch `claude/a3-shared-step-f735e9`): `stepWorld` in `src/game/step.ts` is the one frame order, used by the game and the pretend player; landings now show up in `state.events`. Merged into `main` 25 Oct, to try on the phone |
 | A4 Stages plug in scenery and sky | ✅ Built 25 Oct (branch `claude/a4-scenery-sky-a47b05`): sky maths in `src/game/sky.ts` (with a test that locks in how every stage's sky looked), stage 1's special cases now a `sky` block in `stages.ts`, a scenery table (`backgrounds/scenery.ts`), obstacles drawn by `ObstacleLayer.tsx` from the obstacle table, `stageById`. `GameCanvas.tsx` 503 → 258 lines; 8 of 10 before/after pictures identical, the other 2 differ only by dust at the runner's feet. Merged into `main` 25 Oct, to try on the phone |
-| A5 Split the game screen | In progress |
+| A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Waiting to be merged |
 | A6 A lighter loop | — |
 | A7 Docs and recipes | — |
 
@@ -502,6 +502,13 @@ Home Screen. It opens full screen, edge to edge, with its own icon and name.
 - Home screen apps can hold on to an old copy: if a change doesn't show, remove the icon and add it
   again.
 
+**Expo Go no longer opens the game (found 25 October).** Expo Go on the iPhone updated itself
+to Expo SDK 58 and only opens projects on that version; the game is on SDK 54, and an older Expo
+Go can't be installed on an iPhone. Until the project is upgraded, test in Safari instead: the
+home screen web app (Route 1, needs a push to update), or a development server on the Mac opened
+in Safari on the same Wi-Fi. The phone app's own swipe code can't be checked that way. The
+upgrade (54 → 58: React Native, Skia and the web patches all move) is in the Ideas inbox (§7).
+
 **Route 2 — a real app via EAS.** Not started. Needs the Apple Developer Program ($99/year) to
 install via a link or TestFlight. Before building: a proper display name, icon and splash screen
 for the native app (still Expo's defaults), and the exact commands in `docs/RELEASE.md`.
@@ -577,7 +584,8 @@ Ideas waiting for Pete to place them. Each becomes a step when he picks it.
 | Themed obstacle looks per stage: cars, a van and a bus in the city; a dog, skater, car and bench on the beach; a bear, rock, log and shrub in the mountains | Pete's concept sheets, `assets/concepts/obstacle-prompts.md` | Same rules as today's blocks and bars, just drawn as things. Easier after A2 and A4. Drawn art was parked once (line weight, small objects hard to see), so try one stage first. |
 | Flying swarms: a tall, narrow flock of tiny birds, seagulls or bats to duck under | `assets/concepts/flying-swarm-prompt.md` | A new duck obstacle; after A2 it's a table entry plus its drawing. |
 | Hit, victory and idle poses for the runner | §7 Stickman | Pose choice is a chain of checks in `Stickman.tsx`; worth a small pose table first. |
-| A real app via EAS | §6 Route 2 | Needs the Apple Developer Program. |
+| Upgrade Expo SDK 54 → 58, so Expo Go opens the game again | Found 25 October (§6) | A big step of its own: four SDK versions, React Native, Skia, reanimated, and the web patches in `patches/`. Do it on a branch, checked by the tests, the difficulty report and the before/after pictures from §4A. |
+| A real app via EAS | §6 Route 2 | Needs the Apple Developer Program. A development build would also free testing from Expo Go's version. |
 
 ---
 
@@ -635,7 +643,7 @@ Items marked **(A1)** or **(A6)** are being done in the architecture pass (§4A)
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | A1–A4 merged 25 October (not yet pushed); A5 in progress |
+| Architecture pass (§4A) | A1–A4 merged 25 October (not yet pushed); A5 built, waiting to be merged |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
