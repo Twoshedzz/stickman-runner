@@ -7,12 +7,12 @@
  */
 import { DUCK_DURATION_SEC, DUCK_RELEASE_SEC, JUMP_ENERGY_COST, MAX_ENERGY, MAX_HEALTH, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { ROLE_SHAPES } from '../obstacleCatalogue';
-import { PATTERNS } from '../patterns';
+import { closedUp, PATTERNS, TIGHTEST_SPACING } from '../patterns';
 import { beatGridSec, remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
-import { spawnObstacle } from '../systems/spawn';
+import { SAME_JUMP_SEC, spawnObstacle } from '../systems/spawn';
 
 const DT = 1 / 60;
 type Obstacle = GameState['obstacles'][number];
@@ -183,12 +183,17 @@ const SPEEDS = [STAGES[0].speed[0], 300, STAGES[STAGES.length - 1].speed[1]];
 describe('every pattern can be cleared', () => {
     for (const pattern of PATTERNS) {
         const phases = pattern.steps.some((s) => s.role === 'mover') ? [0, 0.8, 1.6, 2.4, 3.1] : [0];
-        for (const speed of SPEEDS) {
-            for (const phase of phases) {
-                it(`${pattern.id} at ${speed} px/sec${phases.length > 1 ? ` (sphere phase ${phase})` : ''}`, () => {
-                    triesLeft = 200000;
-                    expect(solve(freshSim(speed), patternArrivals(pattern.steps, speed, phase), 0)).toBe(true);
-                });
+        // As designed, and closed up as tight as it gets at the end of a stage.
+        for (const spacing of [1, TIGHTEST_SPACING]) {
+            for (const speed of SPEEDS) {
+                for (const phase of phases) {
+                    const label = `${pattern.id}${spacing < 1 ? ' closed up' : ''} at ${speed} px/sec`;
+                    it(`${label}${phases.length > 1 ? ` (sphere phase ${phase})` : ''}`, () => {
+                        triesLeft = 200000;
+                        const steps = closedUp(pattern, spacing);
+                        expect(solve(freshSim(speed), patternArrivals(steps, speed, phase), 0)).toBe(true);
+                    });
+                }
             }
         }
     }
@@ -325,7 +330,7 @@ describe('obstacles land on the beat', () => {
                     const arrival = sec + (o.x + ROLE_SHAPES[o.role!].width / 2 - runnerX) / state.speed;
                     const offGrid = Math.abs(((arrival - stage.beat.firstSec) / grid) % 1);
                     // The second of a tight pair is deliberately close behind the first.
-                    const tightPair = arrival - lastArrival < grid / 2;
+                    const tightPair = arrival - lastArrival <= SAME_JUMP_SEC + 0.001;
                     if (!tightPair && Math.min(offGrid, 1 - offGrid) * grid >= 0.005) offBeat++;
                     lastArrival = arrival;
                 });

@@ -24,18 +24,37 @@ export interface VisualEvent {
 /**
  * How a stage gets harder. The spawner picks patterns from src/game/patterns.ts; these
  * numbers decide which ones are allowed and how much breathing space follows each one.
- * Pairs are [start of stage, end of stage], blended smoothly in between.
+ * Pairs are [start of stage, end of stage], blended in between as the stage builds (`build`).
  */
 export interface StagePacing {
+    /**
+     * How the stage builds, following its music: points of [seconds into the stage, how built
+     * up it is (0 = the gentle opening, 1 = the busiest finish)], joined by straight lines and
+     * held after the last one. It sets how far along the [start, end] pairs of budget, rest and
+     * breathers the stage is. Measured from each track's loudness: a quiet intro stays gentle.
+     * Without it, the stage builds evenly from start to finish.
+     */
+    build?: [number, number][];
     /** The most demanding pattern cost allowed (1 = single obstacles only, 4 = everything). */
     budget: [number, number];
     /** Seconds of breathing space after each pattern, before any extra for harder patterns. */
     rest: [number, number];
     /**
+     * How often a breather comes: a rest of about a second with nothing to do, in place of
+     * the usual short one. Seconds between breathers.
+     */
+    breatherEverySec: [number, number];
+    /**
      * When each obstacle first turns up, as a fraction of the stage (0 = from the start,
      * 0.5 = halfway). Obstacles not listed never appear. Hearts are always available.
      */
     unlocks: Partial<Record<ObstacleRole, number>>;
+    /**
+     * Patterns placed at set moments rather than at random, by id, at these fractions of the
+     * stage (0.5 = halfway), so a stage always has as many as listed. Used for the voids. One
+     * is put off a little if it can't go yet (a void waits for the energy bar).
+     */
+    planned?: Partial<Record<string, number[]>>;
     /**
      * What gives the stage its own character: patterns it leans on, as a multiplier on how
      * often each is picked (by id from src/game/patterns.ts; anything unlisted is 1).
@@ -132,8 +151,9 @@ export interface StageConfig {
      * The music's beat, measured by analysing the track: seconds per beat, and when the
      * first beat falls. Obstacles are timed to reach the runner on this beat. `pulseEvery`:
      * the beat pulse on the floor (beatPulse.ts) rolls every this many beats (default 1).
+     * `steps`: how many points per beat obstacles can land on (default 4, quarter-beats).
      */
-    beat: { sec: number; firstSec: number; pulseEvery?: number };
+    beat: { sec: number; firstSec: number; pulseEvery?: number; steps?: number };
     /**
      * The length of the sky's dusk-to-dawn timeline (sun, moon, lights). Distance runs on
      * the clock rather than the speed, so this is a clock in disguise; it is not how far
@@ -146,6 +166,20 @@ export interface StageConfig {
 
 /** The stage with this id, or the first stage if there's no such stage. */
 export const stageById = (id: string): StageConfig => STAGES.find((s) => s.id === id) ?? STAGES[0];
+
+/** How built up the stage is at this point (0 = start, 1 = end): see `pacing.build`. */
+export const buildAt = (stage: StageConfig, progress: number) => {
+    const points = stage.pacing.build;
+    if (!points) return Math.min(Math.max(progress, 0), 1);
+    const sec = progress * stage.durationSec;
+    if (sec <= points[0][0]) return points[0][1];
+    for (let i = 1; i < points.length; i++) {
+        const [s0, b0] = points[i - 1];
+        const [s1, b1] = points[i];
+        if (sec <= s1) return b0 + ((b1 - b0) * (sec - s0)) / (s1 - s0);
+    }
+    return points[points.length - 1][1];
+};
 
 /** World speed in pixels per second at a point in the stage (0 = start, 1 = end). */
 export const speedAt = (stage: StageConfig, progress: number) =>
@@ -160,10 +194,11 @@ export const remainingScroll = (stage: StageConfig, progress: number) => {
 };
 
 /**
- * The rhythm obstacles snap to: half-beats, so they land in time with the music without the
- * stage getting any sparser (about every 0.3-0.4 sec on these tracks).
+ * The rhythm obstacles snap to: quarter-beats (`beat.steps`), so they land in time with the
+ * music without the stage getting any sparser (every 0.15-0.2 sec on these tracks). On a
+ * coarser grid, rounding each gap up to the next point spaced everything out.
  */
-export const beatGridSec = (stage: StageConfig) => stage.beat.sec / 2;
+export const beatGridSec = (stage: StageConfig) => stage.beat.sec / (stage.beat.steps ?? 4);
 
 /** How far through the current beat the music is, 0 just as a beat lands to 1 just before the next. */
 export const beatPhase = (stage: StageConfig, stageSec: number) => {
@@ -196,22 +231,26 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_city'
         },
         // Something new every half minute or so, and mostly runs that switch between ducking and
-        // jumping. Players found it too easy on 24 October, so it starts busier than it used to.
+        // jumping. It eases in and builds to near-constant action by the end (step 11). The track
+        // is loud all the way through, so it builds evenly.
         pacing: {
-            budget: [2.5, 5],
-            rest: [0.7, 0.4],
-            // Holes come about 35 seconds in: on their own first, then in simple pairs. The
-            // first voids (double jump across a gap) are the last 35 seconds' surprise.
-            unlocks: { small: 0, overhead: 0.03, large: 0.06, mover: 0.15, hole: 0.2, huge: 0.45, void: 0.8 },
-            // The basics: the longer runs are saved for later stages.
+            budget: [2, 5.5],
+            rest: [1.0, 0.05],
+            breatherEverySec: [7, 18],
+            // Holes come about 25 seconds in: on their own first, then in simple pairs.
+            unlocks: { small: 0, overhead: 0.02, large: 0.04, mover: 0.1, hole: 0.15, huge: 0.3 },
+            // Two voids (double jump across a gap), in the second half.
+            planned: { void: [0.6, 0.85] },
+            // The basics: the longest runs are saved for later stages.
             favour: {
                 'bar-hop': 2, 'hop-bar': 2, 'bar-hole': 2, 'hole-bar': 2,
                 'bar-hop-bar': 2, 'hop-bar-hop': 2, weave: 2.5, zigzag: 2.5,
-                small: 0.4, large: 0.4, bar: 0.5,
-                'bar-bar-hop': 0, 'pair-bar': 0, 'mover-bar': 0, 'hole-hole': 0, 'hole-hop-hole': 0,
-                quad: 0, 'hole-bar-hole': 0, gauntlet: 0, void: 0.6,
+                'pair-hop': 1.5, 'bar-pair': 1.5, 'hop-bar-bar': 1.5, 'bar-hop-hop': 1.5,
+                small: 0.4, large: 0.4, bar: 0.5, 'hole-hole': 0.5,
+                'bar-bar-hop': 0, 'hole-hop-hole': 0, 'mover-bar-hop': 0, 'mover-mover': 0,
+                quad: 0, 'hole-bar-hole': 0, gauntlet: 0, run: 0,
             },
-            hearts: { hurtBelow: 0.65, hurtEverySec: 8, topUpChance: 0.35, topUpEverySec: 16 },
+            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.35, topUpEverySec: 16 },
             pickups: { hop: [0, 0], double: [0, 0] },
         },
         speed: [260, 300],
@@ -396,16 +435,21 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_beach'
         },
         pacing: {
-            budget: [3, 4.5],
-            rest: [0.55, 0.3],
+            // An 18-second intro, then the beat: an easy start, building to the finish.
+            build: [[0, 0], [18, 0.1], [160, 1]],
+            budget: [2.5, 5.5],
+            rest: [0.9, 0.05],
+            breatherEverySec: [7, 18],
             // Holes, first met in stage 1, are this stage's speciality, combinations included.
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, void: 0 },
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0 },
+            planned: { void: [0.4, 0.65, 0.88] },
             favour: {
                 hole: 1.2, 'hole-hop': 2.5, 'bar-hole': 2, 'hole-bar': 2, 'hole-hole': 2, 'hole-hop-hole': 1.5,
-                weave: 2.5, zigzag: 2.5,
+                'hop-hole-hop': 2, 'hole-hop-bar': 2, stairs: 1.5,
+                weave: 2.5, zigzag: 2.5, 'bar-bar-pair': 1.5, 'pair-bar-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, pair: 0.7,
             },
-            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 18 },
+            hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 20 },
             // Introduces the extra jump between obstacles.
             pickups: { hop: [0.3, 0.6], double: [0, 0] },
         },
@@ -452,16 +496,23 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_mountains'
         },
         pacing: {
-            budget: [3, 5.5],
-            rest: [0.5, 0.3],
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.2, void: 0 },
-            // Moving spheres, the wide block, voids and runs of three; the longest runs near the end.
+            // The track builds slowly: quiet for 18 seconds, fuller from about 40, loudest from
+            // about 2:15 to the end.
+            build: [[0, 0], [18, 0.05], [36, 0.35], [78, 0.6], [132, 0.85], [156, 1]],
+            budget: [3, 6],
+            rest: [0.8, 0.03],
+            breatherEverySec: [8, 20],
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.15 },
+            planned: { void: [0.35, 0.62, 0.86] },
+            // Moving spheres, the wide block and runs of three; the longest runs near the end.
             favour: {
-                mover: 1.5, 'mover-hop': 2, 'mover-bar': 2, huge: 2, void: 1.5,
-                triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, quad: 1.5, weave: 1.5, zigzag: 1.5,
+                mover: 1.5, 'mover-hop': 2, 'mover-bar': 2, 'mover-bar-hop': 2, 'mover-mover': 1.5, huge: 2,
+                triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, 'bar-hop-hop': 1.5, 'pair-hop': 1.5,
+                'hop-pair': 1.8, 'bar-bar-pair': 1.8, 'pair-bar-bar': 1.8, 'bar-bar-bar': 1.5,
+                quad: 1.5, weave: 1.5, zigzag: 1.5,
                 small: 0.5, bar: 0.5, large: 0.6, hole: 0.6,
             },
-            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.3, topUpEverySec: 20 },
+            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.25, topUpEverySec: 22 },
             // Adds double-jump arcs, which compete with the wide block for the energy bar.
             pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
         },
@@ -496,16 +547,23 @@ export const STAGES: StageConfig[] = [
             musicTrack: 'music_victory'
         },
         pacing: {
-            budget: [4.5, 6],
-            rest: [0.45, 0.25],
-            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0, void: 0 },
+            // A quiet 18-second intro, then the beat drops: a gentle start, a step up at the drop,
+            // and building from there.
+            build: [[0, 0], [18, 0.05], [20, 0.2], [160, 1]],
+            budget: [3, 6],
+            rest: [0.9, 0],
+            breatherEverySec: [8, 22],
+            unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
+            planned: { void: [0.35, 0.65, 0.88] },
             // The finale: everything, in the longest runs.
             favour: {
-                gauntlet: 2.5, quad: 2, 'hole-bar-hole': 2, 'hole-hop-hole': 1.5, weave: 2, zigzag: 2,
+                gauntlet: 2.5, run: 2.5, quad: 2, 'hole-bar-hole': 2, 'hole-hop-hole': 1.5, weave: 2, zigzag: 2,
                 'bar-hop-bar': 1.5, 'hop-bar-hop': 1.5, 'bar-bar-hop': 1.5, 'pair-bar': 1.5,
+                'hop-bar-bar': 1.5, 'hole-hop-bar': 1.5, 'mover-bar-hop': 1.5,
+                'bar-bar-pair': 2, 'pair-bar-bar': 2, 'bar-bar-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, hole: 0.6, mover: 0.7,
             },
-            hearts: { hurtBelow: 0.55, hurtEverySec: 9, topUpChance: 0.25, topUpEverySec: 22 },
+            hearts: { hurtBelow: 0.45, hurtEverySec: 11, topUpChance: 0.2, topUpEverySec: 24 },
             pickups: { hop: [0.5, 0.7], double: [0.4, 0.6] },
         },
         speed: [320, 360],

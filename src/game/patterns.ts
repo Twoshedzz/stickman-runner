@@ -61,7 +61,23 @@ export const PATTERNS: Pattern[] = [
     { id: 'quad', cost: 5, steps: [{ role: 'small', at: 0 }, { role: 'large', at: 0.95 }, { role: 'small', at: 1.9 }, { role: 'large', at: 2.85 }] },
     { id: 'hole-bar-hole', cost: 5, steps: [{ role: 'hole', at: 0 }, { role: 'overhead', at: 1.15 }, { role: 'hole', at: 1.75 }] },
     { id: 'gauntlet', cost: 5, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'overhead', at: 1.75 }, { role: 'hole', at: 2.35 }] },
-    // The wide block: needs a double jump, so only appears when the energy bar is full
+    // More runs mixing them, so most of the time there's something coming (step 11). The same
+    // spacings as above: a pattern is busier by being longer, not by squeezing its gaps.
+    { id: 'pair-hop', cost: 3, steps: [{ role: 'small', at: 0 }, { role: 'small', at: 0.15 }, { role: 'large', at: 1.1 }] },
+    { id: 'bar-pair', cost: 3, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'small', at: 0.75 }] },
+    { id: 'bar-bar-bar', cost: 3, steps: [{ role: 'overhead', at: 0 }, { role: 'overhead', at: 0.5 }, { role: 'overhead', at: 1.0 }] },
+    { id: 'hop-bar-bar', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'overhead', at: 1.1 }, { role: 'overhead', at: 1.6 }] },
+    { id: 'bar-hop-hop', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'large', at: 1.55 }] },
+    { id: 'stairs', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'large', at: 0.95 }, { role: 'hole', at: 1.95 }] },
+    { id: 'hop-hole-hop', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'hole', at: 1.0 }, { role: 'small', at: 2.0 }] },
+    { id: 'hole-hop-bar', cost: 4, steps: [{ role: 'hole', at: 0 }, { role: 'small', at: 1.0 }, { role: 'overhead', at: 2.1 }] },
+    { id: 'mover-bar-hop', cost: 4, steps: [{ role: 'mover', at: 0 }, { role: 'overhead', at: 1.25 }, { role: 'small', at: 1.85 }] },
+    { id: 'mover-mover', cost: 4, steps: [{ role: 'mover', at: 0 }, { role: 'mover', at: 1.45 }] },
+    { id: 'hop-pair', cost: 3, steps: [{ role: 'small', at: 0 }, { role: 'small', at: 0.95 }, { role: 'small', at: 1.1 }] },
+    { id: 'bar-bar-pair', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'overhead', at: 0.5 }, { role: 'small', at: 1.1 }, { role: 'small', at: 1.25 }] },
+    { id: 'pair-bar-bar', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'small', at: 0.15 }, { role: 'overhead', at: 1.25 }, { role: 'overhead', at: 1.75 }] },
+    { id: 'run', cost: 5, steps: [{ role: 'small', at: 0 }, { role: 'overhead', at: 1.1 }, { role: 'small', at: 1.7 }, { role: 'overhead', at: 2.8 }, { role: 'hole', at: 3.4 }, { role: 'overhead', at: 4.55 }] },
+    // The wide block: needs a double jump, so only appears when the energy bar allows (spawn.ts)
     { id: 'huge', cost: 4, steps: [{ role: 'huge', at: 0 }] },
     // A gap across the whole floor: a double jump too, and the same energy rule
     { id: 'void', cost: 4, steps: [{ role: 'void', at: 0 }] },
@@ -73,7 +89,7 @@ export const PATTERNS: Pattern[] = [
  * anything after a jump needs the most room.
  */
 const MIN_GAP: Record<Move, Record<Move, number>> = {
-    jump:    { jump: 0.75, double: 0.9, duck: 0.9, collect: 0.3 },
+    jump:    { jump: 0.65, double: 0.9, duck: 0.85, collect: 0.3 },
     double:  { jump: 1.1,  double: 1.1, duck: 1.1, collect: 0.3 },
     duck:    { jump: 0.4,  double: 0.5, duck: 0.35, collect: 0.3 },
     collect: { jump: 0.3,  double: 0.3, duck: 0.3, collect: 0.3 },
@@ -86,6 +102,17 @@ export const minGapSec = (prev: ObstacleRole, next: ObstacleRole) =>
     MIN_GAP[moveFor(prev)][moveFor(next)] +
     (shapeFor(prev).moves ? MOVER_SLACK : 0) +
     (shapeFor(next).moves ? MOVER_SLACK : 0);
+
+/**
+ * As a stage builds to its finish, patterns close up: their steps come this much closer
+ * together at the busiest (1 = as designed). patterns.test.ts checks every pattern at this
+ * tightest spacing too, with human-sized timing at every speed.
+ */
+export const TIGHTEST_SPACING = 0.88;
+
+/** A pattern's steps closed up by `spacing` (1 = as designed, TIGHTEST_SPACING at the busiest). */
+export const closedUp = (pattern: Pattern, spacing: number): PatternStep[] =>
+    pattern.steps.map((s) => ({ ...s, at: s.at * spacing }));
 
 /** How long a pattern takes to pass the runner, from its first obstacle's front edge. */
 export const patternLengthSec = (pattern: Pattern, speedPxPerSec: number) =>
