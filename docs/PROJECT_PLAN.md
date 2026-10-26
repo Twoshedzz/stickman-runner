@@ -418,6 +418,33 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
    and a rhythm-aware pretend player to see the most a good player can get. Tune the window
    and the reward so it's worth chasing but not essential.
 
+**Step 10 — a faster pace and voids (G1, G2).** Built 26 October with Pete, not yet merged
+(branch `claude/g1-g2-pace-and-voids`). Pete agreed: about 25% more obstacles, voids from late
+in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
+- *G1, faster pace:* shorter rests between patterns in every stage (`pacing.rest` in
+  `stages.ts`), less extra rest per pattern and less random spread; the gaps inside patterns
+  and the fairness minimum are unchanged. A rest stretches when a heart is due, so hearts aren't
+  squeezed out. Stage 3 hearts a little more generous.
+- *G2, voids:* a gap across the whole floor, 300px wide, too wide for one jump at any speed:
+  only a double jump clears it. Falling in works like a hole, but the drop lasts until the gap
+  has gone by. The floor's grid lines drop down its far wall. In stage 1 from about 80% of the
+  way through; in stages 2–4 from the start, stage 3 leaning on them. How to Play shows it under
+  DOUBLE JUMP. One new table entry (`void` in `obstacleCatalogue.ts`), its drawing
+  (`voidShape.ts`), and a small change to `holes.ts`: the A2 tidy-up doing its job.
+- *Difficulty (20 runs each, before → after G1 and G2):*
+
+| | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
+|---|---|---|---|---|
+| Obstacles | 139 → 168 | 138 → 160 | 148 → 168 | 158 → 175 |
+| Average player survives | 95% → 100% | 100% → 95% | 95% → 90% | 90% → 85% |
+| Beginner survives | 55% → 45% | 45% → 40% | 40% → 30% | 30% → 20% |
+
+- *To decide with Pete:* beginners now survive stages 3–4 less often than the step 8 targets
+  (45% and 33%). That's the "harder" players asked for, but decision 6 says casual, not manic,
+  and Pete's son is a tester. Play it before tuning.
+- *Not yet done:* seeing it in the real game (Expo was paused on the Mac while Pete's sysadmin
+  looked at the ngrok alert; the void was previewed as a drawing), and Pete's playtest.
+
 ### How each step is checked
 
 - `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (253 tests on 25 October).
@@ -584,10 +611,7 @@ victory and idle poses.
 
 ### Ideas inbox
 
-**Being explored with Pete (26 October), in the U1 session:** a faster pace (about 20% more
-obstacles) and *voids*, a gap across the floor that needs a double jump (branch
-`claude/g1-g2-pace-and-voids`, not merged). Decision 11 (one running level) and the difficulty
-targets in step 8 apply; the planner will give it a step once Pete has agreed the design.
+A faster pace and voids became step 10 (§4) on 26 October.
 
 Ideas waiting for Pete to place them. Each becomes a step when he picks it.
 
@@ -622,6 +646,12 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 - [x] **(A4)** `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
 - [x] **(A1)** The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
 - [x] **(A6)** The game loop re-renders every frame even on menu screens: now 0 redraws a second on menus.
+- [ ] A double-jump obstacle (the wide block, a void) is only placed when the energy bar is at
+      least half full, but the player can spend energy before it arrives, so now and then there's
+      no way through. The difficulty report shows it about once in 80 runs. Check the bar
+      nearer the time, or top it up (found 26 October).
+- [ ] The touch code uses Gesture Handler 3's older gesture builders (`Gesture.Pan`, `Tap`,
+      `Race`), which still work but are on their way out; move to its newer hooks (found in U1).
 - [ ] Unused `OBSTACLE_SIZE` constants in `constants.ts` (found in A7).
 - [ ] `state.timeOfDay` is worked out every frame and read by nothing (found in A7).
 - [ ] `GridFloor` is handed the whole game state and only stays fresh because `tick` changes every
@@ -652,6 +682,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 8: obstacle sequencing and difficulty | ✅ Done, except music sections |
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
+| Gameplay step 10: faster pace and voids | Built 26 October, to playtest, not merged |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
