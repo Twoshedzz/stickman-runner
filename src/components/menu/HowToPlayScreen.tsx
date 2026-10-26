@@ -28,6 +28,14 @@ const Icon = ({ role }: { role: ObstacleRole }) => {
             </View>
         );
     }
+    // A void: a dark gap across the floor, its two edges lit.
+    if (shape === 'void') {
+        return (
+            <View style={styles.iconBox}>
+                <View style={[styles.void, { borderColor: colour }]} />
+            </View>
+        );
+    }
     if (shape === 'heart') {
         return (
             <View style={styles.iconBox}>
@@ -86,7 +94,7 @@ const PageOne = ({ keyboard }: { keyboard: boolean }) => (
             <RNText style={styles.heading}>OBSTACLES</RNText>
             <Row icons={['small', 'mover']} text="JUMP OVER" />
             <Row icons={['overhead']} text="DUCK UNDER" />
-            <Row icons={['huge']} text="DOUBLE JUMP" />
+            <Row icons={['huge', 'void']} text="DOUBLE JUMP" />
             <Row icons={['hole']} text="HOLE: JUMP IT OR FALL IN" />
             <Row icons={['heart']} text="COLLECT FOR HEALTH" />
         </View>
@@ -266,6 +274,13 @@ const styles = StyleSheet.create({
         height: 9,
         borderRadius: 15,
         borderWidth: 1.5,
+        backgroundColor: '#020008',
+    },
+    void: {
+        width: 32,
+        height: 10,
+        borderLeftWidth: 2,
+        borderRightWidth: 2,
         backgroundColor: '#020008',
     },
     iconBox: {

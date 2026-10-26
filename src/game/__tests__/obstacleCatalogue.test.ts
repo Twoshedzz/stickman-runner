@@ -13,6 +13,7 @@ const EXPECTED_MOVE: Record<ObstacleRole, Move> = {
     huge: 'double',
     overhead: 'duck',
     hole: 'jump',
+    void: 'double',
     heart: 'collect',
 };
 
@@ -23,7 +24,7 @@ describe('the obstacle table', () => {
         expect(Object.keys(ROLE_SHAPES).sort()).toEqual([...roles].sort());
         for (const role of roles) {
             const art = ROLE_SHAPES[role];
-            expect(['block', 'sphere', 'bar', 'hole', 'heart']).toContain(art.shape);
+            expect(['block', 'sphere', 'bar', 'hole', 'void', 'heart']).toContain(art.shape);
             expect(art.width).toBeGreaterThan(0);
             expect(art.height).toBeGreaterThanOrEqual(0);
             expect(art.damage).toBeGreaterThanOrEqual(0);

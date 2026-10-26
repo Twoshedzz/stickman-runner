@@ -41,6 +41,12 @@ const fallClip = (viewWidth: number, cx: number, rx: number) => {
     return `M 0 0 H ${viewWidth} V ${cy} H ${cx + rx} A ${rx} ${HOLE_RY} 0 0 1 ${cx - rx} ${cy} H 0 Z`;
 };
 
+/** The same for a void: everything above the running line, and the whole gap below it. */
+const voidFallClip = (viewWidth: number, left: number, right: number) => {
+    const cy = RUNNER_GROUND_Y;
+    return `M 0 0 H ${viewWidth} V ${cy} H ${right} V ${SCREEN_HEIGHT + 50} H ${left} V ${cy} H 0 Z`;
+};
+
 /** How long the pink flash lasts when the runner is hit. */
 const HIT_FLASH_SEC = 0.18;
 
@@ -65,11 +71,13 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     const beatPulseBand = gameState.gameStarted && !gameState.gameOver && !gameState.paused && gameState.stageStatus === 'playing'
         ? pulseBand(currentStage, gameState.elapsedSecInStage)
         : null;
-    const holeRx = shapeFor('hole').width / 2;
     const fallingInto = player.falling > 0 ? gameState.obstacles.find(o => o.id === player.fallHoleId) : undefined;
-    const runnerClip = player.falling > 0
-        ? fallClip(viewWidth, fallingInto ? fallingInto.x + gameOffsetX + holeRx : PLAYER_X + gameOffsetX + PLAYER_SIZE / 2, holeRx)
-        : undefined;
+    const gapWidth = shapeFor(fallingInto?.role ?? 'hole').width;
+    const runnerClip = player.falling <= 0
+        ? undefined
+        : fallingInto && shapeFor(fallingInto.role).shape === 'void'
+            ? voidFallClip(viewWidth, fallingInto.x + gameOffsetX, fallingInto.x + gameOffsetX + gapWidth)
+            : fallClip(viewWidth, fallingInto ? fallingInto.x + gameOffsetX + gapWidth / 2 : PLAYER_X + gameOffsetX + PLAYER_SIZE / 2, gapWidth / 2);
 
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.

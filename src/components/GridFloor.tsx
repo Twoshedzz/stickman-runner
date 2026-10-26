@@ -2,12 +2,9 @@ import { Group, Path, Rect, rect, rrect } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 import { GROUND_HEIGHT, SCREEN_HEIGHT, SCREEN_WIDTH } from "../game/constants";
 import { GameState } from "../game/state";
+import { DEFAULT_GRID_COLOR, FLOOR_ROWS_Y, GROUND_Y, VANISH_Y } from "./floorGeometry";
 
-const GROUND_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 const GRID_HEIGHT = GROUND_HEIGHT;
-/** Where the grid's lines converge. Exported so anything standing in the grid (the finish
- *  line) can follow the same perspective. */
-export const VANISH_Y = GROUND_Y - 120;
 
 const CELL_WIDTH = 56; // spacing at bottom (~30% fewer lines = bigger squares), loops smoothly
 // Slight nudge so grid keeps up with obstacles (avoids obstacles appearing to slide forward)
@@ -35,7 +32,7 @@ interface GridFloorProps {
  * Vertical lines: perspective (toward vanishing point) but they SCROLL horizontally
  * at the bottom instead of rotating - gives smooth motion without angle changes.
  */
-export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = "rgba(255, 100, 255, 0.55)", glowX = 0, glowY = 0, glow = 0, pulse = null }: GridFloorProps) => {
+export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = DEFAULT_GRID_COLOR, glowX = 0, glowY = 0, glow = 0, pulse = null }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const vanishX = viewWidth / 2;
     const isMoving =
@@ -56,15 +53,8 @@ export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridC
         const depthToGround = GROUND_Y - VANISH_Y;
         const tTop = depthToGround / depthToBottom; // param for where ray hits y=GROUND_Y
 
-        const round = (n: number) => Math.round(n);
-
         // ---- Static horizontal lines: full width ----
-        const nHorizontal = 4;
-        for (let i = 0; i <= nHorizontal; i++) {
-            const t = i / nHorizontal;
-            const y = round(GROUND_Y + (SCREEN_HEIGHT - GROUND_Y) * t);
-            lines.push(`M 0 ${y} L ${viewWidth} ${y}`);
-        }
+        for (const y of FLOOR_ROWS_Y) lines.push(`M 0 ${y} L ${viewWidth} ${y}`);
 
         // ---- Vertical lines: toward vanishX (screen center), extend off-screen to avoid pop-in on wide mobiles ----
         const halfSpan = viewWidth * 1.4;
