@@ -3,15 +3,16 @@
 'use no memo';
 
 import React from 'react';
-import { GestureResponderEvent, Pressable, StyleSheet, View } from 'react-native';
-import { GestureDetector, GestureType } from 'react-native-gesture-handler';
+import { GestureResponderEvent, StyleSheet, View } from 'react-native';
+import { GestureDetector, type LegacyComposedGesture } from 'react-native-gesture-handler';
+import { fillParent } from '../../components/fillParent';
 
 interface Props {
-    /** A phone browser: one touch handler decides tap or swipe. Otherwise the gesture library and a tap button. */
+    /** A phone browser: one touch handler decides tap or swipe. Otherwise the gesture library does. */
     touchWeb: boolean;
     disabled: boolean;
-    duckGesture: GestureType;
-    onTap: () => void;
+    /** Tap to jump, swipe to duck (useRunInput). */
+    runGesture: LegacyComposedGesture;
     touchHandlers: {
         onTouchStart: (e: GestureResponderEvent) => void;
         onTouchMove: (e: GestureResponderEvent) => void;
@@ -19,7 +20,7 @@ interface Props {
     };
 }
 
-export const RunInputLayer = ({ touchWeb, disabled, duckGesture, onTap, touchHandlers }: Props) =>
+export const RunInputLayer = ({ touchWeb, disabled, runGesture, touchHandlers }: Props) =>
     touchWeb ? (
         <View
             style={[styles.inputLayer, { pointerEvents: disabled ? 'none' : 'auto' }]}
@@ -28,16 +29,14 @@ export const RunInputLayer = ({ touchWeb, disabled, duckGesture, onTap, touchHan
             onTouchEnd={touchHandlers.onTouchEnd}
         />
     ) : (
-        <GestureDetector gesture={duckGesture}>
-            <View style={[styles.inputLayer, { pointerEvents: disabled ? 'none' : 'auto' }]}>
-                <Pressable style={StyleSheet.absoluteFill} onPress={onTap} />
-            </View>
+        <GestureDetector gesture={runGesture}>
+            <View style={[styles.inputLayer, { pointerEvents: disabled ? 'none' : 'auto' }]} />
         </GestureDetector>
     );
 
 const styles = StyleSheet.create({
     inputLayer: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         zIndex: 10,
         backgroundColor: 'transparent',
     },

@@ -6,6 +6,7 @@
 
 import React, { Suspense } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { fillParent } from '../components/fillParent';
 import { HowToPlayScreen } from '../components/menu/HowToPlayScreen';
 import { InitialsScreen } from '../components/menu/InitialsScreen';
 import { LoadingScreen } from '../components/menu/LoadingScreen';
@@ -51,7 +52,7 @@ export const GameScreen = () => {
     const { pauseRun, resumeRun } = usePauseControls({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition });
     const { world, enterInitials, worldResult, worldScreen, myPlace, ownKeysOpenRef, submitInitials, skipInitials, browseWorld, closeWorld } = useWorldScoreFlow(gameState);
     const { readyToStart, musicReady, musicPercent, nextMusicPercent, onAssetsReady } = useGameLoading({ stageId: gameState.stageId, showContinue: gameState.showContinue, preloadTrack });
-    const { handleInteraction, duckGesture, touchHandlers } = useRunInput({ gameState, onJump, onDuck, onDuckRelease });
+    const { handleInteraction, runGesture, touchHandlers } = useRunInput({ gameState, onJump, onDuck, onDuckRelease });
     const { quitRun, playAgain, startGame, continueToNextStage, jumpToStageWithMusic } = useStageMusic({ gameState, playMusic, stopMusic, restartGame, quitToTitle, onContinue, jumpToStage, setShowInstructions, handleInteraction });
     useWebKeyboard({ gameState, onJump, onDuck, onDuckRelease, pauseRun, resumeRun, playAgain, showInstructions, ownKeysOpenRef });
 
@@ -89,8 +90,7 @@ export const GameScreen = () => {
                 <RunInputLayer
                     touchWeb={isTouchWeb}
                     disabled={gameState.showContinue}
-                    duckGesture={duckGesture}
-                    onTap={handleInteraction}
+                    runGesture={runGesture}
                     touchHandlers={touchHandlers}
                 />
 
@@ -215,12 +215,12 @@ const styles = StyleSheet.create({
         borderColor: '#444',
     },
     renderLayer: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         zIndex: 1,
         backgroundColor: '#000',
     },
     uiLayer: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         // Taps pass through to the jump layer except on buttons. This has to live here in the
         // stylesheet: on web, 'box-none' written inline is silently dropped, and the overlay
         // then swallows every tap, so tapping never jumped.

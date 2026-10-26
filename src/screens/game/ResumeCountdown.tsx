@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { fillParent } from '../../components/fillParent';
 import { FONT, glow, NEON } from '../../components/menu/menuStyle';
 import { RNText } from '../../components/RNText';
 import { countdownLeft } from '../../game/pause';
@@ -17,7 +18,7 @@ export const ResumeCountdown = ({ gameState }: { gameState: GameState }) => (
 
 const styles = StyleSheet.create({
     countdown: {
-        ...StyleSheet.absoluteFillObject,
+        ...fillParent,
         justifyContent: 'center',
         alignItems: 'center',
         // Taps pass straight through (they don't jump while paused anyway).

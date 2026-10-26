@@ -1,98 +1,86 @@
-# What the patches do, and the deeper web problem
+# The web patches, how the web loads Skia, and the deeper web problem
 
-## What the patches are doing
+## Where things stand: no patches (since the SDK 58 upgrade, U1)
 
-### 1. Expo patch (`expo+54.0.33.patch` – `fetchThenEvalJs.ts`)
+Up to Expo SDK 54 the web game needed three patches to code inside `node_modules`, plus a script
+that changed CanvasKit after every install. The upgrade to SDK 58 (step U1, October 2026) retired
+all of them: the newer libraries either fix the problem themselves, or changed so the patch no
+longer had anything to do. `patches/` is gone; `patch-package` still runs on every install, ready
+if a patch is ever needed again (see "If a patch is needed again" below).
 
-**What this file does (unpatched):**  
-When the app loads a **code-split chunk** (e.g. a lazy-loaded module), Expo fetches the chunk’s JS over the network and runs it with `eval(body)`.
+| Patch (SDK 54) | What it did | What happened in U1 |
+|---|---|---|
+| **Skia** (`@shopify+react-native-skia+2.2.12`) | Fixed the memory leak behind the web `Aborted()` crashes (below). | Ported to Skia 2.4 and 2.6 on the way; **retired at Skia 2.14 (SDK 58)**, which fixes the leak itself. |
+| **CanvasKit** (`canvaskit-wasm+0.40.0`), and `scripts/patch-canvaskit-worker.js` | Made CanvasKit use the `.wasm` file the game had already downloaded, and wait for it. | **Retired at CanvasKit 0.41 (SDK 56)**: its loader was rewritten, so there was nothing left to patch. The game now hands CanvasKit the downloaded file another way (below). |
+| **Expo** (`expo+54.0.33`, `fetchThenEvalJs.ts`) | Made code chunks wait for the Skia file before running, and retried on `Aborted`. | **Retired at SDK 58.** It only ever ran on the web development server (the built site loads chunks with plain `<script>` tags), and CanvasKit is now only loaded after its file has arrived. |
 
-**What we changed:**
+### The memory leak (the Skia patch, now fixed in Skia)
 
-- **Wait for Skia WASM before eval**  
-  We don’t run `eval(body)` until `__SKIA_WASM_PROMISE__` has resolved. So when the chunk contains CanvasKit/Skia code, the WASM binary is already in memory. That avoids one specific failure: the chunk runs, tries to use the WASM binary, it isn’t there yet, and CanvasKit aborts.
+**This was the main cause of `Aborted()` on web.** On web, Skia objects (paints, paths, gradients,
+pictures) live in CanvasKit's own memory and are never freed automatically: something has to call
+`dispose()` on each one. Skia's web renderer up to 2.6 didn't, for the objects it creates while
+drawing each frame. The game redraws the whole scene every frame during play, so CanvasKit's memory
+grew by about 5MB a second until it hit its 2GB ceiling (roughly 7 minutes of play, which is why
+crashes tended to come late in stage 2) and then aborted.
 
-- **Retry up to twice on "Aborted"**  
-  If `eval(body)` throws an error whose message contains `"Aborted"`, we retry on the next `requestAnimationFrame`, up to **two retries** (three attempts total). If all fail, we rethrow so the app can show an error. This helps when CanvasKit aborts under load (e.g. mid-game during collisions/particles); sometimes the next frame succeeds.
+Our patch freed each frame's paints, paths, gradients and filters once the frame's picture was
+recorded, the picture recorder, the previous frame's picture, and the old paint when a paint was
+reset. Skia 2.14 does the same itself: everything made while drawing a frame belongs to that frame
+and is freed after it (`sksg/Recorder/FrameScope`), along with the recorder, the previous picture
+and replaced paints.
 
-**So:**  
-We are **not** “telling the app to keep running no matter what.” We are (a) fixing a **race** (eval before WASM is ready) and (b) adding **retries** to see if the failure was timing-related. If CanvasKit is in a bad state, retries may still fail and you’ll see “Aborted(). Build with -sASSERTIONS for more info.” in the console—that’s expected on web under load; primary platform is phone.
+**Measured after the upgrade (SDK 58, built site):** 10 minutes of game time through all four
+stages, every frame drawn (72,036 pictures): CanvasKit's memory was **128MB at the start and 128MB
+at the end**. With Skia's freeing switched off, the same test climbs 128 → 319 → 647MB in two
+minutes, so the test does catch a leak. (Before the original fix: 2GB and a crash by 7 minutes.)
 
----
+**How to check it again:** `scripts/checks/memory-soak.js` (see `scripts/checks/README.md`) on the
+built game. Or by hand, in the browser console during play: `CanvasKit.HEAPU8.byteLength / 1048576`
+is CanvasKit's memory in MB. It should level off, not climb steadily.
 
-### 2. CanvasKit-WASM patch (`canvaskit-wasm+0.40.0.patch`)
+## How the web loads Skia
 
-**What it does:**
+- `src/skiaWasmPreload.web.ts` runs first (imported at the top of `app/_layout.tsx`). It downloads
+  CanvasKit's `.wasm` file (from unpkg, at the version in `CANVASKIT_VERSION`), then starts
+  CanvasKit and puts it on `globalThis.CanvasKit`.
+- Since CanvasKit 0.41 it can't be handed the downloaded file directly (the old `wasmBinary`
+  option is gone); it only asks where the file is (`locateFile`). The preload gives it a local
+  `blob:` address for the copy already downloaded, so the file isn't fetched twice.
+- The page is also rendered once in Node when it's built (static output). Nothing is drawn there,
+  so the preload skips CanvasKit outside a browser.
+- `src/components/SkiaWrapper.web.tsx` waits for the preload before showing anything drawn with
+  Skia, and has a fallback that loads CanvasKit itself if the preload didn't run.
+- `public/canvaskit.wasm` is a copy of the installed CanvasKit's file. A test
+  (`src/__tests__/canvaskitFile.test.ts`) checks it, and the `CANVASKIT_VERSION` in the preload and
+  the wrapper, match the installed CanvasKit, so a Skia upgrade that changes CanvasKit fails the
+  tests until they're updated: copy `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm` over
+  `public/canvaskit.wasm` and change the two version numbers.
+- Found in U1, not changed: the preload first tries to read the file from the game's own site
+  without waiting (`trySyncSameOriginWasm`), but browsers don't allow that kind of read on a web
+  page, so it always falls back to unpkg. The game has always downloaded CanvasKit from unpkg.
 
-- Uses `globalThis.__SKIA_WASM_BINARY__` if the app has already put the binary there (e.g. from our preload), instead of only fetching from a URL.
-- Makes CanvasKit wait on `__SKIA_WASM_PROMISE__` before instantiating, so it doesn’t run before our preload has set the binary.
+## If a patch is needed again
 
-**So:**  
-This patch is about **when and how** the WASM binary is supplied to CanvasKit, so that our preload and Expo’s chunk loading are aligned. It does not hide or ignore errors.
+Every `npm install` runs the `postinstall` script in `package.json`: `patch-package` applies any
+files in `patches/` (and prints a tick for each), then Skia's own `setup-canvaskit.js` copies
+`canvaskit.wasm` into `web/static/js/`. If `patch-package` fails, the install carries on and prints
+"patch-package failed: see docs/WEB_PATCHES_AND_ARCHITECTURE.md", so look for the ticks.
 
----
+To make a patch:
 
-### 3. Skia patch (`@shopify+react-native-skia+2.2.12.patch`) – the memory leak
+1. Change the file inside `node_modules` (for web code, usually under `lib/module`, which is what the
+   web build loads; change `src` to match). Delete any `.orig` or `.rej` files next to it.
+2. Run `npx patch-package <package-name>`. That writes `patches/<package>+<version>.patch`.
+3. Run `npm run postinstall` and check for the tick.
 
-**This was the main cause of `Aborted()` on web.** On web, Skia objects (paints, paths, gradients, pictures) live in CanvasKit's own memory and are never freed automatically — something has to call `dispose()` on each one. The library's web renderer didn't, for the objects it creates while drawing each frame. Since the game redraws the whole scene every frame during play, CanvasKit's memory grew by about 5MB a second until it hit its 2GB ceiling — roughly 7 minutes of play, which is why crashes tended to come late in stage 2 — and then aborted.
-
-**What we changed** (web-only files; the phone app doesn't use them):
-
-- `sksg/Container.web` – each frame, track every paint, parsed SVG path, gradient and filter created while recording the picture, and free them once the picture is finished. Also free the picture recorder.
-- `views/SkiaPictureView.web` – free the previous frame's picture when the next one replaces it.
-- `skia/web/JsiSkPaint` – `assign()` and `reset()` replaced a paint's internals without freeing the old ones.
-
-Each change is applied to both `lib/module` (what the web build actually loads) and `src` (kept in step).
-
-**Measured:** before, memory hit 2GB within about 7 minutes. After, a full four-stage game levels off at about 460MB by mid stage 2 and stays flat to the end, with no errors.
-
-**How to check it again:** in the browser console during play, `CanvasKit.HEAPU8.byteLength / 1048576` is CanvasKit's memory in MB. It should level off, not climb steadily.
-
----
-
-## Keeping the patches applied
-
-The patches change code inside `node_modules`, which gets replaced whenever packages are reinstalled. So the changes are stored as files in `patches/` and re-applied automatically.
-
-**When they’re applied:** every `npm install` runs the `postinstall` script in `package.json`, which:
-
-1. Runs `patch-package` to apply the files in `patches/`.
-2. Runs `scripts/patch-canvaskit-worker.js`, which makes further CanvasKit changes (a fallback download address for the `.wasm` file, cross-origin loading fixes, and extra loading fallbacks).
-3. Copies `canvaskit.wasm` into `web/static/js/`.
-
-A good run shows a tick for each patch:
-
-```
-@shopify/react-native-skia@2.2.12 ✔
-canvaskit-wasm@0.40.0 ✔
-expo@54.0.33 ✔
-```
-
-(Running it a second time on an already-patched install shows a "Failed to apply" error for `canvaskit-wasm` only. That's because the worker script in step 2 has changed the same file since; the patch is still in place.)
-
-**To re-apply by hand:** run `npm run postinstall`.
-
-**If you see an error instead of the ticks:**
-
-- **“could not be parsed”** – the patch file itself is broken, usually from being edited by hand. Don’t hand-edit patch files; regenerate them (below).
-- **“Failed to apply patch”** – usually Expo, Skia or CanvasKit was upgraded, so the code the patch expects has changed. The patch needs redoing for the new version (the version is in the file name). The Expo SDK upgrade (step U1 in the plan) will need all three looked at.
-- The `postinstall` script has a fallback that hides errors, so always look for the ticks rather than assuming it worked.
-- Without the patches, web may still load but will hit `Aborted()` errors more often. The phone app doesn’t use these patches.
-
-**To regenerate a patch:**
-
-1. Get a clean, unpatched copy of the package: delete its folder from `node_modules` (e.g. `node_modules/canvaskit-wasm`), then run `npm install --ignore-scripts`. This reinstalls it without applying any patches.
-2. To keep the current patch as a starting point, apply just that one with `git apply --recount patches/<file>.patch`. Then make your changes inside `node_modules`.
-3. Delete any `.orig` or `.rej` files next to the changed file. These are backups left by the system `patch` command, and they would otherwise end up inside the patch.
-4. Run `npx patch-package <package-name>` (e.g. `npx patch-package canvaskit-wasm`).
-5. Run `npm run postinstall` and check for the ticks.
-
-For CanvasKit, regenerate *before* `scripts/patch-canvaskit-worker.js` has run on the clean copy (step 1 makes sure of this); otherwise the worker script’s changes get baked into the patch.
+A patch is tied to the exact version in its file name; after an upgrade, "Failed to apply patch"
+means the library changed and the patch needs redoing, or may no longer be needed.
 
 ---
 
 > **Update (October 2026):** most of the "architecture" diagnosis below turned out to be a
-> memory leak in Skia's web renderer, now fixed by patch 3 above. The notes are kept because
+> memory leak in Skia's web renderer, fixed first by our patch and, since SDK 58, by Skia itself.
+> The notes below were written before that, when the patches were in place; they're kept because
 > the load and chunk-loading risks they describe are still real, just much smaller.
 
 ## Is there a deeper root cause? Yes.

@@ -36,7 +36,7 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 - Same project can open on phone and (with caveats) web.  
 - Fits a non-full-time-coder workflow: `npm start`, scan, play.
 
-**Trade-off:** Native modules and Skia versioning need care; web is a second-class citizen (see §6). Expo Go only opens projects on its own SDK version: since October 2026 it needs SDK 58 and the game is on 54, so until the upgrade (step U1 in the plan) the phone is tested in Safari.
+**Trade-off:** Native modules and Skia versioning need care; web is a second-class citizen (see §6). Expo Go only opens projects on its own SDK version and updates itself, so the game has to keep up: in October 2026 Expo Go moved to SDK 58 and the game followed (step U1).
 
 ## 4. Skia for the game view
 
