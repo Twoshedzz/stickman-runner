@@ -466,7 +466,7 @@ Merged into `main` on 26 October on Pete's word; not yet pushed live.
   in with bars and hops. Stages now plan 3, 4, 4 and 5 voids, the last two always a pair. A pair
   takes the whole energy bar, so it waits for a full bar with no other double jump on its way.
   New `switchback` and `flicker` runs alternate ducking and jumping. Fewer hearts, rarer late
-  breathers. The table below is from before this change; the new 20-run report is to follow.
+  breathers.
 - **Always achievable:** no obstacle without a way through, in any run of the pretend player.
   This takes in the cleanup item about double-jump obstacles arriving with too little energy.
 - **Pickups keep coming regularly:** Pete noticed fewer diamonds for streaks since step 10, because
@@ -474,17 +474,17 @@ Merged into `main` on 26 October on Pete's word; not yet pushed live.
   through the stage.
 - Checked by the pretend player (new measures: rest lengths, voids and pickups per stage, and
   "no way through" must be 0), the pattern bot at every speed, then Pete's playtest of a preview.
-- *Result (20 runs per stage and skill, step 10 → step 11):*
+- *Result (20 runs per stage and skill, step 10 → step 11 with the void pairs):*
 
 | | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
 |---|---|---|---|---|
-| Obstacles | 168 → 195 | 160 → 180 | 168 → 199 | 175 → 199 |
-| Time jumping or ducking, last third | 57 → 69% | 58 → 67% | 62 → 69% | 62 → 70% |
-| Voids per run | 0–2 → 2 | 0–3 → 3 | 0–3 → 3 | 0–3 → 3 |
-| Diamonds a minute (104–116 before step 10) | 75 → 168 | 88 → 166 | 77 → 164 | 85 → 169 |
-| Longest gap with no diamond | 17 → 6 s | 15 → 7 s | 18 → 8 s | 19 → 8 s |
-| Average player survives | 95 → 100% | 90 → 80% | 100 → 80% | 90 → 75% |
-| Beginner survives | 35 → 30% | 35 → 0% | 50 → 15% | 25 → 0% |
+| Obstacles | 168 → 194 | 160 → 181 | 168 → 199 | 175 → 200 |
+| Time jumping or ducking, last third | 57 → 69% | 58 → 67% | 62 → 70% | 62 → 71% |
+| Voids per run | 0–2 → 3 | 0–3 → 4 | 0–3 → 4 | 0–3 → 5 |
+| Diamonds a minute (104–116 before step 10) | 75 → 160 | 88 → 161 | 77 → 164 | 85 → 170 |
+| Longest gap with no diamond | 17 → 8 s | 15 → 9 s | 18 → 8 s | 19 → 8 s |
+| Average player survives | 95 → 85% | 90 → 75% | 100 → 70% | 90 → 65% |
+| Beginner survives | 35 → 0% | 35 → 0% | 50 → 0% | 25 → 0% |
 | No way through | 0 everywhere | | | |
 
 - *How:* each stage's pace follows its song's loudness (`pacing.build`; Neon City is loud
