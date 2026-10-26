@@ -38,10 +38,10 @@ back to a sunset on 23 October, so its name fits again.
 
 **Current focus:** the **architecture pass** (§4A) is done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
-in one or two places. Next is **U1**, the Expo SDK upgrade so Expo Go opens the game again, then
-back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
+in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
+Next, back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
 from calm and busy sections that follow the music; step 9 has its pulse on the floor, and the
-bonus for landing on the beat comes straight after U1.
+bonus for landing on the beat is next.
 
 ---
 
@@ -86,7 +86,7 @@ Don't re-open these without a reason — a lot depends on them.
 
 ---
 
-## 4A. The architecture pass (done 25 October; U1 next)
+## 4A. The architecture pass and the SDK upgrade (done 25–26 October)
 
 Pete asked on 25 October for the code to be made **optimised and extensible** before more
 features go in. Each step below is a tidy-up only: the game should look, sound and play exactly
@@ -175,7 +175,7 @@ pictures of every stage and screen. Until then, test in Safari on the phone.
 | A5 Split the game screen | ✅ Built 25 Oct (branch `claude/a5-split-game-screen-08c3f7`): `GameScreen.tsx` 791 → 232 lines, its jobs in named pieces in `src/screens/game/`; which screens show is one tested rule (`whichScreen.ts`, checked against the old conditions in every combination). The new files opt out of the React Compiler (`'use no memo'`), because the screen reads game state that changes every frame. All 35 screens match before and after. Merged and live 25 Oct |
 | A6 A lighter loop | ✅ Built 25 Oct (branch `claude/a6-lighter-loop-d2aa39`, three commits): the high score and best runs live in `useScoreTable.ts` and are saved when a run ends, pauses or the app goes to the background, not every frame; the screen redraws every frame only while a stage is played or the 3-2-1 counts (`redraw.ts`), so the title and menus went from 60 redraws a second to 0; the phone and web music hooks share `musicShared.ts`. Merged and live 25 Oct |
 | A7 Docs and recipes | ✅ Built 25 Oct (branch `claude/a7-docs-recipes-d78e31`): `ARCHITECTURE.md` has "How the code fits together", a rewritten "Where to change what", recipes (add an obstacle, a stage, a mechanic) and "Rules that keep it safe"; `CONTEXT_FOR_AGENTS.md` has "How to check a change"; brief, README and stage docs brought up to date; the pass is in `HISTORY.md`. Docs and 3 code comments only. Merged and live 25 Oct |
-| U1 Expo SDK 54 → 58 | ✅ Built 25 Oct (branch `claude/u1-expo-sdk-58-b50281`, 11 commits): Expo 58, React Native 0.88, Skia 2.14, Reanimated 4.7, Gesture Handler 3.3, Jest 30, TypeScript 6. All three web patches gone: Skia 2.14 frees each frame's objects itself (10 minutes of play: 128 MB at the start and the end). Difficulty report identical, all 35 screens match, 255 tests pass; lint warnings 3 → 40 (the new React Compiler checks, set to warnings on purpose). Needs Node 22.13+ (Node 24 via `fnm` on the Mac). The before/after checks are now in `scripts/checks/`. Expo Go testing (26 Oct) found a swipe down also jumped in the phone app; fixed, and a swipe up now jumps as the finger lifts, as in phone browsers. The branch's Vercel preview builds and plays (so Vercel's Node setting is fine): https://stickman-runner-3vdajmxsv-twoshedzzs-projects.vercel.app (it shares the real world scoreboard). **Waiting for:** Pete's phone check of the swipe fixes, then merge and push |
+| U1 Expo SDK 54 → 58 | ✅ Built 25 Oct (branch `claude/u1-expo-sdk-58-b50281`, 11 commits): Expo 58, React Native 0.88, Skia 2.14, Reanimated 4.7, Gesture Handler 3.3, Jest 30, TypeScript 6. All three web patches gone: Skia 2.14 frees each frame's objects itself (10 minutes of play: 128 MB at the start and the end). Difficulty report identical, all 35 screens match, 255 tests pass; lint warnings 3 → 40 (the new React Compiler checks, set to warnings on purpose). Needs Node 22.13+ (Node 24 via `fnm` on the Mac). The before/after checks are now in `scripts/checks/`. Expo Go testing (26 Oct) found a swipe down also jumped in the phone app; fixed, and a swipe up now jumps as the finger lifts, as in phone browsers. The branch's Vercel preview builds and plays (so Vercel's Node setting is fine): https://stickman-runner-3vdajmxsv-twoshedzzs-projects.vercel.app (it shares the real world scoreboard). Pete tried the preview on his phone (26 Oct): fine. Also removes ngrok (Expo's tunnel), which set off a security alert on the Mac. Merging found that a fresh install broke every test (`expo-modules-core` was only nested under `expo`, where `jest-expo` can't find it); fixed by listing it directly. ✅ Merged and live 26 Oct |
 
 ---
 
@@ -509,7 +509,7 @@ Home Screen. It opens full screen, edge to edge, with its own icon and name.
 - Home screen apps can hold on to an old copy: if a change doesn't show, remove the icon and add it
   again.
 
-**Expo Go no longer opens the game (found 25 October).** Expo Go on the iPhone updated itself
+**Expo Go opens the game again since U1 (26 October).** What happened before: Expo Go on the iPhone updated itself
 to Expo SDK 58 and only opens projects on that version; the game is on SDK 54, and an older Expo
 Go can't be installed on an iPhone. Until the project is upgraded, test in Safari instead: the
 home screen web app (Route 1, needs a push to update), or a development server on the Mac opened
@@ -584,6 +584,11 @@ victory and idle poses.
 
 ### Ideas inbox
 
+**Being explored with Pete (26 October), in the U1 session:** a faster pace (about 20% more
+obstacles) and *voids*, a gap across the floor that needs a double jump (branch
+`claude/g1-g2-pace-and-voids`, not merged). Decision 11 (one running level) and the difficulty
+targets in step 8 apply; the planner will give it a step once Pete has agreed the design.
+
 Ideas waiting for Pete to place them. Each becomes a step when he picks it.
 
 | Idea | Where it came from | Notes |
@@ -657,7 +662,8 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Stickman run, jump and landing | ✅ Done |
 | Tuning; hit, victory and idle poses | Not started |
 | Cleanup backlog | Partly done; the rest is in A1, A4 and A6 |
-| Architecture pass (§4A) | ✅ A1–A7 done and pushed to Vercel 25 October; to play on the phone's home screen app before U1 |
+| Architecture pass (§4A) | ✅ A1–A7 done and live 25 October |
+| U1 Expo SDK 54 → 58 | ✅ Live 26 October: Expo Go opens the game again |
 
 When you or an agent finishes something, update its row and tick the boxes above so this stays the
 single source of truth.
