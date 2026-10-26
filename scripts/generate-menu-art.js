@@ -250,7 +250,8 @@ function drawBackdrop(CK) {
     return jpg;
 }
 
-init({ wasmBinary: fs.readFileSync(WASM) }).then((CK) => {
+// CanvasKit 0.41 (Expo SDK 56 on) is told where its .wasm file is; it can't be handed the file.
+init({ locateFile: () => WASM }).then((CK) => {
     const typeface = CK.Typeface.MakeFreeTypeFaceFromData(fs.readFileSync(FONT).buffer);
     const out = (name, bytes) => {
         fs.writeFileSync(path.join(ROOT, 'assets/images', name), Buffer.from(bytes));
