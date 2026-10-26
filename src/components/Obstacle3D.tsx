@@ -10,7 +10,7 @@
 import { Circle, Group, Oval, Path, RadialGradient, vec } from "@shopify/react-native-skia";
 import React from "react";
 import { RUNNER_GROUND_Y } from "../game/constants";
-import { VANISH_Y } from "./GridFloor";
+import { VANISH_Y } from "./floorGeometry";
 
 /**
  * How deep a box is: its back face is this much the size of its front, scaled towards the

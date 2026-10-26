@@ -202,7 +202,8 @@ describe('a whole stage of spawned obstacles can be cleared', () => {
                 sim.state.stageId = stage.id;
                 // A little hurt, so hearts get placed too.
                 sim.state.player.health = 5;
-                triesLeft = 300000;
+                // Voids give the search many double-jump timings to try, so it needs more room.
+                triesLeft = 4000000;
                 deepest = { frame: -1, energy: 0, ahead: '' };
                 expect(solve(sim, new Map(), stageFrames(stage))).toBe(true);
             });

@@ -9,6 +9,8 @@
  * was the last of it.
  *
  * Jumping is the only way past. Ducking doesn't help: the feet are still on the ground.
+ * A void (the wide gap) works the same way, but only a double jump clears it, and the drop
+ * lasts until it has gone by, so he's never put back standing over the gap.
  */
 import { GRAVITY, HIT_GRACE_SEC, PLAYER_SIZE, PLAYER_X, RUNNER_GROUND_Y } from '../constants';
 import { shapeFor } from '../obstacleCatalogue';
@@ -28,6 +30,12 @@ const FEET_X = PLAYER_X + PLAYER_SIZE / 2;
 const STUMBLE_DY = -4;
 
 export const isFalling = (state: GameState) => state.player.falling > 0;
+
+/** The gap he fell into hasn't gone by yet (only ever the case for a wide void). */
+const stillOver = (state: GameState) => {
+    const gap = state.obstacles.find((o) => o.id === state.player.fallHoleId);
+    return !!gap && FEET_X < gap.x + shapeFor(gap.role).width - RIM_MARGIN;
+};
 
 /**
  * Feet on the ground over a hole: drop in. Called with the collision checks each frame.
@@ -75,6 +83,8 @@ export const updateFall = (state: GameState, deltaTimeSec: number, scale: number
     player.fallDrift += stepPx;
     player.dy += GRAVITY * scale;
     player.y += player.dy * scale;
+    // Not back up until the gap has gone by: never put back standing over a wide void.
+    if (player.falling <= 0 && stillOver(state)) player.falling = Number.EPSILON;
     if (player.falling > 0) return;
 
     // Back on the running line, safe for a moment, unless that was the last of the health.

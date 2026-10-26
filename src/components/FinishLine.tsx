@@ -13,7 +13,7 @@
 import { Group, Path } from "@shopify/react-native-skia";
 import React from "react";
 import { GROUND_HEIGHT, RUNNER_GROUND_Y, SCREEN_HEIGHT } from "../game/constants";
-import { VANISH_Y } from "./GridFloor";
+import { VANISH_Y } from "./floorGeometry";
 
 const HORIZON_Y = SCREEN_HEIGHT - GROUND_HEIGHT;
 /** Ends of the line on the ground: just below the horizon, and near the bottom of the screen. */

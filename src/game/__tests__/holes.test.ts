@@ -112,3 +112,63 @@ describe('holes in the floor', () => {
         expect(hits).toBe(0);
     });
 });
+
+/** A runner with a void coming at `speed`, its front edge `aheadPx` past his feet, energy full. */
+const withVoid = (speed: number, aheadPx = 60): GameState => {
+    const state = withHole(aheadPx);
+    state.speed = speed;
+    state.obstacles[0].role = 'void';
+    return state;
+};
+
+/** The wide gap: too far for one jump at any speed, a double jump gets across. */
+describe('voids', () => {
+    it('running onto one drops the runner in, and costs more than a hole', () => {
+        const state = withVoid(300);
+        const hits = play(state, 30);
+        expect(hits).toBe(1);
+        expect(state.player.health).toBe(MAX_HEALTH - ROLE_SHAPES.void.damage);
+        expect(ROLE_SHAPES.void.damage).toBeGreaterThan(ROLE_SHAPES.hole.damage);
+    });
+
+    it('he is only put back once the gap has gone by, never standing over it', () => {
+        const state = withVoid(290);
+        play(state, 30);
+        let frames = 0;
+        while (state.player.falling > 0 && frames < 240) {
+            play(state, 1);
+            frames++;
+        }
+        expect(state.player.falling).toBe(0);
+        const gap = state.obstacles[0];
+        const feetX = PLAYER_X + PLAYER_SIZE / 2;
+        expect(feetX).toBeGreaterThanOrEqual(gap.x + ROLE_SHAPES.void.width - 14);
+        // The safe moment still starts as he's put back.
+        expect(state.player.hurtTimer).toBeGreaterThan(HIT_GRACE_SEC - 0.1);
+    });
+
+    for (const speed of [290, 300, 360]) {
+        it(`no single jump gets across at ${speed} px/sec`, () => {
+            for (let takeOff = 0; takeOff < 40; takeOff++) {
+                const state = withVoid(speed, 120);
+                const hits = play(state, 150, (f) => { if (f === takeOff) jump(state); });
+                expect(hits).toBe(1);
+            }
+        });
+
+        it(`a double jump does, at ${speed} px/sec`, () => {
+            let clears = 0;
+            for (let takeOff = 0; takeOff < 40; takeOff++) {
+                for (const second of [12, 16, 20, 24, 28]) {
+                    const state = withVoid(speed, 120);
+                    const hits = play(state, 150, (f) => {
+                        if (f === takeOff || f === takeOff + second) jump(state);
+                    });
+                    if (hits === 0) clears++;
+                }
+            }
+            // Not one lucky frame: several take-off moments work.
+            expect(clears).toBeGreaterThan(10);
+        });
+    }
+});

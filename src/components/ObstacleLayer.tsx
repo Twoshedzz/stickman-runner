@@ -13,9 +13,11 @@ import { HEART_SIZE } from "../game/constants";
 import { ObstacleShape, shapeFor, topYFor } from "../game/obstacleCatalogue";
 import { StageConfig } from "../game/stages";
 import { GameState } from "../game/state";
+import { DEFAULT_GRID_COLOR } from "./floorGeometry";
 import { Box3D, Sphere3D } from "./Obstacle3D";
 import { tintColours } from "./obstacleColours";
 import { safeColor } from "./safeColor";
+import { voidPaths } from "./voidShape";
 
 /** Half the height of a hole: a circle on the floor, flattened to the grid's perspective. */
 export const HOLE_RY = 8;
@@ -31,6 +33,8 @@ export interface ObstacleLookProps {
     glow: string;
     /** Where the grid's lines meet, for drawings in perspective. */
     vanishX: number;
+    /** The stage's floor grid colour, for drawings that are part of the floor. */
+    floorColour: string;
 }
 
 /** Solid shapes in the grid's perspective (Obstacle3D.tsx). */
@@ -58,6 +62,29 @@ const HoleLook = ({ x, y, width, height, colour }: ObstacleLookProps) => {
     );
 };
 
+/** A gap across the whole floor, with the grid dropping away into it (shapes in voidShape.ts). */
+const VoidLook = ({ x, y, width, colour, vanishX, floorColour }: ObstacleLookProps) => {
+    const { gap, edges, walls } = voidPaths(x, y, width, vanishX);
+    return (
+        <Group>
+            <Group clip={gap}>
+                <Path path={gap} color="#020008" />
+                {walls.map((wall, i) => (
+                    <Group key={i}>
+                        <Path path={wall.face} color={floorColour} opacity={0.12} />
+                        <Path path={wall.drops} style="stroke" strokeWidth={2} color={floorColour} />
+                        <Path path={wall.rungs[0]} style="stroke" strokeWidth={2} color={floorColour} opacity={0.6} />
+                        <Path path={wall.rungs[1]} style="stroke" strokeWidth={2} color={floorColour} opacity={0.3} />
+                    </Group>
+                ))}
+            </Group>
+            {/* The lip of each edge, lit like a hole's rim so it reads at speed. */}
+            <Path path={edges} style="stroke" strokeWidth={6} color={colour} opacity={0.3} />
+            <Path path={edges} style="stroke" strokeWidth={2} color={colour} />
+        </Group>
+    );
+};
+
 /**
  * A solid heart filling a HEART_SIZE box (30 wide, its point resting on the bottom edge).
  * Made into a Skia path inside the component: on web Skia isn't ready at module load.
@@ -79,6 +106,7 @@ export const SHAPE_LOOKS: Record<ObstacleShape, ComponentType<ObstacleLookProps>
     bar: BlockLook,
     sphere: SphereLook,
     hole: HoleLook,
+    void: VoidLook,
     heart: HeartLook,
 };
 
@@ -98,8 +126,10 @@ export const ObstacleLayer = ({ obstacles, offsetX, viewWidth, theme }: Obstacle
             const art = shapeFor(role);
             const x = obs.x + offsetX;
             // Patterns are placed whole, so some of each one waits off to the right.
-            // Don't draw what can't be seen: on web every shape adds to the load.
-            if (x > viewWidth + 10 || x + art.width < -10) return null;
+            // Don't draw what can't be seen: on web every shape adds to the load. A void's far
+            // end leans in towards the middle, so it's still showing a little further out.
+            const margin = art.shape === 'void' ? viewWidth * 0.2 : 10;
+            if (x > viewWidth + margin || x + art.width < -margin) return null;
             const Look = SHAPE_LOOKS[art.shape];
             const { colour, glow } = tintColours(art.tint, theme);
             return (
@@ -107,6 +137,7 @@ export const ObstacleLayer = ({ obstacles, offsetX, viewWidth, theme }: Obstacle
                     key={obs.id}
                     x={x} y={topYFor(role)} width={art.width} height={art.height}
                     colour={safeColor(colour)} glow={safeColor(glow)} vanishX={viewWidth / 2}
+                    floorColour={safeColor(theme.gridColor ?? DEFAULT_GRID_COLOR)}
                 />
             );
         })}

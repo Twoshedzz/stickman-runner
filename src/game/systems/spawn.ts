@@ -15,9 +15,9 @@ let nextId = 0;
 export const SPAWN_X = SCREEN_WIDTH + 100;
 
 /** Extra breathing space per point of pattern cost, so a hard pattern is followed by a rest. */
-const REST_PER_COST = 0.15;
+const REST_PER_COST = 0.1;
 /** A little randomness in the rests, so the rhythm doesn't feel mechanical. */
-const REST_JITTER = 0.25;
+const REST_JITTER = 0.15;
 /** A wide block needs the whole energy bar, which takes 3.3 sec on the ground to refill. */
 const HUGE_COOLDOWN_SEC = 6;
 /** How many recent patterns the spawner remembers, to keep the same few from repeating. */
@@ -169,18 +169,20 @@ export const spawnObstacle = (
     }
     if (pattern.steps.some((s) => moveFor(s.role) === 'double')) spawner.lastHugeSec = nowSec;
 
-    const rest = blend(pacing.rest, progress) + pattern.cost * REST_PER_COST + random() * REST_JITTER;
+    const usualRest = blend(pacing.rest, progress) + pattern.cost * REST_PER_COST + random() * REST_JITTER;
 
-    // Hearts go in the middle of a long enough rest: always when you're badly hurt,
-    // sometimes when you're only a little hurt. Each stage sets how generous that is.
+    // Hearts go in the middle of a rest: always when you're badly hurt, sometimes when you're
+    // only a little hurt. Each stage sets how generous that is. The rests are short, so a rest
+    // with a heart in it is stretched to make room.
     const { health, maxHealth } = state.player;
     const { hearts } = pacing;
     const sinceHeart = nowSec - spawner.lastHeartSec;
     const wantHeart =
         (health <= maxHealth * hearts.hurtBelow && sinceHeart >= hearts.hurtEverySec) ||
         (health < maxHealth && sinceHeart >= hearts.topUpEverySec && random() < hearts.topUpChance);
+    const rest = wantHeart ? Math.max(usualRest, HEART_MIN_REST) : usualRest;
     const placed = state.obstacles.slice(placedFrom);
-    const heartPlaced = wantHeart && rest >= HEART_MIN_REST;
+    const heartPlaced = wantHeart;
     if (heartPlaced) {
         state.obstacles.push({
             x: endX + (rest / 2) * speed - shapeFor('heart').width / 2,

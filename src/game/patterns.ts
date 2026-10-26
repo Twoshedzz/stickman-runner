@@ -63,6 +63,8 @@ export const PATTERNS: Pattern[] = [
     { id: 'gauntlet', cost: 5, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'overhead', at: 1.75 }, { role: 'hole', at: 2.35 }] },
     // The wide block: needs a double jump, so only appears when the energy bar is full
     { id: 'huge', cost: 4, steps: [{ role: 'huge', at: 0 }] },
+    // A gap across the whole floor: a double jump too, and the same energy rule
+    { id: 'void', cost: 4, steps: [{ role: 'void', at: 0 }] },
 ];
 
 /**
