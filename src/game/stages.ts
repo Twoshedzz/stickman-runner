@@ -437,8 +437,8 @@ export const STAGES: StageConfig[] = [
         pacing: {
             // An 18-second intro, then the beat: an easy start, building to the finish.
             build: [[0, 0], [18, 0.1], [160, 1]],
-            budget: [2.5, 5.5],
-            rest: [0.9, 0.05],
+            budget: [2, 5.5],
+            rest: [1.0, 0.05],
             breatherEverySec: [7, 18],
             // Holes, first met in stage 1, are this stage's speciality, combinations included.
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0 },
@@ -449,7 +449,7 @@ export const STAGES: StageConfig[] = [
                 weave: 2.5, zigzag: 2.5, 'bar-bar-pair': 1.5, 'pair-bar-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, pair: 0.7,
             },
-            hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 20 },
+            hearts: { hurtBelow: 0.45, hurtEverySec: 11, topUpChance: 0.25, topUpEverySec: 20 },
             // Introduces the extra jump between obstacles.
             pickups: { hop: [0.3, 0.6], double: [0, 0] },
         },
@@ -512,7 +512,7 @@ export const STAGES: StageConfig[] = [
                 quad: 1.5, weave: 1.5, zigzag: 1.5,
                 small: 0.5, bar: 0.5, large: 0.6, hole: 0.6,
             },
-            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.25, topUpEverySec: 22 },
+            hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 22 },
             // Adds double-jump arcs, which compete with the wide block for the energy bar.
             pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
         },
@@ -549,9 +549,9 @@ export const STAGES: StageConfig[] = [
         pacing: {
             // A quiet 18-second intro, then the beat drops: a gentle start, a step up at the drop,
             // and building from there.
-            build: [[0, 0], [18, 0.05], [20, 0.2], [160, 1]],
-            budget: [3, 6],
-            rest: [0.9, 0],
+            build: [[0, 0], [18, 0], [20, 0.15], [160, 1]],
+            budget: [2.5, 6],
+            rest: [1.0, 0],
             breatherEverySec: [8, 22],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
             planned: { void: [0.35, 0.65, 0.88] },
@@ -563,7 +563,7 @@ export const STAGES: StageConfig[] = [
                 'bar-bar-pair': 2, 'pair-bar-bar': 2, 'bar-bar-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, hole: 0.6, mover: 0.7,
             },
-            hearts: { hurtBelow: 0.45, hurtEverySec: 11, topUpChance: 0.2, topUpEverySec: 24 },
+            hearts: { hurtBelow: 0.4, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 24 },
             pickups: { hop: [0.5, 0.7], double: [0.4, 0.6] },
         },
         speed: [320, 360],
