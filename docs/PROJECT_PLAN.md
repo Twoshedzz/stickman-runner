@@ -37,7 +37,7 @@ back to a sunset on 23 October, so its name fits again.
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
 **Current focus:** step 11, making the game busier and harder while always achievable (Pete,
-26 October). Step 10 (a faster pace and voids) went live on 26 October. Before that, the
+26 October), merged into `main` on 26 October and not yet pushed live. Step 10 (a faster pace and voids) went live on 26 October. Before that, the
 **architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
@@ -451,7 +451,9 @@ in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
 
 **Step 11 — busier and harder, always achievable.** Asked for by Pete on 26 October, after
 playing step 10: "the game is a bit too easy". Built 26 October (branch
-`claude/s11-busier-harder-f1df78`), not yet played by Pete.
+`claude/s11-busier-harder-f1df78`). Pete played it locally and liked it more, then asked for
+voids in quick succession and more rapid switching between duck and jump (commit 4c98aec).
+Merged into `main` on 26 October on Pete's word; not yet pushed live.
 - **All obstacles more common**, and every stage a fair bit harder.
 - **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
   (about a second) to rest. Players should have to look ahead and decide instantly.
@@ -460,6 +462,11 @@ playing step 10: "the game is a bit too easy". Built 26 October (branch
   "in the zone" to keep going. This takes in step 8's unbuilt idea of calm and busy sections
   that follow the music.
 - **Voids: 2–3 in every stage**, stage 1 included. Mostly in the back half.
+- **Voids in quick succession** (Pete, after playing it): two voids 1.9 s apart, and voids mixed
+  in with bars and hops. Stages now plan 3, 4, 4 and 5 voids, the last two always a pair. A pair
+  takes the whole energy bar, so it waits for a full bar with no other double jump on its way.
+  New `switchback` and `flicker` runs alternate ducking and jumping. Fewer hearts, rarer late
+  breathers. The table below is from before this change; the new 20-run report is to follow.
 - **Always achievable:** no obstacle without a way through, in any run of the pretend player.
   This takes in the cleanup item about double-jump obstacles arriving with too little energy.
 - **Pickups keep coming regularly:** Pete noticed fewer diamonds for streaks since step 10, because
@@ -730,7 +737,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
-| Gameplay step 11: busier and harder, always achievable | Built 26 October, to playtest |
+| Gameplay step 11: busier and harder, always achievable | Merged into main 26 October, not yet live |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
