@@ -36,7 +36,8 @@ back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** step 10 (a faster pace and voids) went live on 26 October. Before that, the
+**Current focus:** step 11, making the game busier and harder while always achievable (Pete,
+26 October). Step 10 (a faster pace and voids) went live on 26 October. Before that, the
 **architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
@@ -59,7 +60,10 @@ Don't re-open these without a reason — a lot depends on them.
    dusk-to-dawn.
 5. **Obstacles stay abstract** — blocks, spheres, bars and (step 7) holes, coloured per stage.
    Drawn obstacle art is parked (§7).
-6. **Casual, not manic.** Engagement comes from rhythm and rewards, not from making it harder.
+6. **Busy, but always achievable** (changed by Pete, 26 October; it was "casual, not manic").
+   The game was too easy: the player should be jumping or ducking nearly all the time, looking
+   ahead and deciding instantly, with only rare second-long breathers. But every obstacle must
+   always have a way through, and rewards (pickups, streaks) keep coming.
 7. **No new sound effects.** The soundtrack is the only audio — pickups and feedback are visual.
 8. **The game ends after stage 4** with a win screen and best-runs table.
 9. **Menus are screens of their own**, not pop-ups over the game, in an 80s arcade style: chrome
@@ -445,6 +449,20 @@ in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
   `pacing.rest` are the first thing to ease.
 - *Checked:* the pretend player and the tests (266), a Vercel preview, and Pete's playtest of it.
 
+**Step 11 — busier and harder, always achievable.** Asked for by Pete on 26 October, after
+playing step 10: "the game is a bit too easy". In progress.
+- **All obstacles more common**, and every stage a fair bit harder.
+- **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
+  (about a second) to rest. Players should have to look ahead and decide instantly.
+- **Voids: 2–3 in every stage**, stage 1 included.
+- **Always achievable:** no obstacle without a way through, in any run of the pretend player.
+  This takes in the cleanup item about double-jump obstacles arriving with too little energy.
+- **Pickups keep coming regularly:** Pete noticed fewer diamonds for streaks since step 10, because
+  they mostly sat in the rests, which got shorter. At least as many as before step 10, spread
+  through the stage.
+- Checked by the pretend player (new measures: rest lengths, voids and pickups per stage, and
+  "no way through" must be 0), the pattern bot at every speed, then Pete's playtest of a preview.
+
 ### How each step is checked
 
 - `npx tsc --noEmit` clean, `npx expo lint` no worse, and `npm test` passing (253 tests on 25 October).
@@ -646,7 +664,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 - [x] **(A4)** `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
 - [x] **(A1)** The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
 - [x] **(A6)** The game loop re-renders every frame even on menu screens: now 0 redraws a second on menus.
-- [ ] A double-jump obstacle (the wide block, a void) is only placed when the energy bar is at
+- [ ] **(step 11)** A double-jump obstacle (the wide block, a void) is only placed when the energy bar is at
       least half full, but the player can spend energy before it arrives, so now and then there's
       no way through. The difficulty report shows it about once in 80 runs. Check the bar
       nearer the time, or top it up (found 26 October).
@@ -683,6 +701,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
+| Gameplay step 11: busier and harder, always achievable | In progress |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
