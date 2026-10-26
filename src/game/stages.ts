@@ -199,7 +199,7 @@ export const STAGES: StageConfig[] = [
         // jumping. Players found it too easy on 24 October, so it starts busier than it used to.
         pacing: {
             budget: [2.5, 5],
-            rest: [1.0, 0.65],
+            rest: [0.7, 0.4],
             // Holes come about 35 seconds in: on their own first, then in simple pairs.
             unlocks: { small: 0, overhead: 0.03, large: 0.06, mover: 0.15, hole: 0.2, huge: 0.45 },
             // The basics: the longer runs are saved for later stages.
@@ -396,7 +396,7 @@ export const STAGES: StageConfig[] = [
         },
         pacing: {
             budget: [3, 4.5],
-            rest: [0.8, 0.5],
+            rest: [0.55, 0.3],
             // Holes, first met in stage 1, are this stage's speciality, combinations included.
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0 },
             favour: {
@@ -452,7 +452,7 @@ export const STAGES: StageConfig[] = [
         },
         pacing: {
             budget: [3, 5.5],
-            rest: [0.75, 0.45],
+            rest: [0.5, 0.3],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.2 },
             // Moving spheres, the wide block and runs of three; the longest runs near the end.
             favour: {
@@ -460,7 +460,7 @@ export const STAGES: StageConfig[] = [
                 triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, quad: 1.5, weave: 1.5, zigzag: 1.5,
                 small: 0.5, bar: 0.5, large: 0.6, hole: 0.6,
             },
-            hearts: { hurtBelow: 0.6, hurtEverySec: 8, topUpChance: 0.3, topUpEverySec: 20 },
+            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.3, topUpEverySec: 20 },
             // Adds double-jump arcs, which compete with the wide block for the energy bar.
             pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
         },
@@ -496,7 +496,7 @@ export const STAGES: StageConfig[] = [
         },
         pacing: {
             budget: [4.5, 6],
-            rest: [0.65, 0.4],
+            rest: [0.45, 0.25],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
             // The finale: everything, in the longest runs.
             favour: {
