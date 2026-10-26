@@ -26,6 +26,43 @@ gets no reaction at all.
 | beginner | MIDNIGHT MOUNTAINS | 30% | 10.0 | 27.4 | 19.5 | 97s | 93 | small 3.5, mover 2.0, overhead 1.9 | 0 |
 | beginner | VICTORY DAWN | 20% | 9.6 | 24.4 | 15.6 | 106s | 106 | small 4.7, hole 1.7, overhead 1.6 | 0 |
 
+## Pace, voids and diamonds
+
+- **Busy**: the share of the time spent jumping or ducking for something. Each obstacle
+  keeps the player busy for as long as its move takes (a jump 0.67 sec, a duck 0.55 sec,
+  a double jump 1.2 sec), centred on it.
+- **Rests**: the gaps in between. The share of them longer than a second, how many of those
+  come a minute, and the longest rest (typical run, and the longest in any run).
+- **Voids** per run (fewest-most), **diamonds** reaching the runner a minute, how many the
+  pretend player collects without trying to (it only aims for the obstacles), and the
+  longest stretch with no diamond coming (typical run, and the longest in any run).
+
+| Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |
+|---|---|---|---|---|---|---|---|---|---|
+| steady | NEON CITY | 55% | 0% | 0.1 | 1.0s (1.1s) | 0.3 (0-1) | 73 | 218 of 220 | 16.3s (35.9s) |
+| steady | SUNSET BEACH | 57% | 0% | 0.0 | 0.9s (1.0s) | 0.9 (0-3) | 89 | 255 of 258 | 15.5s (23.9s) |
+| steady | MIDNIGHT MOUNTAINS | 60% | 0% | 0.0 | 0.9s (0.9s) | 1.4 (0-4) | 78 | 192 of 228 | 18.6s (32.2s) |
+| steady | VICTORY DAWN | 61% | 0% | 0.0 | 0.9s (0.9s) | 1.5 (0-3) | 85 | 188 of 252 | 18.4s (30.1s) |
+| average | NEON CITY | 55% | 0% | 0.2 | 1.0s (1.1s) | 0.5 (0-2) | 73 | 209 of 218 | 18.0s (35.9s) |
+| average | SUNSET BEACH | 58% | 0% | 0.0 | 0.9s (1.0s) | 0.5 (0-2) | 85 | 237 of 246 | 15.8s (34.0s) |
+| average | MIDNIGHT MOUNTAINS | 60% | 0% | 0.0 | 0.8s (0.9s) | 1.4 (0-4) | 80 | 186 of 231 | 17.3s (30.0s) |
+| average | VICTORY DAWN | 61% | 0% | 0.0 | 0.9s (0.9s) | 1.9 (0-4) | 89 | 172 of 246 | 15.9s (25.2s) |
+| beginner | NEON CITY | 54% | 0% | 0.0 | 0.9s (1.1s) | 0.1 (0-1) | 72 | 132 of 151 | 13.4s (20.3s) |
+| beginner | SUNSET BEACH | 57% | 0% | 0.0 | 0.9s (0.9s) | 0.5 (0-2) | 86 | 163 of 186 | 15.0s (29.5s) |
+| beginner | MIDNIGHT MOUNTAINS | 57% | 0% | 0.0 | 0.7s (0.9s) | 0.7 (0-3) | 78 | 93 of 125 | 13.6s (25.0s) |
+| beginner | VICTORY DAWN | 60% | 0% | 0.0 | 0.8s (0.9s) | 1.3 (0-3) | 84 | 98 of 149 | 14.6s (29.8s) |
+
+## Obstacles by kind
+
+How many of each kind a run meets, from the steady player's runs.
+
+| Stage | small | large | mover | overhead | hole | huge | void |
+|---|---|---|---|---|---|---|---|
+| NEON CITY | 64 | 16 | 7 | 60 | 20 | 1 | 0 |
+| SUNSET BEACH | 47 | 9 | 12 | 46 | 45 | 0 | 1 |
+| MIDNIGHT MOUNTAINS | 59 | 12 | 18 | 51 | 25 | 2 | 1 |
+| VICTORY DAWN | 57 | 15 | 9 | 59 | 32 | 2 | 2 |
+
 ## Timing windows
 
 How long the player has to press, in seconds, for each kind of obstacle: the typical

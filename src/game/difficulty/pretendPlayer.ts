@@ -13,7 +13,7 @@
  *
  * Run the full report with `npm run difficulty` (see difficulty.report.test.ts).
  */
-import { PLAYER_X } from '../constants';
+import { DUCK_DURATION_SEC, PLAYER_SIZE, PLAYER_X } from '../constants';
 import { moveFor, ObstacleRole, shapeFor } from '../obstacleCatalogue';
 import { speedAt, StageConfig } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -49,7 +49,23 @@ export interface RunResult {
     /** How long the timing window was for each move, in seconds, by the role it was for. */
     windows: Partial<Record<ObstacleRole, number[]>>;
     obstacles: number;
+    /** Obstacles met, by kind. */
+    obstaclesBy: Partial<Record<ObstacleRole, number>>;
     score: number;
+    /**
+     * The breathers: seconds between one moment the player has to act and the next, from
+     * the obstacles as they were placed (see restsBetween). Only within the time played.
+     */
+    rests: number[];
+    /** Share of the time played spent jumping or ducking for something. */
+    busyShare: number;
+    /** Voids met (the gap across the floor). */
+    voids: number;
+    /** Diamonds that reached the runner while playing, and how many of them were collected. */
+    pickupsPlaced: number;
+    pickupsCollected: number;
+    /** The longest stretch, in seconds, with no diamond coming past. */
+    longestWithoutPickupSec: number;
 }
 
 const DT = 1 / 60;
@@ -59,6 +75,60 @@ const LOOK_AHEAD_SEC = 1.1;
 const GROUP_SEC = 0.3;
 /** Second-tap delays (in frames) tried for a double jump. */
 const DOUBLE_DELAYS = [8, 12, 16, 20, 24];
+/** Where the runner's middle is: obstacles and diamonds "arrive" when they reach it. */
+const RUNNER_MID_X = PLAYER_X + PLAYER_SIZE / 2;
+/**
+ * Half of how long each move keeps the player busy, centred on the obstacle: a jump is in the
+ * air 0.67 sec, a duck lasts 0.55 sec, and a double jump about 1.2 sec.
+ */
+const BUSY_HALF_SEC: Record<'jump' | 'duck' | 'double', number> = {
+    jump: 40 / 60 / 2,
+    duck: DUCK_DURATION_SEC / 2,
+    double: 0.6,
+};
+
+/** An obstacle as the player meets it: when its middle reaches the runner, and what it asks. */
+interface Arrival { sec: number; role: ObstacleRole; speed: number }
+
+/**
+ * The gaps between one moment the player must act and the next. Each obstacle keeps the
+ * player busy for the time its move takes (or while it passes, if that's longer), centred
+ * on it; overlapping moves run together. What's left in between are the rests.
+ */
+export const restsBetween = (arrivals: Arrival[], untilSec: number) => {
+    const spans = arrivals
+        .filter((a) => a.sec <= untilSec && moveFor(a.role) !== 'collect')
+        .map((a) => {
+            const move = moveFor(a.role) as keyof typeof BUSY_HALF_SEC;
+            const half = Math.max(BUSY_HALF_SEC[move], (shapeFor(a.role).width + PLAYER_SIZE) / (2 * a.speed));
+            return { start: a.sec - half, end: a.sec + half };
+        })
+        .sort((a, b) => a.start - b.start);
+    const rests: number[] = [];
+    let busy = 0;
+    let current: { start: number; end: number } | null = null;
+    for (const span of spans) {
+        if (current && span.start <= current.end) {
+            current.end = Math.max(current.end, span.end);
+            continue;
+        }
+        if (current) {
+            busy += current.end - current.start;
+            rests.push(span.start - current.end);
+        }
+        current = { ...span };
+    }
+    if (current) busy += current.end - current.start;
+    return { rests, busySec: busy };
+};
+
+/** The longest gap between one diamond reaching the runner and the next. */
+const longestGap = (secs: number[]) => {
+    const sorted = [...secs].sort((a, b) => a - b);
+    let longest = 0;
+    for (let i = 1; i < sorted.length; i++) longest = Math.max(longest, sorted[i] - sorted[i - 1]);
+    return longest;
+};
 
 interface Sim {
     state: GameState;
@@ -186,16 +256,36 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     };
 
     const result: RunResult = {
-        seconds: 0, survived: true, hits: 0, damage: 0, healed: 0, hitsBy: {}, noWayThrough: 0, windows: {}, obstacles: 0, score: 0,
+        seconds: 0, survived: true, hits: 0, damage: 0, healed: 0, hitsBy: {}, noWayThrough: 0, windows: {}, obstacles: 0, obstaclesBy: {}, score: 0,
+        rests: [], busyShare: 0, voids: 0, pickupsPlaced: 0, pickupsCollected: 0, longestWithoutPickupSec: 0,
     };
     const seen = new Set<number>();
+    const arrivals: Arrival[] = [];
+    const seenPickups = new Set<number>();
+    const pickupSecs: number[] = [];
+    let collected = 0;
     let current: { ids: number[]; move: Move | null } | null = null;
 
     for (let f = 0; f < stageFrames(stage); f++) {
         const s = sim.state;
+        const nowSec = sim.frame / 60;
         for (const o of s.obstacles) {
-            if (!shapeFor(o.role).heals && !seen.has(o.id)) { seen.add(o.id); result.obstacles++; }
+            if (seen.has(o.id)) continue;
+            seen.add(o.id);
+            const role = o.role ?? 'small';
+            arrivals.push({ sec: nowSec + (o.x + shapeFor(role).width / 2 - RUNNER_MID_X) / s.speed, role, speed: s.speed });
+            if (shapeFor(role).heals) continue;
+            result.obstacles++;
+            result.obstaclesBy[role] = (result.obstaclesBy[role] ?? 0) + 1;
+            if (role === 'void') result.voids++;
         }
+        for (const p of s.pickups) {
+            if (seenPickups.has(p.id)) continue;
+            seenPickups.add(p.id);
+            pickupSecs.push(nowSec + (p.x - RUNNER_MID_X) / s.speed);
+        }
+        // Where each diamond is before the frame: one gone from near the runner was collected.
+        const pickupX = new Map(s.pickups.map((p) => [p.id, p.x]));
 
         if (current && groupPassed(s, current.ids)) {
             if (current.move?.kind === 'duck') releaseDuck(s);
@@ -221,6 +311,8 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
         const nearest = s.obstacles.filter(isHazard).sort((a, b) => a.x - b.x)[0]?.role;
         const before = s.player.health;
         const hit = step(sim);
+        const left = new Set(sim.state.pickups.map((p) => p.id));
+        for (const [id, x] of pickupX) if (!left.has(id) && x > 0) collected++;
         const after = sim.state.player.health;
         if (after > before) result.healed += after - before;
         if (hit) {
@@ -239,5 +331,12 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     }
     result.seconds = sim.frame / 60;
     result.score = sim.state.score;
+    const { rests, busySec } = restsBetween(arrivals, result.seconds);
+    result.rests = rests;
+    result.busyShare = busySec / result.seconds;
+    const reached = pickupSecs.filter((sec) => sec <= result.seconds);
+    result.pickupsPlaced = reached.length;
+    result.pickupsCollected = collected;
+    result.longestWithoutPickupSec = longestGap(reached);
     return result;
 };

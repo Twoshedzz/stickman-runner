@@ -34,6 +34,11 @@ describe('the pretend player', () => {
         const summary: string[] = [];
         /** Timing windows by stage and role, gathered from the average player's runs. */
         const windowRows: string[] = [];
+        /** How busy it is, the voids and the diamonds. */
+        const paceRows: string[] = [];
+        /** Obstacles met by kind, from the steady player's runs (who sees every stage to the end). */
+        const kindRows: string[] = [];
+        const KINDS = ['small', 'large', 'mover', 'overhead', 'hole', 'huge', 'void'] as const;
         for (const skill of SKILLS) {
             for (const stage of STAGES) {
                 const runs: RunResult[] = [];
@@ -55,6 +60,23 @@ describe('the pretend player', () => {
                     `| ${fixed(mean(runs.map((r) => r.seconds)), 0)}s | ${fixed(mean(runs.map((r) => r.obstacles)), 0)} ` +
                     `| ${worst || '-'} | ${noWay} |`
                 );
+                const rests = runs.flatMap((r) => r.rests);
+                const minutes = runs.reduce((a, r) => a + r.seconds, 0) / 60;
+                const longRests = rests.filter((sec) => sec > 1).length;
+                const voids = runs.map((r) => r.voids);
+                paceRows.push(
+                    `| ${skill.name} | ${stage.name} | ${Math.round(mean(runs.map((r) => r.busyShare)) * 100)}% ` +
+                    `| ${Math.round((longRests / Math.max(1, rests.length)) * 100)}% | ${fixed(longRests / minutes)} ` +
+                    `| ${fixed(mean(runs.map((r) => Math.max(0, ...r.rests))))}s (${fixed(Math.max(0, ...rests))}s) ` +
+                    `| ${fixed(mean(voids))} (${Math.min(...voids)}-${Math.max(...voids)}) ` +
+                    `| ${fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0)} ` +
+                    `| ${fixed(mean(runs.map((r) => r.pickupsCollected)), 0)} of ${fixed(mean(runs.map((r) => r.pickupsPlaced)), 0)} ` +
+                    `| ${fixed(mean(runs.map((r) => r.longestWithoutPickupSec)))}s (${fixed(Math.max(...runs.map((r) => r.longestWithoutPickupSec)))}s) |`
+                );
+                if (skill.name === 'steady') {
+                    const cells = KINDS.map((kind) => fixed(mean(runs.map((r) => r.obstaclesBy[kind] ?? 0)), 0));
+                    kindRows.push(`| ${stage.name} | ${cells.join(' | ')} |`);
+                }
                 if (skill.name === 'average') {
                     const all: Record<string, number[]> = {};
                     for (const r of runs) {
@@ -87,6 +109,29 @@ describe('the pretend player', () => {
             '| Skill | Stage | Survives | Hits | Health lost | Hearts healed | Lasts | Obstacles | Hit most by (per run) | No way through |',
             '|---|---|---|---|---|---|---|---|---|---|',
             ...rows,
+            '',
+            '## Pace, voids and diamonds',
+            '',
+            '- **Busy**: the share of the time spent jumping or ducking for something. Each obstacle',
+            '  keeps the player busy for as long as its move takes (a jump 0.67 sec, a duck 0.55 sec,',
+            '  a double jump 1.2 sec), centred on it.',
+            '- **Rests**: the gaps in between. The share of them longer than a second, how many of those',
+            '  come a minute, and the longest rest (typical run, and the longest in any run).',
+            '- **Voids** per run (fewest-most), **diamonds** reaching the runner a minute, how many the',
+            '  pretend player collects without trying to (it only aims for the obstacles), and the',
+            '  longest stretch with no diamond coming (typical run, and the longest in any run).',
+            '',
+            '| Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |',
+            '|---|---|---|---|---|---|---|---|---|---|',
+            ...paceRows,
+            '',
+            '## Obstacles by kind',
+            '',
+            'How many of each kind a run meets, from the steady player\'s runs.',
+            '',
+            `| Stage | ${KINDS.join(' | ')} |`,
+            `|---|${KINDS.map(() => '---').join('|')}|`,
+            ...kindRows,
             '',
             '## Timing windows',
             '',
