@@ -454,7 +454,11 @@ playing step 10: "the game is a bit too easy". In progress.
 - **All obstacles more common**, and every stage a fair bit harder.
 - **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
   (about a second) to rest. Players should have to look ahead and decide instantly.
-- **Voids: 2–3 in every stage**, stage 1 included.
+- **Ease into each stage, in keeping with how the music builds** (Pete, 26 October): a gentler
+  opening, building to near-constant action, so by the end of each stage players have to be
+  "in the zone" to keep going. This takes in step 8's unbuilt idea of calm and busy sections
+  that follow the music.
+- **Voids: 2–3 in every stage**, stage 1 included. Mostly in the back half.
 - **Always achievable:** no obstacle without a way through, in any run of the pretend player.
   This takes in the cleanup item about double-jump obstacles arriving with too little energy.
 - **Pickups keep coming regularly:** Pete noticed fewer diamonds for streaks since step 10, because
