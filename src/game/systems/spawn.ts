@@ -52,7 +52,7 @@ export const availablePatterns = (
     progress: number,
     built: number,
     lastCost: number,
-    doubleAllowed: boolean
+    doublesAllowed: number
 ): Pattern[] => {
     const budget = blend(pacing.budget, built);
     const unlocked = (pattern: Pattern) =>
@@ -70,11 +70,12 @@ export const availablePatterns = (
             pacing.planned?.[p.id] === undefined &&
             // Never two of the hardest patterns back to back
             !(p.cost >= 4 && lastCost >= 4) &&
-            (doubleAllowed || !needsDouble(p))
+            doublesIn(p) <= doublesAllowed
     );
 };
 
-const needsDouble = (pattern: Pattern) => pattern.steps.some((s) => moveFor(s.role) === 'double');
+/** How many double jumps a pattern asks for: one for each wide block or void. */
+const doublesIn = (pattern: Pattern) => pattern.steps.filter((s) => moveFor(s.role) === 'double').length;
 
 /** Double jumps already asked for and not reached yet: wide blocks and voids on their way. */
 const doubleObstaclesAhead = (state: GameState) =>
@@ -84,31 +85,37 @@ const doubleArcsAhead = (state: GameState) =>
     state.pickups.filter((p) => p.needsDouble && p.x > PLAYER_X).length;
 
 /**
- * Can one more double jump be asked for? Energy only goes down when the player double jumps,
- * so the bar now, less a double jump for everything already on its way, is the least a player
- * who isn't wasting it will have when this one arrives: that has to cover this double jump.
- * Leaving the optional double arcs aside, it also has to leave some spare for a slip.
+ * Can `count` more double jumps be asked for? Energy only goes down when the player double
+ * jumps, so the bar now, less a double jump for everything already on its way, is the least a
+ * player who isn't wasting it will have when these arrive: that has to cover them. Leaving the
+ * optional double arcs aside, one double jump also has to leave some spare for a slip. Two (a
+ * pair of voids) take the whole bar, so they need it full with nothing else on its way.
  */
-export const canAskForDouble = (state: GameState) => {
+export const canAskForDouble = (state: GameState, count = 1) => {
     const obstacles = doubleObstaclesAhead(state);
     const all = obstacles + doubleArcsAhead(state);
+    const needed = JUMP_ENERGY_COST * count;
+    const spare = count > 1 ? 0 : DOUBLE_SPARE_ENERGY;
     return (
-        state.energy - JUMP_ENERGY_COST * all >= JUMP_ENERGY_COST &&
-        state.energy - JUMP_ENERGY_COST * obstacles >= JUMP_ENERGY_COST + DOUBLE_SPARE_ENERGY
+        state.energy - JUMP_ENERGY_COST * all >= needed &&
+        state.energy - JUMP_ENERGY_COST * obstacles >= needed + spare
     );
 };
 
-/** A planned pattern whose moment has come (`pacing.planned`), if one has and it can go now. */
-const duePlanned = (state: GameState, pacing: StagePacing, doubleAllowed: boolean): Pattern | null => {
-    for (const [id, at] of Object.entries(pacing.planned ?? {})) {
-        const placed = state.spawner.plannedPlaced[id] ?? 0;
-        const pattern = PATTERNS.find((p) => p.id === id);
-        if (!at || !pattern || placed >= at.length || state.stageProgress < at[placed]) continue;
-        if (needsDouble(pattern) && !doubleAllowed) continue;
-        return pattern;
-    }
-    return null;
+/** How many double jumps can be asked for now (0, 1 or 2), from the energy bar and the cooldown. */
+const doublesAllowedNow = (state: GameState) => {
+    if (state.elapsedSecInStage - state.spawner.lastHugeSec < DOUBLE_COOLDOWN_SEC) return 0;
+    if (canAskForDouble(state, 2)) return 2;
+    return canAskForDouble(state) ? 1 : 0;
 };
+
+/** The planned patterns whose moment has come (`pacing.planned`), earliest due first. */
+const duePlanned = (state: GameState, pacing: StagePacing): Pattern[] =>
+    Object.entries(pacing.planned ?? {})
+        .map(([id, at]) => ({ pattern: PATTERNS.find((p) => p.id === id), due: at?.[state.spawner.plannedPlaced[id] ?? 0] }))
+        .filter((p): p is { pattern: Pattern; due: number } => !!p.pattern && p.due !== undefined && state.stageProgress >= p.due)
+        .sort((a, b) => a.due - b.due)
+        .map((p) => p.pattern);
 
 /**
  * Steps this close behind the one before (two blocks one jump clears) stay that close: they
@@ -206,10 +213,14 @@ export const spawnObstacle = (
     const nowSec = state.elapsedSecInStage;
     const { pacing } = currentStage;
 
-    const doubleAllowed = canAskForDouble(state) && nowSec - spawner.lastHugeSec >= DOUBLE_COOLDOWN_SEC;
-    const planned = duePlanned(state, pacing, doubleAllowed);
+    const doublesAllowed = doublesAllowedNow(state);
+    const due = duePlanned(state, pacing);
+    const planned = due.find((p) => doublesIn(p) <= doublesAllowed) ?? null;
+    // A planned one waiting for the energy bar to fill: nothing else asks for a double jump
+    // meanwhile, so it fills.
+    const waiting = !planned && due.some((p) => doublesIn(p) > 0);
     const pattern = planned ?? pickPattern(
-        availablePatterns(pacing, progress, built, spawner.lastCost, doubleAllowed),
+        availablePatterns(pacing, progress, built, spawner.lastCost, waiting ? 0 : doublesAllowed),
         blend(pacing.budget, built),
         random,
         spawner.recent,
@@ -254,7 +265,7 @@ export const spawnObstacle = (
         });
         endX = Math.max(endX, x + shapeFor(step.role).width);
     }
-    if (needsDouble(pattern)) spawner.lastHugeSec = nowSec;
+    if (doublesIn(pattern) > 0) spawner.lastHugeSec = nowSec;
 
     // Mostly short rests, and now and then a breather of about a second.
     const breather = nowSec - spawner.lastBreatherSec >= blend(pacing.breatherEverySec, built);
@@ -286,7 +297,7 @@ export const spawnObstacle = (
 
     // Something to collect: arcs over the blocks, a line under the bars, and a trail through
     // the rest. A double arc only where the energy bar allows one more double jump.
-    placePickups(state, pacing, placed, endX, rest, heartPlaced, random, () => canAskForDouble(state));
+    placePickups(state, pacing, placed, endX, rest, heartPlaced, random, () => !waiting && canAskForDouble(state));
 
     spawner.endX = endX;
     spawner.restSec = rest;

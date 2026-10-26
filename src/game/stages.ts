@@ -236,21 +236,22 @@ export const STAGES: StageConfig[] = [
         pacing: {
             budget: [2, 5.5],
             rest: [1.0, 0.05],
-            breatherEverySec: [7, 18],
+            breatherEverySec: [7, 22],
             // Holes come about 25 seconds in: on their own first, then in simple pairs.
             unlocks: { small: 0, overhead: 0.02, large: 0.04, mover: 0.1, hole: 0.15, huge: 0.3 },
-            // Two voids (double jump across a gap), in the second half.
-            planned: { void: [0.6, 0.85] },
+            // Three voids (double jump across a gap), in the second half: one straight after a
+            // bar, then two in quick succession near the end.
+            planned: { 'bar-void': [0.55], 'void-void': [0.85] },
             // The basics: the longest runs are saved for later stages.
             favour: {
                 'bar-hop': 2, 'hop-bar': 2, 'bar-hole': 2, 'hole-bar': 2,
-                'bar-hop-bar': 2, 'hop-bar-hop': 2, weave: 2.5, zigzag: 2.5,
+                'bar-hop-bar': 2, 'hop-bar-hop': 2, weave: 2.5, zigzag: 2.5, switchback: 3,
                 'pair-hop': 1.5, 'bar-pair': 1.5, 'hop-bar-bar': 1.5, 'bar-hop-hop': 1.5,
                 small: 0.4, large: 0.4, bar: 0.5, 'hole-hole': 0.5,
                 'bar-bar-hop': 0, 'hole-hop-hole': 0, 'mover-bar-hop': 0, 'mover-mover': 0,
-                quad: 0, 'hole-bar-hole': 0, gauntlet: 0, run: 0,
+                quad: 0, 'hole-bar-hole': 0, gauntlet: 0, run: 0, flicker: 0,
             },
-            hearts: { hurtBelow: 0.7, hurtEverySec: 7, topUpChance: 0.35, topUpEverySec: 16 },
+            hearts: { hurtBelow: 0.6, hurtEverySec: 9, topUpChance: 0.3, topUpEverySec: 18 },
             pickups: { hop: [0, 0], double: [0, 0] },
         },
         speed: [260, 300],
@@ -439,17 +440,18 @@ export const STAGES: StageConfig[] = [
             build: [[0, 0], [18, 0.1], [160, 1]],
             budget: [2, 5.5],
             rest: [1.0, 0.05],
-            breatherEverySec: [7, 18],
+            breatherEverySec: [7, 22],
             // Holes, first met in stage 1, are this stage's speciality, combinations included.
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0 },
-            planned: { void: [0.4, 0.65, 0.88] },
+            // Four voids: one alone, one between two bars, then two in quick succession.
+            planned: { void: [0.38], 'bar-void-bar': [0.62], 'void-void': [0.86] },
             favour: {
                 hole: 1.2, 'hole-hop': 2.5, 'bar-hole': 2, 'hole-bar': 2, 'hole-hole': 2, 'hole-hop-hole': 1.5,
                 'hop-hole-hop': 2, 'hole-hop-bar': 2, stairs: 1.5,
-                weave: 2.5, zigzag: 2.5, 'bar-bar-pair': 1.5, 'pair-bar-bar': 1.5,
+                weave: 2.5, zigzag: 2.5, switchback: 2, flicker: 2.5, 'bar-bar-pair': 1.5, 'pair-bar-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, pair: 0.7,
             },
-            hearts: { hurtBelow: 0.45, hurtEverySec: 11, topUpChance: 0.25, topUpEverySec: 20 },
+            hearts: { hurtBelow: 0.4, hurtEverySec: 13, topUpChance: 0.2, topUpEverySec: 24 },
             // Introduces the extra jump between obstacles.
             pickups: { hop: [0.3, 0.6], double: [0, 0] },
         },
@@ -501,18 +503,19 @@ export const STAGES: StageConfig[] = [
             build: [[0, 0], [18, 0.05], [36, 0.35], [78, 0.6], [132, 0.85], [156, 1]],
             budget: [3, 6],
             rest: [0.8, 0.03],
-            breatherEverySec: [8, 20],
+            breatherEverySec: [8, 24],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0.15 },
-            planned: { void: [0.35, 0.62, 0.86] },
+            // Four voids: after a hop, before a bar, then two in quick succession.
+            planned: { 'hop-void': [0.35], 'void-bar': [0.6], 'void-void': [0.84] },
             // Moving spheres, the wide block and runs of three; the longest runs near the end.
             favour: {
                 mover: 1.5, 'mover-hop': 2, 'mover-bar': 2, 'mover-bar-hop': 2, 'mover-mover': 1.5, huge: 2,
                 triple: 1.8, 'bar-bar-hop': 1.8, 'pair-bar': 1.8, 'bar-hop-hop': 1.5, 'pair-hop': 1.5,
                 'hop-pair': 1.8, 'bar-bar-pair': 1.8, 'pair-bar-bar': 1.8, 'bar-bar-bar': 1.5,
-                quad: 1.5, weave: 1.5, zigzag: 1.5,
+                quad: 1.5, weave: 1.5, zigzag: 1.5, switchback: 1.5, flicker: 1.5,
                 small: 0.5, bar: 0.5, large: 0.6, hole: 0.6,
             },
-            hearts: { hurtBelow: 0.5, hurtEverySec: 10, topUpChance: 0.25, topUpEverySec: 22 },
+            hearts: { hurtBelow: 0.45, hurtEverySec: 11, topUpChance: 0.2, topUpEverySec: 24 },
             // Adds double-jump arcs, which compete with the wide block for the energy bar.
             pickups: { hop: [0.4, 0.6], double: [0.25, 0.45] },
         },
@@ -552,18 +555,20 @@ export const STAGES: StageConfig[] = [
             build: [[0, 0], [18, 0], [20, 0.15], [160, 1]],
             budget: [2.5, 6],
             rest: [1.0, 0],
-            breatherEverySec: [8, 22],
+            breatherEverySec: [8, 26],
             unlocks: { small: 0, large: 0, mover: 0, overhead: 0, hole: 0, huge: 0 },
-            planned: { void: [0.35, 0.65, 0.88] },
+            // Five voids, mixed in with everything else, two of them in quick succession near the end.
+            planned: { 'bar-void': [0.3], 'void-bar': [0.52], 'hop-void': [0.68], 'void-void': [0.86] },
             // The finale: everything, in the longest runs.
             favour: {
                 gauntlet: 2.5, run: 2.5, quad: 2, 'hole-bar-hole': 2, 'hole-hop-hole': 1.5, weave: 2, zigzag: 2,
+                switchback: 2.5, flicker: 2.5,
                 'bar-hop-bar': 1.5, 'hop-bar-hop': 1.5, 'bar-bar-hop': 1.5, 'pair-bar': 1.5,
                 'hop-bar-bar': 1.5, 'hole-hop-bar': 1.5, 'mover-bar-hop': 1.5,
                 'bar-bar-pair': 2, 'pair-bar-bar': 2, 'bar-bar-bar': 1.5,
                 small: 0.4, bar: 0.4, large: 0.5, hole: 0.6, mover: 0.7,
             },
-            hearts: { hurtBelow: 0.4, hurtEverySec: 12, topUpChance: 0.2, topUpEverySec: 24 },
+            hearts: { hurtBelow: 0.35, hurtEverySec: 14, topUpChance: 0.15, topUpEverySec: 28 },
             pickups: { hop: [0.5, 0.7], double: [0.4, 0.6] },
         },
         speed: [320, 360],

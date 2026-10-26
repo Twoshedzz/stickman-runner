@@ -12,7 +12,7 @@ import { beatGridSec, remainingScroll, speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
 import { applyPhysics, jump, releaseDuck, startDuck } from '../systems/physics';
-import { SAME_JUMP_SEC, spawnObstacle } from '../systems/spawn';
+import { canAskForDouble, SAME_JUMP_SEC, spawnObstacle } from '../systems/spawn';
 
 const DT = 1 / 60;
 type Obstacle = GameState['obstacles'][number];
@@ -298,6 +298,16 @@ describe('feel and forgiveness', () => {
         runFrames(sim, 120); // land
         jump(sim.state); jump(sim.state);
         expect(sim.state.player.jumpCount).toBe(2);
+    });
+
+    it('two voids in quick succession are only asked for with a full bar and nothing else on its way', () => {
+        const sim = freshSim();
+        expect(canAskForDouble(sim.state, 2)).toBe(true);
+        sim.state.energy = MAX_ENERGY - 1;
+        expect(canAskForDouble(sim.state, 2)).toBe(false);
+        sim.state.energy = MAX_ENERGY;
+        sim.state.obstacles.push({ x: 400, id: 99, role: 'huge' });
+        expect(canAskForDouble(sim.state, 2)).toBe(false);
     });
 
     it('after a hit, the next obstacle within a second can not hurt', () => {

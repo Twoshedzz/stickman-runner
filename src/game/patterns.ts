@@ -81,6 +81,15 @@ export const PATTERNS: Pattern[] = [
     { id: 'huge', cost: 4, steps: [{ role: 'huge', at: 0 }] },
     // A gap across the whole floor: a double jump too, and the same energy rule
     { id: 'void', cost: 4, steps: [{ role: 'void', at: 0 }] },
+    // Ducking and jumping in quick alternation, and voids in among them to mix it up
+    { id: 'switchback', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'overhead', at: 1.7 }, { role: 'small', at: 2.3 }] },
+    { id: 'flicker', cost: 5, steps: [{ role: 'overhead', at: 0 }, { role: 'small', at: 0.6 }, { role: 'overhead', at: 1.7 }, { role: 'hole', at: 2.3 }, { role: 'overhead', at: 3.4 }, { role: 'small', at: 4.0 }] },
+    { id: 'bar-void', cost: 4, steps: [{ role: 'overhead', at: 0 }, { role: 'void', at: 1.0 }] },
+    { id: 'void-bar', cost: 4, steps: [{ role: 'void', at: 0 }, { role: 'overhead', at: 1.6 }] },
+    { id: 'hop-void', cost: 4, steps: [{ role: 'small', at: 0 }, { role: 'void', at: 1.3 }] },
+    { id: 'bar-void-bar', cost: 5, steps: [{ role: 'overhead', at: 0 }, { role: 'void', at: 1.0 }, { role: 'overhead', at: 2.6 }] },
+    // Two voids in quick succession: takes the whole energy bar, so only when it's full (spawn.ts)
+    { id: 'void-void', cost: 5, steps: [{ role: 'void', at: 0 }, { role: 'void', at: 1.9 }] },
 ];
 
 /**
