@@ -13,7 +13,7 @@
  *
  * Run the full report with `npm run difficulty` (see difficulty.report.test.ts).
  */
-import { DUCK_DURATION_SEC, PLAYER_SIZE, PLAYER_X } from '../constants';
+import { DUCK_DURATION_SEC, JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X } from '../constants';
 import { moveFor, ObstacleRole, shapeFor } from '../obstacleCatalogue';
 import { speedAt, StageConfig } from '../stages';
 import { createInitialState, GameState } from '../state';
@@ -44,8 +44,16 @@ export interface RunResult {
     healed: number;
     /** What hit the runner, by role. */
     hitsBy: Partial<Record<ObstacleRole, number>>;
-    /** Obstacles with no way past at all from where the player was (energy, say). */
+    /**
+     * Obstacles with no way past at all from where the player was (energy, say), not counting
+     * the ones below. Should be 0: it means the game asked for something impossible.
+     */
     noWayThrough: number;
+    /**
+     * No way past, but only because of the player's own slip just before: a tap while still in
+     * the air from the last jump makes a double jump, which floats too long or spends the energy.
+     */
+    noWayAfterSlip: number;
     /** How long the timing window was for each move, in seconds, by the role it was for. */
     windows: Partial<Record<ObstacleRole, number[]>>;
     obstacles: number;
@@ -53,12 +61,16 @@ export interface RunResult {
     obstaclesBy: Partial<Record<ObstacleRole, number>>;
     score: number;
     /**
-     * The breathers: seconds between one moment the player has to act and the next, from
-     * the obstacles as they were placed (see restsBetween). Only within the time played.
+     * The rests: seconds between one moment the player has to act and the next, from the
+     * obstacles as they were placed (see busySpans). Only within the time played.
      */
     rests: number[];
     /** Share of the time played spent jumping or ducking for something. */
     busyShare: number;
+    /** When the player was busy, for the pace of part of a run (paceBetween). */
+    busy: BusySpan[];
+    /** When each obstacle reached the runner, in stage seconds. */
+    obstacleSecs: number[];
     /** Voids met (the gap across the floor). */
     voids: number;
     /** Diamonds that reached the runner while playing, and how many of them were collected. */
@@ -73,6 +85,8 @@ const DT = 1 / 60;
 const LOOK_AHEAD_SEC = 1.1;
 /** Obstacles arriving this close behind the first are taken in the same move. */
 const GROUP_SEC = 0.3;
+/** A slip's double jump can leave the player with no way past for this long after it. */
+const SLIP_STRANDS_SEC = 3;
 /** Second-tap delays (in frames) tried for a double jump. */
 const DOUBLE_DELAYS = [8, 12, 16, 20, 24];
 /** Where the runner's middle is: obstacles and diamonds "arrive" when they reach it. */
@@ -90,12 +104,15 @@ const BUSY_HALF_SEC: Record<'jump' | 'duck' | 'double', number> = {
 /** An obstacle as the player meets it: when its middle reaches the runner, and what it asks. */
 interface Arrival { sec: number; role: ObstacleRole; speed: number }
 
+/** A stretch of time spent jumping or ducking for something. */
+export interface BusySpan { start: number; end: number }
+
 /**
- * The gaps between one moment the player must act and the next. Each obstacle keeps the
- * player busy for the time its move takes (or while it passes, if that's longer), centred
- * on it; overlapping moves run together. What's left in between are the rests.
+ * When the player is busy: each obstacle keeps the player busy for the time its move takes
+ * (or while it passes, if that's longer), centred on it; overlapping moves run together.
+ * What's left in between are the rests.
  */
-export const restsBetween = (arrivals: Arrival[], untilSec: number) => {
+export const busySpans = (arrivals: Arrival[], untilSec: number): BusySpan[] => {
     const spans = arrivals
         .filter((a) => a.sec <= untilSec && moveFor(a.role) !== 'collect')
         .map((a) => {
@@ -104,22 +121,28 @@ export const restsBetween = (arrivals: Arrival[], untilSec: number) => {
             return { start: a.sec - half, end: a.sec + half };
         })
         .sort((a, b) => a.start - b.start);
+    const merged: BusySpan[] = [];
+    for (const span of spans) {
+        const last = merged[merged.length - 1];
+        if (last && span.start <= last.end) last.end = Math.max(last.end, span.end);
+        else merged.push({ ...span });
+    }
+    return merged;
+};
+
+/**
+ * The rests (gaps between busy spans) that start between two moments, and the share of that
+ * time spent busy. For the whole run, or a part of it like the first third.
+ */
+export const paceBetween = (spans: BusySpan[], fromSec: number, toSec: number) => {
     const rests: number[] = [];
     let busy = 0;
-    let current: { start: number; end: number } | null = null;
-    for (const span of spans) {
-        if (current && span.start <= current.end) {
-            current.end = Math.max(current.end, span.end);
-            continue;
-        }
-        if (current) {
-            busy += current.end - current.start;
-            rests.push(span.start - current.end);
-        }
-        current = { ...span };
-    }
-    if (current) busy += current.end - current.start;
-    return { rests, busySec: busy };
+    spans.forEach((span, i) => {
+        busy += Math.max(0, Math.min(span.end, toSec) - Math.max(span.start, fromSec));
+        const next = spans[i + 1];
+        if (next && span.end >= fromSec && span.end < toSec) rests.push(next.start - span.end);
+    });
+    return { rests, busyShare: busy / Math.max(1e-9, toSec - fromSec) };
 };
 
 /** The longest gap between one diamond reaching the runner and the next. */
@@ -178,17 +201,34 @@ const groupPassed = (state: GameState, ids: number[]) =>
         return !o || o.passed;
     });
 
-/** Play a move from here until the group has gone by. False if anything hit. */
+/** A tap now would be a double jump, because the runner is still in the air from the last jump. */
+const tapWouldDouble = (state: GameState) =>
+    !state.player.isGrounded && state.player.jumpCount < 2 && state.energy >= JUMP_ENERGY_COST;
+
+/**
+ * Play a move from here until the group has gone by. False if anything hit, or if the first
+ * tap would come while still in the air: that's a double jump, not the jump being planned.
+ */
 const tryMove = (sim: Sim, move: Move, ids: number[]): boolean => {
     for (let f = 0; f < 400; f++) {
         if (sim.frame === move.at) {
             if (move.kind === 'duck') startDuck(sim.state, true);
+            else if (tapWouldDouble(sim.state)) return false;
             else jump(sim.state);
         }
         if (move.kind === 'double' && sim.frame === move.at + (move.delay ?? 0)) jump(sim.state);
         if (move.kind === 'duck' && sim.frame > move.at && groupPassed(sim.state, ids)) releaseDuck(sim.state);
         if (step(sim)) return false;
         if (sim.frame > move.at + (move.delay ?? 0) && groupPassed(sim.state, ids)) return true;
+    }
+    return false;
+};
+
+/** Doing nothing gets past the group: already in the air over it, say, or just past it. */
+const passesIdle = (sim: Sim, ids: number[]): boolean => {
+    for (let f = 0; f < 400; f++) {
+        if (step(sim)) return false;
+        if (groupPassed(sim.state, ids)) return true;
     }
     return false;
 };
@@ -221,6 +261,7 @@ const gaussian = (random: () => number) => {
 const plan = (
     sim: Sim, ids: number[], skill: Skill, random: () => number, windows: RunResult['windows']
 ): Move | 'none' | 'no way' => {
+    if (passesIdle(copy(sim), ids)) return 'none';
     const slipped = random() < skill.slipChance;
     const role = sim.state.obstacles.find((o) => o.id === ids[0])?.role ?? 'small';
     const clearBy = moveFor(role);
@@ -256,14 +297,16 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     };
 
     const result: RunResult = {
-        seconds: 0, survived: true, hits: 0, damage: 0, healed: 0, hitsBy: {}, noWayThrough: 0, windows: {}, obstacles: 0, obstaclesBy: {}, score: 0,
-        rests: [], busyShare: 0, voids: 0, pickupsPlaced: 0, pickupsCollected: 0, longestWithoutPickupSec: 0,
+        seconds: 0, survived: true, hits: 0, damage: 0, healed: 0, hitsBy: {}, noWayThrough: 0, noWayAfterSlip: 0, windows: {}, obstacles: 0, obstaclesBy: {}, score: 0,
+        rests: [], busyShare: 0, busy: [], obstacleSecs: [], voids: 0, pickupsPlaced: 0, pickupsCollected: 0, longestWithoutPickupSec: 0,
     };
     const seen = new Set<number>();
     const arrivals: Arrival[] = [];
     const seenPickups = new Set<number>();
     const pickupSecs: number[] = [];
     let collected = 0;
+    /** When the player last double jumped by mistake (a tap meant as a jump, made in the air). */
+    let slipSec = -Infinity;
     let current: { ids: number[]; move: Move | null } | null = null;
 
     for (let f = 0; f < stageFrames(stage); f++) {
@@ -276,6 +319,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
             arrivals.push({ sec: nowSec + (o.x + shapeFor(role).width / 2 - RUNNER_MID_X) / s.speed, role, speed: s.speed });
             if (shapeFor(role).heals) continue;
             result.obstacles++;
+            result.obstacleSecs.push(arrivals[arrivals.length - 1].sec);
             result.obstaclesBy[role] = (result.obstaclesBy[role] ?? 0) + 1;
             if (role === 'void') result.voids++;
         }
@@ -295,7 +339,8 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
             const group = nextGroup(s);
             if (group && group.first.x - PLAYER_X <= LOOK_AHEAD_SEC * s.speed) {
                 const move = plan(sim, group.ids, skill, random, result.windows);
-                if (move === 'no way') result.noWayThrough++;
+                if (move === 'no way' && nowSec - slipSec < SLIP_STRANDS_SEC) result.noWayAfterSlip++;
+                else if (move === 'no way') result.noWayThrough++;
                 current = { ids: group.ids, move: typeof move === 'object' ? move : null };
             }
         }
@@ -303,7 +348,10 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
         if (move) {
             if (sim.frame === move.at) {
                 if (move.kind === 'duck') startDuck(s, true);
-                else jump(s);
+                else {
+                    if (tapWouldDouble(s)) slipSec = nowSec;
+                    jump(s);
+                }
             }
             if (move.kind === 'double' && sim.frame === move.at + (move.delay ?? 0)) jump(s);
         }
@@ -331,9 +379,11 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     }
     result.seconds = sim.frame / 60;
     result.score = sim.state.score;
-    const { rests, busySec } = restsBetween(arrivals, result.seconds);
+    result.busy = busySpans(arrivals, result.seconds);
+    const { rests, busyShare } = paceBetween(result.busy, 0, result.seconds);
     result.rests = rests;
-    result.busyShare = busySec / result.seconds;
+    result.busyShare = busyShare;
+    result.obstacleSecs = result.obstacleSecs.filter((sec) => sec <= result.seconds);
     const reached = pickupSecs.filter((sec) => sec <= result.seconds);
     result.pickupsPlaced = reached.length;
     result.pickupsCollected = collected;
