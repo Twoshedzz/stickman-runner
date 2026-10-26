@@ -36,7 +36,8 @@ back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** the **architecture pass** (§4A) is done and live (25 October): small tidy-ups
+**Current focus:** step 10 (a faster pace and voids) went live on 26 October. Before that, the
+**architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
 Next, back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
@@ -418,8 +419,8 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
    and a rhythm-aware pretend player to see the most a good player can get. Tune the window
    and the reward so it's worth chasing but not essential.
 
-**Step 10 — a faster pace and voids (G1, G2).** Built 26 October with Pete, not yet merged
-(branch `claude/g1-g2-pace-and-voids`). Pete agreed: about 25% more obstacles, voids from late
+**Step 10 — a faster pace and voids (G1, G2).** ✅ Done and live 26 October; Pete playtested
+the preview and it feels right. Pete agreed: about 25% more obstacles, voids from late
 in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
 - *G1, faster pace:* shorter rests between patterns in every stage (`pacing.rest` in
   `stages.ts`), less extra rest per pattern and less random spread; the gaps inside patterns
@@ -439,14 +440,10 @@ in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
 | Average player survives | 95% → 100% | 100% → 95% | 95% → 90% | 90% → 85% |
 | Beginner survives | 55% → 45% | 45% → 40% | 40% → 30% | 30% → 20% |
 
-- *To decide with Pete:* beginners now survive stages 3–4 less often than the step 8 targets
-  (45% and 33%). That's the "harder" players asked for, but decision 6 says casual, not manic,
-  and Pete's son is a tester. Play it before tuning.
-- *To playtest:* a Vercel preview of the branch, in Safari:
-  https://stickman-runner-fhdr0gpj8-twoshedzzs-projects.vercel.app (it shares the real world
-  scoreboard). It builds and runs, and How to Play shows the void; voids in a run (from late in
-  stage 1, all through stages 2–4) are still to be seen. Expo is paused on the Mac while Pete's
-  sysadmin looks at the ngrok alert.
+- *Watch:* beginners now survive stages 3–4 less often than the step 8 targets (45% and 33%).
+  Pete played it and it feels right; if his son finds stages 3–4 too much, the rests in
+  `pacing.rest` are the first thing to ease.
+- *Checked:* the pretend player and the tests (266), a Vercel preview, and Pete's playtest of it.
 
 ### How each step is checked
 
@@ -685,7 +682,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 8: obstacle sequencing and difficulty | ✅ Done, except music sections |
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
-| Gameplay step 10: faster pace and voids | Built 26 October, to playtest, not merged |
+| Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
