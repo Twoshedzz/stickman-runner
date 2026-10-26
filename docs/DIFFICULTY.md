@@ -13,18 +13,18 @@ gets no reaction at all.
 
 | Skill | Stage | Survives | Hits | Health lost | Hearts healed | Lasts | Obstacles | Hit most by (per run) | No way through | After a slip |
 |---|---|---|---|---|---|---|---|---|---|---|
-| steady | NEON CITY | 100% | 1.7 | 4.8 | 4.3 | 180s | 195 | overhead 0.6, small 0.6, large 0.3 | 0 | 0 |
-| steady | SUNSET BEACH | 100% | 1.5 | 4.3 | 4.0 | 174s | 180 | hole 0.5, small 0.4, overhead 0.3 | 0 | 0 |
-| steady | MIDNIGHT MOUNTAINS | 100% | 1.8 | 4.8 | 4.3 | 176s | 199 | overhead 0.7, small 0.6, hole 0.3 | 0 | 0 |
-| steady | VICTORY DAWN | 100% | 1.8 | 5.3 | 4.7 | 178s | 199 | overhead 0.6, small 0.3, hole 0.3 | 0 | 0 |
-| average | NEON CITY | 100% | 7.1 | 19.4 | 17.9 | 180s | 193 | small 2.5, overhead 2.5, hole 1.3 | 0 | 0 |
-| average | SUNSET BEACH | 80% | 5.7 | 15.9 | 12.3 | 163s | 168 | small 1.9, overhead 1.4, hole 1.4 | 0 | 0 |
-| average | MIDNIGHT MOUNTAINS | 80% | 7.5 | 20.4 | 16.4 | 164s | 185 | small 2.8, overhead 2.3, hole 0.9 | 0 | 0 |
-| average | VICTORY DAWN | 75% | 6.1 | 17.1 | 12.1 | 159s | 175 | overhead 2.1, small 1.7, hole 1.3 | 0 | 0 |
-| beginner | NEON CITY | 30% | 12.0 | 33.0 | 24.9 | 115s | 121 | small 4.8, overhead 3.1, large 2.0 | 0 | 0 |
-| beginner | SUNSET BEACH | 0% | 7.3 | 19.9 | 9.8 | 75s | 74 | small 2.6, hole 1.4, overhead 1.4 | 0 | 0 |
-| beginner | MIDNIGHT MOUNTAINS | 15% | 7.8 | 20.4 | 11.3 | 78s | 88 | small 3.5, overhead 1.4, mover 1.1 | 0 | 0 |
-| beginner | VICTORY DAWN | 0% | 6.0 | 16.3 | 6.4 | 58s | 62 | small 2.1, overhead 1.6, large 0.8 | 0 | 0 |
+| steady | NEON CITY | 100% | 1.6 | 4.8 | 4.1 | 180s | 194 | overhead 0.5, small 0.5, hole 0.3 | 0 | 0 |
+| steady | SUNSET BEACH | 100% | 1.6 | 4.3 | 3.7 | 174s | 181 | small 0.7, hole 0.4, overhead 0.3 | 0 | 0 |
+| steady | MIDNIGHT MOUNTAINS | 100% | 1.9 | 5.0 | 4.3 | 176s | 199 | small 0.8, overhead 0.5, mover 0.3 | 0 | 0 |
+| steady | VICTORY DAWN | 100% | 1.9 | 5.3 | 4.3 | 178s | 200 | overhead 0.7, small 0.6, hole 0.4 | 0 | 0 |
+| average | NEON CITY | 85% | 7.0 | 19.4 | 16.8 | 171s | 184 | small 2.9, overhead 2.0, large 0.8 | 0 | 0 |
+| average | SUNSET BEACH | 75% | 5.5 | 15.3 | 10.9 | 153s | 158 | small 1.7, overhead 1.6, hole 1.0 | 0 | 0 |
+| average | MIDNIGHT MOUNTAINS | 70% | 6.7 | 18.6 | 12.9 | 153s | 174 | small 2.4, overhead 2.3, mover 0.8 | 0 | 0 |
+| average | VICTORY DAWN | 65% | 5.8 | 15.8 | 9.5 | 152s | 168 | overhead 2.4, small 1.6, hole 0.8 | 0 | 0 |
+| beginner | NEON CITY | 0% | 8.7 | 23.4 | 13.6 | 80s | 85 | small 3.5, overhead 1.9, large 1.4 | 0 | 0 |
+| beginner | SUNSET BEACH | 0% | 6.8 | 18.1 | 8.1 | 70s | 70 | small 2.5, hole 1.6, overhead 1.1 | 0 | 0 |
+| beginner | MIDNIGHT MOUNTAINS | 0% | 6.2 | 15.8 | 6.0 | 57s | 66 | small 2.8, overhead 1.5, mover 0.7 | 0 | 0 |
+| beginner | VICTORY DAWN | 0% | 5.3 | 13.8 | 3.8 | 48s | 51 | small 1.9, overhead 1.1, mover 1.0 | 0 | 0 |
 
 ## Pace, voids and diamonds
 
@@ -39,18 +39,18 @@ gets no reaction at all.
 
 | Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |
 |---|---|---|---|---|---|---|---|---|---|
-| steady | NEON CITY | 62% | 9% | 4.4 | 1.4s (1.5s) | 2.0 (2-2) | 168 | 500 of 504 | 6.4s (9.4s) |
-| steady | SUNSET BEACH | 62% | 8% | 4.1 | 1.4s (1.5s) | 3.0 (3-3) | 166 | 452 of 482 | 7.2s (13.0s) |
-| steady | MIDNIGHT MOUNTAINS | 67% | 7% | 3.4 | 1.4s (1.5s) | 3.0 (3-3) | 164 | 421 of 480 | 8.4s (15.0s) |
-| steady | VICTORY DAWN | 65% | 7% | 3.4 | 1.3s (1.5s) | 3.0 (3-3) | 169 | 409 of 502 | 7.8s (11.7s) |
-| average | NEON CITY | 62% | 9% | 4.4 | 1.4s (1.5s) | 2.0 (2-2) | 166 | 480 of 498 | 7.2s (10.2s) |
-| average | SUNSET BEACH | 61% | 8% | 4.2 | 1.4s (1.5s) | 2.7 (1-3) | 166 | 409 of 452 | 7.4s (13.0s) |
-| average | MIDNIGHT MOUNTAINS | 66% | 7% | 3.5 | 1.4s (1.5s) | 2.7 (1-3) | 160 | 369 of 437 | 8.2s (18.7s) |
-| average | VICTORY DAWN | 64% | 7% | 3.4 | 1.3s (1.4s) | 2.6 (1-3) | 168 | 346 of 444 | 7.3s (12.1s) |
-| beginner | NEON CITY | 58% | 10% | 4.7 | 1.4s (1.5s) | 0.8 (0-2) | 157 | 274 of 301 | 6.6s (12.2s) |
-| beginner | SUNSET BEACH | 56% | 10% | 4.8 | 1.3s (1.5s) | 0.8 (0-3) | 170 | 181 of 212 | 5.9s (11.1s) |
-| beginner | MIDNIGHT MOUNTAINS | 61% | 8% | 3.8 | 1.3s (1.5s) | 0.9 (0-3) | 158 | 161 of 206 | 6.5s (10.2s) |
-| beginner | VICTORY DAWN | 56% | 9% | 4.1 | 1.3s (1.4s) | 0.4 (0-2) | 186 | 127 of 181 | 4.4s (8.3s) |
+| steady | NEON CITY | 63% | 8% | 3.9 | 1.4s (1.5s) | 3.0 (3-3) | 160 | 475 of 480 | 7.7s (10.2s) |
+| steady | SUNSET BEACH | 63% | 7% | 3.8 | 1.4s (1.5s) | 4.0 (4-4) | 161 | 438 of 467 | 8.5s (13.1s) |
+| steady | MIDNIGHT MOUNTAINS | 67% | 7% | 3.1 | 1.4s (1.5s) | 4.0 (4-4) | 164 | 422 of 480 | 8.3s (12.9s) |
+| steady | VICTORY DAWN | 66% | 7% | 3.0 | 1.3s (1.4s) | 5.0 (5-5) | 170 | 411 of 504 | 7.6s (13.1s) |
+| average | NEON CITY | 62% | 8% | 3.9 | 1.4s (1.5s) | 2.6 (0-3) | 161 | 440 of 457 | 7.9s (11.6s) |
+| average | SUNSET BEACH | 62% | 8% | 3.8 | 1.4s (1.6s) | 3.4 (0-4) | 163 | 381 of 417 | 8.0s (13.0s) |
+| average | MIDNIGHT MOUNTAINS | 66% | 7% | 3.1 | 1.3s (1.4s) | 3.4 (0-4) | 159 | 343 of 407 | 7.3s (11.5s) |
+| average | VICTORY DAWN | 64% | 7% | 3.2 | 1.3s (1.4s) | 4.0 (1-5) | 169 | 338 of 429 | 7.4s (11.6s) |
+| beginner | NEON CITY | 56% | 9% | 4.5 | 1.4s (1.5s) | 0.5 (0-3) | 159 | 194 of 212 | 5.3s (7.2s) |
+| beginner | SUNSET BEACH | 56% | 9% | 4.4 | 1.3s (1.5s) | 0.7 (0-4) | 172 | 169 of 200 | 5.5s (10.0s) |
+| beginner | MIDNIGHT MOUNTAINS | 60% | 8% | 3.6 | 1.3s (1.4s) | 0.5 (0-2) | 161 | 117 of 154 | 6.0s (12.1s) |
+| beginner | VICTORY DAWN | 55% | 9% | 3.9 | 1.3s (1.3s) | 0.5 (0-3) | 180 | 103 of 145 | 3.9s (7.0s) |
 
 ## The build
 
@@ -60,14 +60,14 @@ minute, the longest rest, and obstacles a minute. Only the part of each run play
 
 | Skill | Stage | Busy | Rests over 1 s a minute | Longest rest | Obstacles a minute |
 |---|---|---|---|---|---|
-| steady | NEON CITY | 55% → 69% | 5.1 → 3.5 | 1.4s → 1.5s | 60 → 70 |
-| steady | SUNSET BEACH | 55% → 67% | 5.2 → 3.1 | 1.4s → 1.5s | 55 → 66 |
-| steady | MIDNIGHT MOUNTAINS | 62% → 69% | 4.1 → 2.4 | 1.4s → 1.5s | 64 → 70 |
-| steady | VICTORY DAWN | 58% → 70% | 4.3 → 2.2 | 1.4s → 1.4s | 61 → 71 |
-| average | NEON CITY | 55% → 68% | 5.1 → 3.4 | 1.5s → 1.5s | 59 → 70 |
-| average | SUNSET BEACH | 55% → 67% | 5.2 → 3.1 | 1.4s → 1.5s | 55 → 66 |
-| average | MIDNIGHT MOUNTAINS | 62% → 69% | 4.1 → 2.3 | 1.4s → 1.5s | 64 → 70 |
-| average | VICTORY DAWN | 58% → 69% | 4.2 → 2.1 | 1.4s → 1.4s | 61 → 69 |
+| steady | NEON CITY | 55% → 69% | 5.0 → 2.5 | 1.4s → 1.5s | 59 → 69 |
+| steady | SUNSET BEACH | 55% → 67% | 5.1 → 3.1 | 1.4s → 1.4s | 55 → 67 |
+| steady | MIDNIGHT MOUNTAINS | 62% → 70% | 4.1 → 2.0 | 1.4s → 1.5s | 64 → 70 |
+| steady | VICTORY DAWN | 58% → 71% | 4.0 → 2.0 | 1.4s → 1.4s | 60 → 70 |
+| average | NEON CITY | 55% → 69% | 5.0 → 2.4 | 1.4s → 1.5s | 59 → 68 |
+| average | SUNSET BEACH | 55% → 67% | 5.0 → 2.9 | 1.4s → 1.4s | 55 → 67 |
+| average | MIDNIGHT MOUNTAINS | 62% → 70% | 4.1 → 2.1 | 1.4s → 1.4s | 64 → 71 |
+| average | VICTORY DAWN | 58% → 70% | 4.0 → 2.2 | 1.3s → 1.4s | 59 → 69 |
 
 ## Obstacles by kind
 
@@ -75,10 +75,10 @@ How many of each kind a run meets, from the steady player's runs.
 
 | Stage | small | large | mover | overhead | hole | huge | void |
 |---|---|---|---|---|---|---|---|
-| NEON CITY | 77 | 16 | 10 | 68 | 22 | 1 | 2 |
-| SUNSET BEACH | 65 | 13 | 10 | 52 | 37 | 0 | 3 |
-| MIDNIGHT MOUNTAINS | 81 | 13 | 16 | 61 | 24 | 2 | 3 |
-| VICTORY DAWN | 75 | 14 | 12 | 66 | 27 | 1 | 3 |
+| NEON CITY | 76 | 17 | 10 | 66 | 21 | 0 | 3 |
+| SUNSET BEACH | 64 | 12 | 11 | 53 | 37 | 0 | 4 |
+| MIDNIGHT MOUNTAINS | 81 | 14 | 15 | 62 | 23 | 1 | 4 |
+| VICTORY DAWN | 75 | 13 | 11 | 71 | 25 | 0 | 5 |
 
 ## Timing windows
 
@@ -88,10 +88,10 @@ clears) count under their first obstacle.
 
 | Stage | Window by obstacle |
 |---|---|
-| NEON CITY | hole 0.43 (tightest 0.35), huge 0.67 (tightest 0.43), large 0.37 (tightest 0.13), mover 0.45 (tightest 0.15), overhead 0.60 (tightest 0.18), small 0.38 (tightest 0.17), void 0.27 (tightest 0.22) |
-| SUNSET BEACH | hole 0.45 (tightest 0.28), large 0.38 (tightest 0.27), mover 0.42 (tightest 0.20), overhead 0.63 (tightest 0.35), small 0.45 (tightest 0.15), void 0.30 (tightest 0.27) |
-| MIDNIGHT MOUNTAINS | hole 0.45 (tightest 0.30), huge 0.62 (tightest 0.40), large 0.38 (tightest 0.13), mover 0.40 (tightest 0.20), overhead 0.62 (tightest 0.25), small 0.40 (tightest 0.17), void 0.35 (tightest 0.32) |
-| VICTORY DAWN | hole 0.47 (tightest 0.30), huge 0.63 (tightest 0.43), large 0.40 (tightest 0.15), mover 0.40 (tightest 0.25), overhead 0.62 (tightest 0.27), small 0.42 (tightest 0.15), void 0.40 (tightest 0.37) |
+| NEON CITY | hole 0.43 (tightest 0.35), huge 0.67 (tightest 0.52), large 0.37 (tightest 0.15), mover 0.45 (tightest 0.15), overhead 0.60 (tightest 0.18), small 0.38 (tightest 0.20), void 0.25 (tightest 0.22) |
+| SUNSET BEACH | hole 0.45 (tightest 0.32), large 0.38 (tightest 0.27), mover 0.42 (tightest 0.20), overhead 0.63 (tightest 0.35), small 0.43 (tightest 0.13), void 0.30 (tightest 0.25) |
+| MIDNIGHT MOUNTAINS | hole 0.45 (tightest 0.32), huge 0.63 (tightest 0.40), large 0.38 (tightest 0.23), mover 0.40 (tightest 0.23), overhead 0.60 (tightest 0.25), small 0.40 (tightest 0.12), void 0.35 (tightest 0.25) |
+| VICTORY DAWN | hole 0.47 (tightest 0.28), huge 0.73 (tightest 0.57), large 0.40 (tightest 0.15), mover 0.40 (tightest 0.25), overhead 0.62 (tightest 0.27), small 0.42 (tightest 0.17), void 0.40 (tightest 0.37) |
 
 "No way through" counts obstacles the player met with no timing at all that got past (for
 example a wide block with too little energy for the double jump). It should be 0.
