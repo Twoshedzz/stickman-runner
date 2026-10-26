@@ -442,8 +442,11 @@ in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
 - *To decide with Pete:* beginners now survive stages 3–4 less often than the step 8 targets
   (45% and 33%). That's the "harder" players asked for, but decision 6 says casual, not manic,
   and Pete's son is a tester. Play it before tuning.
-- *Not yet done:* seeing it in the real game (Expo was paused on the Mac while Pete's sysadmin
-  looked at the ngrok alert; the void was previewed as a drawing), and Pete's playtest.
+- *To playtest:* a Vercel preview of the branch, in Safari:
+  https://stickman-runner-fhdr0gpj8-twoshedzzs-projects.vercel.app (it shares the real world
+  scoreboard). It builds and runs, and How to Play shows the void; voids in a run (from late in
+  stage 1, all through stages 2–4) are still to be seen. Expo is paused on the Mac while Pete's
+  sysadmin looks at the ngrok alert.
 
 ### How each step is checked
 
