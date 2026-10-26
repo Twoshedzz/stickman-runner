@@ -37,7 +37,7 @@ back to a sunset on 23 October, so its name fits again.
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
 **Current focus:** step 11, making the game busier and harder while always achievable (Pete,
-26 October), merged into `main` on 26 October and not yet pushed live. Step 10 (a faster pace and voids) went live on 26 October. Before that, the
+26 October), live on 26 October. Step 10 (a faster pace and voids) went live on 26 October. Before that, the
 **architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
@@ -453,7 +453,7 @@ in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
 playing step 10: "the game is a bit too easy". Built 26 October (branch
 `claude/s11-busier-harder-f1df78`). Pete played it locally and liked it more, then asked for
 voids in quick succession and more rapid switching between duck and jump (commit 4c98aec).
-Merged into `main` on 26 October on Pete's word; not yet pushed live.
+Merged into `main` and live on 26 October, on Pete's word.
 - **All obstacles more common**, and every stage a fair bit harder.
 - **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
   (about a second) to rest. Players should have to look ahead and decide instantly.
@@ -737,7 +737,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
-| Gameplay step 11: busier and harder, always achievable | Merged into main 26 October, not yet live |
+| Gameplay step 11: busier and harder, always achievable | Live 26 October |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
