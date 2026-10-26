@@ -10,7 +10,7 @@ import { collectPickups, multiplierFor, PICKUP_RADIUS, placePickups } from '../p
 import { speedAt, StagePacing, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
-import { applyPhysics, jump } from '../systems/physics';
+import { applyPhysics, jump, startDuck } from '../systems/physics';
 import { spawnObstacle } from '../systems/spawn';
 
 const DT = 1 / 60;
@@ -100,8 +100,34 @@ describe('jump arcs', () => {
     it('no arc over a purple sphere or a bar', () => {
         const state = freshState(300);
         placePickups(state, EASY, [{ x: 600, id: 0, role: 'mover' }, { x: 900, id: 1, role: 'overhead' }], 928, 0, true, always);
-        expect(state.pickups.length).toBe(0);
+        // Only the bar's duck line, along the ground.
+        expect(state.pickups.length).toBe(3);
+        expect(state.pickups.every((p) => p.y === RUNNER_MID_Y)).toBe(true);
     });
+});
+
+describe('duck lines', () => {
+    for (const speed of SPEEDS) {
+        it(`ducking a bar at ${speed} px/sec collects the line under it`, () => {
+            for (const slack of SLACK) {
+                const state = freshState(speed);
+                const bar = { x: 600, id: 0, role: 'overhead' as const };
+                state.obstacles.push(bar);
+                placePickups(state, EASY, [bar], 628, 0, true, always);
+                const line = state.pickups.length;
+                expect(line).toBe(3);
+                // Duck so the 0.55 sec duck is centred on the bar.
+                const duckAt = framesTo(bar.x + 14, speed) - 16 + slack;
+                let hits = 0;
+                for (let f = 0; f < 240; f++) {
+                    if (f === duckAt) startDuck(state);
+                    if (step(state)) hits++;
+                }
+                expect(hits).toBe(0);
+                expect(state.score).toBe(line + 1); // the line, and the bar cleared
+            }
+        });
+    }
 });
 
 describe('double-jump arcs (stages 3 and 4)', () => {

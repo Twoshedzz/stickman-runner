@@ -5,11 +5,13 @@
  * demanding stage by stage (`pacing.pickups` in stages.ts):
  * - ARCS trace a jump over a block or a hole, so a well-timed jump sweeps up the whole arc and an
  *   early or late one only catches some of it. Every stage.
+ * - DUCK LINES run along the ground under a bar, so ducking it sweeps them up. Every stage.
  * - TRAILS run along the ground in the rest after a pattern. Every stage.
  * - HOPS float in mid-air in a rest: an extra jump between obstacles, which still lands in
  *   time for the next one. From stage 2.
  * - DOUBLE arcs trace a jump and double jump over a block. A plain jump only reaches the
- *   bottom of one; the top costs half the energy bar. From stage 3.
+ *   bottom of one; the top costs half the energy bar. From stage 3. The top one is marked
+ *   `needsDouble`, so the spawner counts it when it checks the bar for a wide block or void.
  * They are silent (decision 7): collecting one sends a few sparks flying to the score.
  *
  * Every obstacle cleared without a hit adds one to the streak, and a hit resets it. The
@@ -43,8 +45,12 @@ const AFTER_HUGE_SEC = 0.75;
 const BEFORE_SEC = 0.4;
 /** Fewer than this isn't worth a trail. */
 const TRAIL_MIN_PICKUPS = 3;
-const TRAIL_CHANCE = 0.6;
-const ARC_CHANCE = 0.5;
+const TRAIL_CHANCE = 0.9;
+/** Most jumps get an arc: the rests are short now, so this is where most pickups are. */
+const ARC_CHANCE = 0.65;
+/** A bar's chance of a line under it, and how many pickups in the line. */
+const DUCK_LINE_CHANCE = 0.5;
+const DUCK_LINE_PICKUPS = 3;
 /** Blocks closer together than this are cleared by one jump, so they share one arc. */
 const ONE_JUMP_SEC = 0.3;
 /** A hop can start sooner than a trail: the runner can take off again the moment he lands. */
@@ -104,22 +110,24 @@ const blend = ([start, end]: [number, number], progress: number) =>
     start + (end - start) * progress;
 
 /** Pickups along a flight path, for a jump that peaks (or would peak) over `peakX`. */
-const placeAlong = (state: GameState, path: number[], frames: number[], peakX: number) => {
-    for (const frame of frames) {
-        state.pickups.push({
+const placeAlong = (state: GameState, path: number[], frames: number[], peakX: number) =>
+    frames.map((frame) => {
+        const pickup: GameState['pickups'][number] = {
             id: nextId++,
             x: peakX + ((frame - PEAK_FRAME) / FPS) * state.speed,
             y: RUNNER_MID_Y - path[frame],
-        });
-    }
-};
+        };
+        state.pickups.push(pickup);
+        return pickup;
+    });
 
 /**
  * Lay trails for a pattern the spawner has just placed.
  *
  * `placed` is that pattern's obstacles, `endX` its back edge, and `restSec` the clear time
  * after it, which the next pattern never arrives before. `heartPlaced` leaves the rest to the
- * heart, which sits in the middle of it.
+ * heart, which sits in the middle of it. `canDouble` says whether the energy bar allows one
+ * more double jump (the spawner's check), asked before each double arc.
  */
 export const placePickups = (
     state: GameState,
@@ -128,7 +136,8 @@ export const placePickups = (
     endX: number,
     restSec: number,
     heartPlaced: boolean,
-    random: () => number
+    random: () => number,
+    canDouble: () => boolean = () => true
 ) => {
     const speed = state.speed;
     const progress = state.stageProgress;
@@ -156,9 +165,25 @@ export const placePickups = (
             const roomSec = (nextX - peakX) / speed;
             const double =
                 random() < blend(pacing.pickups.double, progress) &&
-                roomSec >= DOUBLE_LANDS_SEC + BEFORE_SEC;
-            if (double) placeAlong(state, DOUBLE_JUMP, DOUBLE_FRAMES, peakX);
-            else placeAlong(state, JUMP, ARC_FRAMES, peakX);
+                roomSec >= DOUBLE_LANDS_SEC + BEFORE_SEC &&
+                canDouble();
+            if (double) {
+                const arc = placeAlong(state, DOUBLE_JUMP, DOUBLE_FRAMES, peakX);
+                arc.reduce((top, p) => (p.y < top.y ? p : top)).needsDouble = true;
+            } else placeAlong(state, JUMP, ARC_FRAMES, peakX);
+        }
+    }
+
+    // A short line along the ground under a bar, centred on it: duck it and they're yours.
+    for (const obs of placed) {
+        if (!shapeFor(obs.role).overhead || random() >= DUCK_LINE_CHANCE) continue;
+        const centre = obs.x + shapeFor(obs.role).width / 2;
+        for (let i = 0; i < DUCK_LINE_PICKUPS; i++) {
+            state.pickups.push({
+                id: nextId++,
+                x: centre + (i - (DUCK_LINE_PICKUPS - 1) / 2) * TRAIL_SPACING_SEC * speed,
+                y: RUNNER_MID_Y,
+            });
         }
     }
 

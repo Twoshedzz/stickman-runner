@@ -202,7 +202,7 @@ The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock b
 | Holes in the floor (falling in, the reset) | `src/game/systems/holes.ts` |
 | What each obstacle is and does (size, damage, how it's cleared) | `src/game/obstacleCatalogue.ts` |
 | Obstacle patterns and the gaps between them | `src/game/patterns.ts`; the spawner in `src/game/systems/spawn.ts` |
-| How hard each stage gets, and when each obstacle turns up | `pacing` in `src/game/stages.ts` |
+| How hard each stage gets, and when each obstacle turns up | `pacing` in `src/game/stages.ts`: how it builds with its music (`build`), breathers, voids at set moments (`planned`) |
 | One frame's order (shared by the game and the pretend player) | `src/game/step.ts` |
 | Loop / stage timing / Continue | `src/game/loop/useGameLoop.ts` |
 | When the screen draws again | `src/game/loop/redraw.ts` |
@@ -238,10 +238,10 @@ Example: a flock of bats to duck under (Pete's concept sheet is `assets/concepts
 2. **Its look**, if it isn't an existing shape: add a shape to `ObstacleShape`, and a drawing that fills the obstacle's box to `SHAPE_LOOKS` in `src/components/ObstacleLayer.tsx`. The drawing is the hitbox, so draw inside the box. For new colours: a tint in `ObstacleTint`, a case in `src/components/obstacleColours.ts`, and the colours in each stage's `theme.obstacleColors` in `stages.ts`.
 3. **How to Play**: add it to a row in `src/components/menu/HowToPlayScreen.tsx` (its small `Icon` drawing needs a case for a new shape).
 4. **`src/game/patterns.ts`**: one or more patterns that use it, timed in seconds.
-5. **`src/game/stages.ts`**: when it first turns up in each stage (`pacing.unlocks`), and, if a stage should lean on it, `pacing.favour`.
+5. **`src/game/stages.ts`**: when it first turns up in each stage (`pacing.unlocks`), and, if a stage should lean on it, `pacing.favour`. For one that should come a set number of times, like the voids, list its pattern in `pacing.planned` with the moments it's due instead. If it needs a double jump, the spawner already checks the energy bar for it (`canAskForDouble` in `spawn.ts`), and a pattern with two (like `void-void`) waits for a full bar.
 6. **`src/game/__tests__/obstacleCatalogue.test.ts`**: add it to `EXPECTED_MOVE` (and a new shape to the shapes it allows).
 
-Checks: the usual ones (`npm test` plays every pattern with the real physics at three speeds, so an impossible pattern fails). Then `npm run difficulty`: this change is *meant* to move the numbers, so read the new [DIFFICULTY.md](./DIFFICULTY.md) and commit it.
+Checks: the usual ones (`npm test` plays every pattern with the real physics at three speeds, as designed and closed up as tight as the end of a stage makes it, so an impossible pattern fails). Then `npm run difficulty`: this change is *meant* to move the numbers, so read the new [DIFFICULTY.md](./DIFFICULTY.md) and commit it.
 
 ### Add a stage
 

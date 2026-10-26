@@ -9,7 +9,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { RunResult, playStage, SKILLS } from '../difficulty/pretendPlayer';
+import { paceBetween, RunResult, playStage, SKILLS } from '../difficulty/pretendPlayer';
 import { STAGES } from '../stages';
 import { MAX_HEALTH } from '../constants';
 
@@ -34,6 +34,13 @@ describe('the pretend player', () => {
         const summary: string[] = [];
         /** Timing windows by stage and role, gathered from the average player's runs. */
         const windowRows: string[] = [];
+        /** How busy it is, the voids and the diamonds. */
+        const paceRows: string[] = [];
+        /** Obstacles met by kind, from the steady player's runs (who sees every stage to the end). */
+        const kindRows: string[] = [];
+        /** The build: the first and last thirds of each stage, from the steady and average players. */
+        const buildRows: string[] = [];
+        const KINDS = ['small', 'large', 'mover', 'overhead', 'hole', 'huge', 'void'] as const;
         for (const skill of SKILLS) {
             for (const stage of STAGES) {
                 const runs: RunResult[] = [];
@@ -49,12 +56,51 @@ describe('the pretend player', () => {
                     .map(([role, n]) => `${role} ${fixed(n / runs.length)}`)
                     .join(', ');
                 const noWay = runs.reduce((a, r) => a + r.noWayThrough, 0);
+                const afterSlip = runs.reduce((a, r) => a + r.noWayAfterSlip, 0);
                 rows.push(
                     `| ${skill.name} | ${stage.name} | ${Math.round(survived * 100)}% | ${fixed(mean(runs.map((r) => r.hits)))} ` +
                     `| ${fixed(mean(runs.map((r) => r.damage)))} | ${fixed(mean(runs.map((r) => r.healed)))} ` +
                     `| ${fixed(mean(runs.map((r) => r.seconds)), 0)}s | ${fixed(mean(runs.map((r) => r.obstacles)), 0)} ` +
-                    `| ${worst || '-'} | ${noWay} |`
+                    `| ${worst || '-'} | ${noWay} | ${afterSlip} |`
                 );
+                const rests = runs.flatMap((r) => r.rests);
+                const minutes = runs.reduce((a, r) => a + r.seconds, 0) / 60;
+                const longRests = rests.filter((sec) => sec > 1).length;
+                const voids = runs.map((r) => r.voids);
+                paceRows.push(
+                    `| ${skill.name} | ${stage.name} | ${Math.round(mean(runs.map((r) => r.busyShare)) * 100)}% ` +
+                    `| ${Math.round((longRests / Math.max(1, rests.length)) * 100)}% | ${fixed(longRests / minutes)} ` +
+                    `| ${fixed(mean(runs.map((r) => Math.max(0, ...r.rests))))}s (${fixed(Math.max(0, ...rests))}s) ` +
+                    `| ${fixed(mean(voids))} (${Math.min(...voids)}-${Math.max(...voids)}) ` +
+                    `| ${fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0)} ` +
+                    `| ${fixed(mean(runs.map((r) => r.pickupsCollected)), 0)} of ${fixed(mean(runs.map((r) => r.pickupsPlaced)), 0)} ` +
+                    `| ${fixed(mean(runs.map((r) => r.longestWithoutPickupSec)))}s (${fixed(Math.max(...runs.map((r) => r.longestWithoutPickupSec)))}s) |`
+                );
+                if (skill.name !== 'beginner') {
+                    const third = (from: number, to: number) => {
+                        // Only the part each run actually played.
+                        const parts = runs
+                            .filter((r) => r.seconds > from)
+                            .map((r) => ({ r, end: Math.min(to, r.seconds) }));
+                        const paces = parts.map(({ r, end }) => paceBetween(r.busy, from, end));
+                        const minutes = parts.reduce((a, { end }) => a + (end - from), 0) / 60;
+                        const allRests = paces.flatMap((p) => p.rests);
+                        const obstacles = parts.reduce((a, { r, end }) => a + r.obstacleSecs.filter((t) => t >= from && t < end).length, 0);
+                        return [
+                            `${Math.round(mean(paces.map((p) => p.busyShare)) * 100)}%`,
+                            fixed(allRests.filter((sec) => sec > 1).length / Math.max(1e-9, minutes)),
+                            `${fixed(Math.max(0, ...allRests))}s`,
+                            fixed(obstacles / Math.max(1e-9, minutes), 0),
+                        ];
+                    };
+                    const first = third(0, stage.durationSec / 3);
+                    const last = third((stage.durationSec * 2) / 3, stage.durationSec);
+                    buildRows.push(`| ${skill.name} | ${stage.name} | ${first.map((c, i) => `${c} → ${last[i]}`).join(' | ')} |`);
+                }
+                if (skill.name === 'steady') {
+                    const cells = KINDS.map((kind) => fixed(mean(runs.map((r) => r.obstaclesBy[kind] ?? 0)), 0));
+                    kindRows.push(`| ${stage.name} | ${cells.join(' | ')} |`);
+                }
                 if (skill.name === 'average') {
                     const all: Record<string, number[]> = {};
                     for (const r of runs) {
@@ -84,9 +130,42 @@ describe('the pretend player', () => {
             '',
             ...SKILLS.map((s) => `- **${s.name}**: ±${s.timingSdSec.toFixed(2)} sec, misses ${Math.round(s.slipChance * 100)} in 100`),
             '',
-            '| Skill | Stage | Survives | Hits | Health lost | Hearts healed | Lasts | Obstacles | Hit most by (per run) | No way through |',
-            '|---|---|---|---|---|---|---|---|---|---|',
+            '| Skill | Stage | Survives | Hits | Health lost | Hearts healed | Lasts | Obstacles | Hit most by (per run) | No way through | After a slip |',
+            '|---|---|---|---|---|---|---|---|---|---|---|',
             ...rows,
+            '',
+            '## Pace, voids and diamonds',
+            '',
+            '- **Busy**: the share of the time spent jumping or ducking for something. Each obstacle',
+            '  keeps the player busy for as long as its move takes (a jump 0.67 sec, a duck 0.55 sec,',
+            '  a double jump 1.2 sec), centred on it.',
+            '- **Rests**: the gaps in between. The share of them longer than a second, how many of those',
+            '  come a minute, and the longest rest (typical run, and the longest in any run).',
+            '- **Voids** per run (fewest-most), **diamonds** reaching the runner a minute, how many the',
+            '  pretend player collects without trying to (it only aims for the obstacles), and the',
+            '  longest stretch with no diamond coming (typical run, and the longest in any run).',
+            '',
+            '| Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |',
+            '|---|---|---|---|---|---|---|---|---|---|',
+            ...paceRows,
+            '',
+            '## The build',
+            '',
+            'Each stage eases in and builds to its busiest at the end. The same measures for the first',
+            'third of each stage → the last third: the share of time busy, rests over a second a',
+            'minute, the longest rest, and obstacles a minute. Only the part of each run played counts.',
+            '',
+            '| Skill | Stage | Busy | Rests over 1 s a minute | Longest rest | Obstacles a minute |',
+            '|---|---|---|---|---|---|',
+            ...buildRows,
+            '',
+            '## Obstacles by kind',
+            '',
+            'How many of each kind a run meets, from the steady player\'s runs.',
+            '',
+            `| Stage | ${KINDS.join(' | ')} |`,
+            `|---|${KINDS.map(() => '---').join('|')}|`,
+            ...kindRows,
             '',
             '## Timing windows',
             '',
@@ -100,6 +179,9 @@ describe('the pretend player', () => {
             '',
             '"No way through" counts obstacles the player met with no timing at all that got past (for',
             'example a wide block with too little energy for the double jump). It should be 0.',
+            '"After a slip" counts the same, but only within a few seconds of the player\'s own slip: a tap',
+            'made while still in the air from the last jump is a double jump, which can float into the',
+            'next obstacle. The game was fair; the player wasted the energy or the jump.',
             '',
         ].join('\n');
         fs.writeFileSync(path.join(__dirname, '../../../docs/DIFFICULTY.md'), report);

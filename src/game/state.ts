@@ -10,9 +10,12 @@ export interface SpawnerState {
     /** The last obstacle placed, so the next pattern leaves the right gap after it. */
     lastRole: ObstacleRole | null;
     lastCost: number;
-    /** Stage seconds when the last heart and last wide block were placed. */
+    /** Stage seconds when the last heart, last wide block (or void) and last breather were placed. */
     lastHeartSec: number;
     lastHugeSec: number;
+    lastBreatherSec: number;
+    /** How many of each planned pattern (`pacing.planned`) have been placed. */
+    plannedPlaced: Record<string, number>;
     /** The patterns placed most recently, newest first, so the same few don't keep coming. */
     recent: string[];
 }
@@ -24,6 +27,8 @@ export const createSpawnerState = (): SpawnerState => ({
     lastCost: 0,
     lastHeartSec: 0,
     lastHugeSec: -Infinity,
+    lastBreatherSec: 0,
+    plannedPlaced: {},
     recent: [],
 });
 
@@ -72,8 +77,11 @@ export interface GameState {
         /** Touched during the safe moment after a hit: it doesn't count towards the streak. */
         grazed?: boolean;
     }[];
-    /** Neon pickups to collect, by the centre of each. They move with the obstacles. */
-    pickups: { id: number; x: number; y: number }[];
+    /**
+     * Neon pickups to collect, by the centre of each. They move with the obstacles. The top of
+     * a double arc is marked `needsDouble`: reaching it costs a double jump.
+     */
+    pickups: { id: number; x: number; y: number; needsDouble?: boolean }[];
     particles: Particle[];
     /** What happened this frame (landings, so far). Nothing listens yet. */
     events: GameEvent[];
