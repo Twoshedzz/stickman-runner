@@ -84,9 +84,10 @@ is installed through `fnm`, so put `fnm exec --using=24` in front of each comman
 ```bash
 fnm exec --using=24 npm install
 fnm exec --using=24 npm start               # Expo dev server (LAN)
-# or
-fnm exec --using=24 npm run start:tunnel    # Easier for phone when LAN QR fails
 ```
+
+There's no tunnel option: Expo's tunnel uses ngrok, which set off a security alert on this
+network (October 2026), so `@expo/ngrok` was removed. Don't add it back or run `expo start --tunnel`.
 
 - **Phone:** Expo Go → scan QR, or enter the `exp://…` URL manually (the game is on Expo SDK 58, which is what Expo Go opens). If Expo Go is signed in to an Expo account, the Mac must be signed in to the same one, or Expo Go says "not signed in to Expo CLI". Sign in once with `NODE_EXTRA_CA_CERTS=$HOME/.certs/zscaler-root.pem fnm exec --using=24 npx expo login` (the certificate part is for the office network's filter), then restart the dev server.  
 - **Web:** press `w` in the Expo terminal (or `npm run web`)  
