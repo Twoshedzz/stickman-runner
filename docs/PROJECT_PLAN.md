@@ -412,9 +412,23 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
 4. **A tally:** "ON THE BEAT: 23" on the Stage Clear and Game Over screens, so there's
    something to beat next time.
 
-*Part 2, landing on the beat:* started 27 October in its own session (branch `s9-beat-bonus`):
-the window check in the shared step, points and a quarter of the energy bar, the flash, a count
-for part 3's tally, and the pretend player measuring how often it's earned by luck.
+*Part 2, landing on the beat:* built 27 October (branch `claude/s9-beat-bonus-294aa9`), not yet
+played by Pete.
+- `src/game/beatBonus.ts`, run last in `stepWorld`: a landing within ±0.1 s of a pulse crossing
+  the runner's line (only pulsing beats, so every other beat in stages 3–4) gives 2 points
+  through the streak multiplier and a quarter of the energy bar, capped at full. A landing that
+  drops straight into a hole doesn't count. Counted in `state.onBeatCount` / `onBeatInStage`
+  for part 3's tally, not shown yet.
+- The flash: the landing glow's grid lines go thick and white, the pulse band flares wider and
+  whiter for 0.4 s, and five white sparks fly to the score. Nothing new drawn; silent.
+- The world scoreboard's cap rose from 20,000 to 25,000: a bonus at every pulse at ×4 lifts the
+  most a run could score from 12,096 to 18,128 (the cap must be 25% above it).
+- Earned by luck (no aiming), per minute: about 8–10 in stages 1–2 and 6–7 in stages 3–4, at
+  every skill, which is what chance predicts. "No way through" still 0 everywhere; survival
+  barely moved. Checked: tsc clean, eslint 0 errors, 579 tests.
+- *For Pete to decide when he plays it:* (1) 2 points is twice a diamond: keep it, or 1 point and
+  keep the old cap; (2) does the ±0.1 s window feel too loose or too tight when you aim for it;
+  (3) does a quarter of the bar make the void pairs too easy.
 
 *Build order, each tried on the phone before the next.*
 1. **The pulse alone** (no scoring): the band, its timing, its brightness and how often. Check
@@ -745,7 +759,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 7: holes in the floor | ✅ Done; in stage 1 from 35 sec |
 | Gameplay step 8: obstacle sequencing and difficulty | ✅ Done; its music sections came in step 11 |
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
-| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done; bonus being built (27 October) |
+| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done; bonus built 27 October, to playtest |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
 | Music stays in step after pauses | ✅ Done |
