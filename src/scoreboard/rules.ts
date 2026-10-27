@@ -20,11 +20,12 @@ export const BOARD_SIZE = 10;
 export const SEASON = 1;
 
 /**
- * No run can score more than this. Each stage has a few hundred pickups and about 130
- * obstacles, all at ×4 at best; src/scoreboard/__tests__/rules.test.ts checks this stays
- * comfortably above the real maximum. A made-up score above it is turned away.
+ * No run can score more than this. Each stage has a few hundred pickups, about 200
+ * obstacles and up to about 230 landings on the beat, all at ×4 at best;
+ * src/scoreboard/__tests__/rules.test.ts checks this stays comfortably above the real
+ * maximum. A made-up score above it is turned away.
  */
-export const MAX_SCORE = 20000;
+export const MAX_SCORE = 25000;
 
 /**
  * Three-letter words that won't go on a public board. Kept short on purpose: three letters

@@ -2,6 +2,8 @@
  * The world scoreboard's rules, and a check that the score limit stays well above anything
  * a real run can reach as the scoring changes.
  */
+import { BEAT_BONUS_POINTS } from '../../game/beatBonus';
+import { pulseSec } from '../../game/beatPulse';
 import { speedAt, STAGES } from '../../game/stages';
 import { createInitialState } from '../../game/state';
 import { spawnObstacle } from '../../game/systems/spawn';
@@ -36,7 +38,9 @@ describe('scores', () => {
     });
 
     it('the limit is well above the most a real run could score', () => {
-        // Everything a whole run could possibly collect or clear, all at ×4.
+        // Everything a whole run could possibly collect or clear, and a landing on the beat at
+        // every single pulse (a jump is in the air far longer than the window, so one each at most),
+        // all at ×4.
         let most = 0;
         for (const stage of STAGES) {
             let busiest = 0;
@@ -63,7 +67,8 @@ describe('scores', () => {
                 }
                 busiest = Math.max(busiest, seen.size);
             }
-            most += busiest * 4;
+            const pulses = Math.floor((stage.durationSec - stage.beat.firstSec) / pulseSec(stage)) + 1;
+            most += (busiest + pulses * BEAT_BONUS_POINTS) * 4;
         }
         expect(MAX_SCORE).toBeGreaterThan(most * 1.25);
     });
