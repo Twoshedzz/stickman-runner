@@ -412,6 +412,10 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
 4. **A tally:** "ON THE BEAT: 23" on the Stage Clear and Game Over screens, so there's
    something to beat next time.
 
+*Part 2, landing on the beat:* started 27 October in its own session (branch `s9-beat-bonus`):
+the window check in the shared step, points and a quarter of the energy bar, the flash, a count
+for part 3's tally, and the pretend player measuring how often it's earned by luck.
+
 *Build order, each tried on the phone before the next.*
 1. **The pulse alone** (no scoring): the band, its timing, its brightness and how often. Check
    by eye and ear that it feels on the beat, on every stage, after pauses too.
@@ -741,7 +745,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 7: holes in the floor | ✅ Done; in stage 1 from 35 sec |
 | Gameplay step 8: obstacle sequencing and difficulty | ✅ Done; its music sections came in step 11 |
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
-| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
+| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done; bonus being built (27 October) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
 | Music stays in step after pauses | ✅ Done |
