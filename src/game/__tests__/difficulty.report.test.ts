@@ -9,6 +9,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { BEAT_BONUS_POINTS, BEAT_WINDOW_SEC } from '../beatBonus';
 import { paceBetween, RunResult, playStage, SKILLS } from '../difficulty/pretendPlayer';
 import { STAGES } from '../stages';
 import { MAX_HEALTH } from '../constants';
@@ -40,6 +41,8 @@ describe('the pretend player', () => {
         const kindRows: string[] = [];
         /** The build: the first and last thirds of each stage, from the steady and average players. */
         const buildRows: string[] = [];
+        /** Landings on the beat, earned without trying (the pretend player only aims for the obstacles). */
+        const beatRows: string[] = [];
         const KINDS = ['small', 'large', 'mover', 'overhead', 'hole', 'huge', 'void'] as const;
         for (const skill of SKILLS) {
             for (const stage of STAGES) {
@@ -75,6 +78,12 @@ describe('the pretend player', () => {
                     `| ${fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0)} ` +
                     `| ${fixed(mean(runs.map((r) => r.pickupsCollected)), 0)} of ${fixed(mean(runs.map((r) => r.pickupsPlaced)), 0)} ` +
                     `| ${fixed(mean(runs.map((r) => r.longestWithoutPickupSec)))}s (${fixed(Math.max(...runs.map((r) => r.longestWithoutPickupSec)))}s) |`
+                );
+                const landings = runs.reduce((a, r) => a + r.landings, 0);
+                const onBeat = runs.reduce((a, r) => a + r.onBeat, 0);
+                beatRows.push(
+                    `| ${skill.name} | ${stage.name} | ${fixed(onBeat / minutes)} | ${fixed(landings / minutes, 0)} ` +
+                    `| ${Math.round((onBeat / Math.max(1, landings)) * 100)}% | ${fixed(mean(runs.map((r) => r.onBeat)), 0)} |`
                 );
                 if (skill.name !== 'beginner') {
                     const third = (from: number, to: number) => {
@@ -148,6 +157,17 @@ describe('the pretend player', () => {
             '| Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |',
             '|---|---|---|---|---|---|---|---|---|---|',
             ...paceRows,
+            '',
+            '## On the beat, by luck',
+            '',
+            `A landing within ±${BEAT_WINDOW_SEC} sec of the beat pulse crossing the runner\'s line earns the beat`,
+            `bonus (\`src/game/beatBonus.ts\`): ${BEAT_BONUS_POINTS} points with the multiplier and a quarter of the energy bar.`,
+            'The pretend player never aims for it, so this is what each skill earns without trying:',
+            'bonuses a minute, landings a minute, the share of landings on the beat, and bonuses a run.',
+            '',
+            '| Skill | Stage | On the beat a minute | Landings a minute | Share on the beat | A run |',
+            '|---|---|---|---|---|---|',
+            ...beatRows,
             '',
             '## The build',
             '',

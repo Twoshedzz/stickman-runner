@@ -78,6 +78,9 @@ export interface RunResult {
     pickupsCollected: number;
     /** The longest stretch, in seconds, with no diamond coming past. */
     longestWithoutPickupSec: number;
+    /** Landings, and how many of them were on the beat (beatBonus.ts), without trying to be. */
+    landings: number;
+    onBeat: number;
 }
 
 const DT = 1 / 60;
@@ -299,6 +302,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     const result: RunResult = {
         seconds: 0, survived: true, hits: 0, damage: 0, healed: 0, hitsBy: {}, noWayThrough: 0, noWayAfterSlip: 0, windows: {}, obstacles: 0, obstaclesBy: {}, score: 0,
         rests: [], busyShare: 0, busy: [], obstacleSecs: [], voids: 0, pickupsPlaced: 0, pickupsCollected: 0, longestWithoutPickupSec: 0,
+        landings: 0, onBeat: 0,
     };
     const seen = new Set<number>();
     const arrivals: Arrival[] = [];
@@ -359,6 +363,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
         const nearest = s.obstacles.filter(isHazard).sort((a, b) => a.x - b.x)[0]?.role;
         const before = s.player.health;
         const hit = step(sim);
+        if (sim.state.events.some((e) => e.type === 'land')) result.landings++;
         const left = new Set(sim.state.pickups.map((p) => p.id));
         for (const [id, x] of pickupX) if (!left.has(id) && x > 0) collected++;
         const after = sim.state.player.health;
@@ -379,6 +384,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     }
     result.seconds = sim.frame / 60;
     result.score = sim.state.score;
+    result.onBeat = sim.state.onBeatCount;
     result.busy = busySpans(arrivals, result.seconds);
     const { rests, busyShare } = paceBetween(result.busy, 0, result.seconds);
     result.rests = rests;
