@@ -41,8 +41,8 @@ back to a sunset on 23 October, so its name fits again.
 **architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
-Next, back to the gameplay pass (§4): steps 0–7 are done and live; step 8 is done apart
-from calm and busy sections that follow the music; step 9 has its pulse on the floor, and the
+Next, back to the gameplay pass (§4): steps 0–8 are done and live (step 11 brought in step 8's
+calm and busy sections that follow the music); step 9 has its pulse on the floor, and the
 bonus for landing on the beat is next.
 
 ---
@@ -457,7 +457,8 @@ Merged into `main` and live on 26 October, on Pete's word.
 - **Duck swipe fix** (Pete, 27 October: "on mobile duck swipe down feels glitchy... it sometimes
   needs a double swipe down"). Ducking only worked on the ground, so a swipe made on the way down
   from a jump was thrown away. Now a swipe down in mid-air ducks the moment you land (held or
-  quick), and whichever of a tap and a swipe came last wins (commit d330708). Live 27 October.
+  quick), and whichever of a tap and a swipe came last wins (commit d330708). Live 27 October;
+  Pete on the phone: "duck swipe is much better".
   The difficulty report wasn't re-run after it.
 - **All obstacles more common**, and every stage a fair bit harder.
 - **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
@@ -738,11 +739,11 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 6: feel and forgiveness | ✅ Done |
 | Swipe up from a duck to jump | ✅ Done; to try on the phone |
 | Gameplay step 7: holes in the floor | ✅ Done; in stage 1 from 35 sec |
-| Gameplay step 8: obstacle sequencing and difficulty | ✅ Done, except music sections |
+| Gameplay step 8: obstacle sequencing and difficulty | ✅ Done; its music sections came in step 11 |
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
-| Gameplay step 11: busier and harder, always achievable | Live 26 October |
+| Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
