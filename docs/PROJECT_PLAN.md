@@ -454,6 +454,11 @@ playing step 10: "the game is a bit too easy". Built 26 October (branch
 `claude/s11-busier-harder-f1df78`). Pete played it locally and liked it more, then asked for
 voids in quick succession and more rapid switching between duck and jump (commit 4c98aec).
 Merged into `main` and live on 26 October, on Pete's word.
+- **Duck swipe fix** (Pete, 27 October: "on mobile duck swipe down feels glitchy... it sometimes
+  needs a double swipe down"). Ducking only worked on the ground, so a swipe made on the way down
+  from a jump was thrown away. Now a swipe down in mid-air ducks the moment you land (held or
+  quick), and whichever of a tap and a swipe came last wins (commit d330708). Live 27 October.
+  The difficulty report wasn't re-run after it.
 - **All obstacles more common**, and every stage a fair bit harder.
 - **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
   (about a second) to rest. Players should have to look ahead and decide instantly.
