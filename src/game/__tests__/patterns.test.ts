@@ -170,7 +170,7 @@ describe('the bot itself', () => {
     it('reports an impossible sequence as impossible', () => {
         // A bar straight after a block: you're still in the air when it arrives.
         triesLeft = 200000;
-        const arrivals = patternArrivals([{ role: 'large', at: 0 }, { role: 'overhead', at: 0.3 }], 300);
+        const arrivals = patternArrivals([{ role: 'large', at: 0 }, { role: 'overhead', at: 0.2 }], 300);
         const sim = freshSim(300);
         sim.state.energy = 0;
         expect(solve(sim, arrivals, 0)).toBe(false);
@@ -266,6 +266,37 @@ describe('holding a duck', () => {
             hit = step(sim, arrivals);
         }
         expect(hit).toBe(false);
+    });
+
+    const landsDucked = (swipe: (sim: Sim) => void) => {
+        const sim = freshSim();
+        jump(sim.state);
+        for (let f = 0; f < 20; f++) step(sim, new Map()); // on the way up
+        swipe(sim);
+        while (!sim.state.player.isGrounded) step(sim, new Map());
+        return sim.state.player.isDucking;
+    };
+
+    it('a swipe down in mid-air ducks on landing, held or quick', () => {
+        expect(landsDucked((sim) => startDuck(sim.state, true))).toBe(true);
+        expect(landsDucked((sim) => { startDuck(sim.state, true); releaseDuck(sim.state); })).toBe(true);
+    });
+
+    it('a tap after a swipe in mid-air jumps on landing instead', () => {
+        const sim = freshSim();
+        sim.state.energy = 0; // so the tap can't be a double jump
+        jump(sim.state);
+        for (let f = 0; f < 20; f++) step(sim, new Map());
+        startDuck(sim.state);
+        while (sim.state.player.dy < 0 || sim.state.player.y < RUNNER_GROUND_Y - PLAYER_SIZE - 25) step(sim, new Map());
+        jump(sim.state);
+        let jumpedAgain = false;
+        for (let f = 0; f < 20; f++) {
+            step(sim, new Map());
+            if (sim.state.player.dy < 0) jumpedAgain = true;
+            expect(sim.state.player.isDucking).toBe(false);
+        }
+        expect(jumpedAgain).toBe(true);
     });
 });
 

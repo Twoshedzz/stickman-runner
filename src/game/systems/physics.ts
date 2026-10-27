@@ -83,10 +83,15 @@ const runAndJump = (state: GameState, scale: number) => {
         player.isGrounded = true;
         player.jumpCount = 0; // Reset jumps
 
-        // A tap made just before landing jumps now, rather than being lost.
+        // A tap made just before landing jumps now, rather than being lost. So does a swipe
+        // down made in the air: it ducks now.
         if (player.jumpBuffer > 0) {
             player.jumpBuffer = 0;
             jump(state);
+        } else if (player.duckQueued) {
+            player.duckQueued = false;
+            player.isDucking = true;
+            player.duckTimer = DUCK_DURATION_SEC;
         }
 
         // Energy Regen
@@ -150,13 +155,21 @@ const moveWorld = (state: GameState, scale: number) => {
 };
 
 /**
- * Duck under an overhead bar. Grounded only, and free: it must not compete with the double jump.
+ * Duck under an overhead bar. Free: it must not compete with the double jump. In mid-air it
+ * waits and ducks on landing, so a swipe made on the way down from a jump isn't lost.
  * With `hold`, the runner stays down until releaseDuck() — for a finger kept on the screen
  * after a swipe, or the ↓ key held down — so two bars in a row can be ducked in one go.
  */
 export const startDuck = (state: GameState, hold = false) => {
     const { player } = state;
-    if (!player.isGrounded || isFalling(state)) return;
+    if (isFalling(state)) return;
+    if (!player.isGrounded) {
+        // The later of a tap and a swipe made in the air is the one that happens on landing.
+        player.duckQueued = true;
+        player.duckHeld = hold;
+        player.jumpBuffer = 0;
+        return;
+    }
     player.isDucking = true;
     player.duckTimer = DUCK_DURATION_SEC;
     player.duckHeld = hold;
@@ -170,6 +183,7 @@ export const releaseDuck = (state: GameState) => {
 export const jump = (state: GameState) => {
     const { isGrounded, jumpCount } = state.player;
     if (isFalling(state)) return;
+    state.player.duckQueued = false;
 
     // 1. Grounded Jump (Always allowed, no energy cost)
     if (isGrounded) {

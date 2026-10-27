@@ -67,6 +67,7 @@ const startFall = (state: GameState, holeId: number, damage: number) => {
     player.isDucking = false;
     player.duckTimer = 0;
     player.duckHeld = false;
+    player.duckQueued = false;
     player.jumpBuffer = 0;
     player.dy = STUMBLE_DY;
     breakStreak(state);
