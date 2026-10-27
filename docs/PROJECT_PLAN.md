@@ -37,7 +37,7 @@ back to a sunset on 23 October, so its name fits again.
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
 **Current focus:** step 11, making the game busier and harder while always achievable (Pete,
-26 October). Step 10 (a faster pace and voids) went live on 26 October. Before that, the
+26 October), live on 26 October. Step 10 (a faster pace and voids) went live on 26 October. Before that, the
 **architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
@@ -450,11 +450,23 @@ in stage 1 onwards, and a fall into a void costs 5 health instead of a hole's 3.
 - *Checked:* the pretend player and the tests (266), a Vercel preview, and Pete's playtest of it.
 
 **Step 11 — busier and harder, always achievable.** Asked for by Pete on 26 October, after
-playing step 10: "the game is a bit too easy". In progress.
+playing step 10: "the game is a bit too easy". Built 26 October (branch
+`claude/s11-busier-harder-f1df78`). Pete played it locally and liked it more, then asked for
+voids in quick succession and more rapid switching between duck and jump (commit 4c98aec).
+Merged into `main` and live on 26 October, on Pete's word.
 - **All obstacles more common**, and every stage a fair bit harder.
 - **Nearly constant action:** a jump or duck needed almost all the time, with only rare moments
   (about a second) to rest. Players should have to look ahead and decide instantly.
-- **Voids: 2–3 in every stage**, stage 1 included.
+- **Ease into each stage, in keeping with how the music builds** (Pete, 26 October): a gentler
+  opening, building to near-constant action, so by the end of each stage players have to be
+  "in the zone" to keep going. This takes in step 8's unbuilt idea of calm and busy sections
+  that follow the music.
+- **Voids: 2–3 in every stage**, stage 1 included. Mostly in the back half.
+- **Voids in quick succession** (Pete, after playing it): two voids 1.9 s apart, and voids mixed
+  in with bars and hops. Stages now plan 3, 4, 4 and 5 voids, the last two always a pair. A pair
+  takes the whole energy bar, so it waits for a full bar with no other double jump on its way.
+  New `switchback` and `flicker` runs alternate ducking and jumping. Fewer hearts, rarer late
+  breathers.
 - **Always achievable:** no obstacle without a way through, in any run of the pretend player.
   This takes in the cleanup item about double-jump obstacles arriving with too little energy.
 - **Pickups keep coming regularly:** Pete noticed fewer diamonds for streaks since step 10, because
@@ -462,6 +474,30 @@ playing step 10: "the game is a bit too easy". In progress.
   through the stage.
 - Checked by the pretend player (new measures: rest lengths, voids and pickups per stage, and
   "no way through" must be 0), the pattern bot at every speed, then Pete's playtest of a preview.
+- *Result (20 runs per stage and skill, step 10 → step 11 with the void pairs):*
+
+| | Stage 1 | Stage 2 | Stage 3 | Stage 4 |
+|---|---|---|---|---|
+| Obstacles | 168 → 194 | 160 → 181 | 168 → 199 | 175 → 200 |
+| Time jumping or ducking, last third | 57 → 69% | 58 → 67% | 62 → 70% | 62 → 71% |
+| Voids per run | 0–2 → 3 | 0–3 → 4 | 0–3 → 4 | 0–3 → 5 |
+| Diamonds a minute (104–116 before step 10) | 75 → 160 | 88 → 161 | 77 → 164 | 85 → 170 |
+| Longest gap with no diamond | 17 → 8 s | 15 → 9 s | 18 → 8 s | 19 → 8 s |
+| Average player survives | 95 → 85% | 90 → 75% | 100 → 70% | 90 → 65% |
+| Beginner survives | 35 → 0% | 35 → 0% | 50 → 0% | 25 → 0% |
+| No way through | 0 everywhere | | | |
+
+- *How:* each stage's pace follows its song's loudness (`pacing.build`; Neon City is loud
+  throughout, so it builds evenly); rests shrink to the minimum safe gap by the end, with a
+  breather every ~7 s early and every ~18–22 s late; 14 new combination patterns; voids at set
+  points in the back half (`pacing.planned`); diamond arcs over most jumps and lines under bars.
+  A wide block or void is only placed if the energy bar covers every double jump already on
+  its way, with half a bar spare. The pretend player now measures rests, voids and diamonds.
+- *For Pete to decide when he plays it:* (1) beginners now rarely finish stages 2–4: more hearts
+  or gentler openings would ease that; (2) obstacles now land on quarter-beats, not half-beats;
+  (3) an early tap in mid-air does a double jump when there's energy for one, which can float
+  you into the next obstacle: a tap just before landing could always mean "jump on landing".
+  Obstacles rose about 15%, not a third: the gentle openings and the safe minimum gaps cap it.
 
 ### How each step is checked
 
@@ -664,7 +700,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 - [x] **(A4)** `PLAYER_X` is defined twice — in `constants.ts` and again in `GameCanvas.tsx`.
 - [x] **(A1)** The debug panel still shows "Segment: N (30s each)", left over from the old spawner.
 - [x] **(A6)** The game loop re-renders every frame even on menu screens: now 0 redraws a second on menus.
-- [ ] **(step 11)** A double-jump obstacle (the wide block, a void) is only placed when the energy bar is at
+- [x] **(step 11)** A double-jump obstacle (the wide block, a void) is only placed when the energy bar is at
       least half full, but the player can spend energy before it arrives, so now and then there's
       no way through. The difficulty report shows it about once in 80 runs. Check the bar
       nearer the time, or top it up (found 26 October).
@@ -701,7 +737,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done, to try on the phone; bonus next |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
-| Gameplay step 11: busier and harder, always achievable | In progress |
+| Gameplay step 11: busier and harder, always achievable | Live 26 October |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
