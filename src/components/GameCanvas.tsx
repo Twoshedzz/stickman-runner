@@ -141,6 +141,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
                     gameState={gameState}
                     tick={tick}
                     glow={player.landGlow}
+                    flash={player.beatFlash}
                     glowX={PLAYER_X + PLAYER_SIZE / 2 + gameOffsetX}
                     glowY={RUNNER_GROUND_Y} viewWidth={viewWidth} gridColor={currentStage.theme?.gridColor}
                     pulse={beatPulseBand} />

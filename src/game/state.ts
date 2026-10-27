@@ -38,7 +38,9 @@ export const createSpawnerState = (): SpawnerState => ({
  */
 export type GameEvent =
     /** The runner's feet touched down after a jump. */
-    | { type: 'land' };
+    | { type: 'land' }
+    /** ...and it was on the beat (beatBonus.ts). */
+    | { type: 'onBeat' };
 
 export interface GameState {
     player: {
@@ -60,6 +62,8 @@ export interface GameState {
         hurtTimer: number;
         /** 1 the moment the runner lands, fading to 0: lights up the grid under his feet. */
         landGlow: number;
+        /** 1 the moment he lands on the beat, fading to 0: the landing glow and pulse flash white. */
+        beatFlash: number;
         /** Seconds left of a drop into a hole (see systems/holes.ts); 0 when not falling. */
         falling: number;
         /** The hole being fallen into, or -1. */
@@ -85,11 +89,14 @@ export interface GameState {
      */
     pickups: { id: number; x: number; y: number; needsDouble?: boolean }[];
     particles: Particle[];
-    /** What happened this frame (landings, so far). Nothing listens yet. */
+    /** What happened this frame: landings, and landings on the beat. */
     events: GameEvent[];
     score: number;
     /** Obstacles cleared in a row without a hit. Sets the score multiplier (see pickups.ts). */
     streak: number;
+    /** Landings on the beat (beatBonus.ts), this run and this stage. */
+    onBeatCount: number;
+    onBeatInStage: number;
     stageStatus: 'playing' | 'exhausted' | 'victory';
     /** Where the stage is on its dusk-to-dawn timeline. Runs on the clock, not the speed. */
     distance: number;
@@ -134,6 +141,7 @@ export const createInitialState = (): GameState => ({
         jumpBuffer: 0,
         hurtTimer: 0,
         landGlow: 0,
+        beatFlash: 0,
         falling: 0,
         fallHoleId: -1,
         fallDrift: 0,
@@ -146,6 +154,8 @@ export const createInitialState = (): GameState => ({
     events: [],
     score: 0,
     streak: 0,
+    onBeatCount: 0,
+    onBeatInStage: 0,
     stageStatus: 'playing',
     distance: 0,
     scroll: 0,

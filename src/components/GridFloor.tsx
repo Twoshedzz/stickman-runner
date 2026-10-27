@@ -22,6 +22,8 @@ interface GridFloorProps {
     glowX?: number;
     glowY?: number;
     glow?: number;
+    /** A landing on the beat (beatBonus.ts): 1 just landed, fading to 0. The glow and pulse flash white. */
+    flash?: number;
     /** The beat pulse rolling up the floor (beatPulse.ts): where it is and how bright, if any. */
     pulse?: { y: number; strength: number } | null;
 }
@@ -32,7 +34,7 @@ interface GridFloorProps {
  * Vertical lines: perspective (toward vanishing point) but they SCROLL horizontally
  * at the bottom instead of rotating - gives smooth motion without angle changes.
  */
-export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = DEFAULT_GRID_COLOR, glowX = 0, glowY = 0, glow = 0, pulse = null }: GridFloorProps) => {
+export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridColor = DEFAULT_GRID_COLOR, glowX = 0, glowY = 0, glow = 0, flash = 0, pulse = null }: GridFloorProps) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
     const vanishX = viewWidth / 2;
     const isMoving =
@@ -104,12 +106,14 @@ export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridC
                 deeper at the front of the floor and thinner as it goes, like the floor itself. */}
             {pulse && pulse.strength > 0.02 && (() => {
                 const depth = (pulse.y - GROUND_Y) / GRID_HEIGHT; // 0 at the horizon, 1 at the front
-                const half = 2 + 5 * depth;
+                // Landed on the beat: the band flares, wider and whiter, as it rolls on.
+                const half = (2 + 5 * depth) * (1 + 0.6 * flash);
                 return (
                     <Group clip={rect(0, pulse.y - half, viewWidth, half * 2)}>
                         <Rect x={0} y={pulse.y - half} width={viewWidth} height={half * 2} color={gridColor} opacity={0.18 * pulse.strength} />
+                        {flash > 0.02 && <Rect x={0} y={pulse.y - half} width={viewWidth} height={half * 2} color="#ffffff" opacity={0.25 * flash * pulse.strength} />}
                         <Path path={content.all} style="stroke" strokeWidth={3} color={gridColor} opacity={pulse.strength} />
-                        <Path path={content.all} style="stroke" strokeWidth={1} color="#ffffff" opacity={0.7 * pulse.strength} />
+                        <Path path={content.all} style="stroke" strokeWidth={1 + 1.5 * flash} color="#ffffff" opacity={Math.min(1, (0.7 + 0.3 * flash) * pulse.strength)} />
                     </Group>
                 );
             })()}
@@ -118,6 +122,8 @@ export const GridFloor = ({ gameState, tick = 0, viewWidth: viewWidthProp, gridC
                 <Group clip={rrect(rect(glowX - rx, glowY - ry, rx * 2, ry * 2), rx, ry)}>
                     <Path path={content.all} style="stroke" strokeWidth={3} color={gridColor} opacity={glow} />
                     <Path path={content.all} style="stroke" strokeWidth={1} color="#ffffff" opacity={0.6 * glow} />
+                    {/* On the beat: the lines flash white and bright, thicker than the colour beneath. */}
+                    {flash > 0.02 && <Path path={content.all} style="stroke" strokeWidth={3.5} color="#ffffff" opacity={flash} />}
                 </Group>
             )}
         </Group>

@@ -33,6 +33,7 @@ const startStage = (state: GameState, stageId: string) => {
     state.stageStatus = 'playing';
     state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
     state.obstacles = [];
+    state.onBeatInStage = 0;
     resetSpawner(state);
 };
 

@@ -164,11 +164,11 @@ Every frame: src/game/loop/useGameLoop.ts
  ├─ the stage clock: time since the stage began → progress → distance → speed,
  │  nudged towards the music (musicSync.ts); paused, it stands still (pause.ts)
  ├─ stepWorld (src/game/step.ts): the one frame order, also played by the pretend player
- │    scroll → physics → spawn → sparks → collisions → pickups
+ │    scroll → physics → spawn → sparks → collisions → pickups → beat bonus
  │    systems/physics.ts (+ holes.ts), systems/spawn.ts (+ patterns.ts), particles.ts,
- │    systems/collisions.ts, pickups.ts
+ │    systems/collisions.ts, pickups.ts, beatBonus.ts
  │    every system asks the obstacle table (obstacleCatalogue.ts) what an obstacle does
- │    state.events lists what happened this frame (so far: 'land')
+ │    state.events lists what happened this frame (so far: 'land', 'onBeat')
  └─ draw again? (loop/redraw.ts): every frame while a stage plays or the 3-2-1 counts;
     otherwise only when something shown changes (shownKey)
 
@@ -209,6 +209,7 @@ The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock b
 | Stage clock following the music | `src/game/musicSync.ts` |
 | Pickups, streak multiplier | `src/game/pickups.ts` |
 | The beat pulse on the floor | `src/game/beatPulse.ts`; drawn in `src/components/GridFloor.tsx` |
+| The bonus for landing on the beat (window, points, energy) | `src/game/beatBonus.ts`; its flash drawn in `src/components/GridFloor.tsx` |
 | Pausing (the stage clock, the 3-2-1) | `src/game/pause.ts`; `src/screens/game/usePauseControls.ts`; button and screen in `src/components/ui/PauseButton.tsx`, `src/components/menu/PausedScreen.tsx` |
 | Stage colours, speed, length, beat, music track | `src/game/stages.ts` |
 | Sky (colours, sun, moon, city lights) | `src/game/sky.ts`; per-stage `timeline` and `sky` in `src/game/stages.ts` |
@@ -256,10 +257,10 @@ Checks: the usual ones. `sky.test.ts` saves a picture of the new stage's sky the
 
 ### Add a mechanic to the frame
 
-Example: the planned beat bonus (plan step 9), points and energy for landing on the beat.
+Example: the beat bonus (plan step 9), points and energy for landing on the beat, in `beatBonus.ts`.
 
-1. **Its rules in a file of their own** in `src/game/`, as plain functions over the game state, with the numbers to tune at the top (like `pickups.ts`). For the beat bonus, “how far from the nearest pulse is this moment” is already in `beatPulse.ts` (`nearestPulseSec`).
-2. **Call it from `stepWorld`** in `src/game/step.ts`, at the right point in the order. The beat bonus goes after `applyPhysics`: if `state.events` holds a `land`, check the time against the beat and give the reward. Because the pretend player runs the same `stepWorld`, the difficulty report measures it from day one.
+1. **Its rules in a file of their own** in `src/game/`, as plain functions over the game state, with the numbers to tune at the top (like `pickups.ts` and `beatBonus.ts`). For the beat bonus, “how far from the nearest pulse is this moment” came from `beatPulse.ts` (`nearestPulseSec`).
+2. **Call it from `stepWorld`** in `src/game/step.ts`, at the right point in the order. The beat bonus goes after the collisions: if `state.events` holds a `land`, it checks the time against the beat and gives the reward, unless the landing has just dropped the runner into a hole. Because the pretend player runs the same `stepWorld`, the difficulty report measures it from day one.
 3. **New numbers on the state** (a tally, say): add them to `GameState` and `createInitialState` in `src/game/state.ts`, and reset them in `startStage` in `useGameLoop.ts` if they're per stage. If something happens that other code may want to react to, add an event to `GameEvent` and push it where it happens.
 4. **Show it**: on the canvas, pass plain numbers to the drawing (for the beat bonus, a flash in `GridFloor.tsx`). On a menu or the HUD (“ON THE BEAT: 23” on Stage Clear), also add the field to `shownKey` in `src/game/loop/redraw.ts`, or the menu won't update.
 5. **A test** in `src/game/__tests__/` that drives `stepWorld` frame by frame, as `step.test.ts` does for landings: a landing in the window rewards, one just outside doesn't.

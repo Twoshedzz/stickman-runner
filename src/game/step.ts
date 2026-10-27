@@ -8,6 +8,7 @@
  * The caller sets the stage clock first (elapsed time → progress → distance → speed): the
  * game runs on real time, the pretend player counts frames.
  */
+import { checkBeatLanding } from './beatBonus';
 import { frameScale } from './frame';
 import { updateParticles } from './particles';
 import { collectPickups } from './pickups';
@@ -24,7 +25,7 @@ export interface StepOptions {
     sparks?: boolean;
 }
 
-/** Scroll, physics, spawn, sparks, collisions, pickups. True if the runner was hit. */
+/** Scroll, physics, spawn, sparks, collisions, pickups, the beat bonus. True if the runner was hit. */
 export const stepWorld = (
     state: GameState,
     stage: StageConfig,
@@ -42,5 +43,7 @@ export const stepWorld = (
     state.particles = sparks ? updateParticles(state.particles, deltaTimeSec) : [];
     const hit = checkCollisions(state);
     collectPickups(state);
+    // After the collisions, so a landing that drops straight into a hole doesn't count.
+    checkBeatLanding(state, stage, deltaTimeSec);
     return hit;
 };
