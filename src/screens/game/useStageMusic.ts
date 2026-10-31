@@ -4,7 +4,7 @@
 
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef } from 'react';
 import { useMenuMusic } from '../../hooks/useMenuMusic';
-import { stageById, STAGES } from '../../game/stages';
+import { stageById } from '../../game/stages';
 import { GameState } from '../../game/state';
 import { nextStage, stageTrack } from './stageInfo';
 
@@ -16,6 +16,8 @@ interface Options {
     quitToTitle: () => void;
     onContinue: () => void;
     jumpToStage: (stageId: string) => void;
+    /** The stage a new run starts on (the test build's stage picker). */
+    startStageId: string;
     setShowInstructions: Dispatch<SetStateAction<boolean>>;
     /** What a tap on the game does: START does the same. */
     handleInteraction: () => void;
@@ -26,7 +28,7 @@ interface Options {
  * inside the tap: iPhone Safari only lets music start during one. Keep those calls in the
  * tap handlers here, not in effects.
  */
-export const useStageMusic = ({ gameState, playMusic, stopMusic, restartGame, quitToTitle, onContinue, jumpToStage, setShowInstructions, handleInteraction }: Options) => {
+export const useStageMusic = ({ gameState, playMusic, stopMusic, restartGame, quitToTitle, onContinue, jumpToStage, startStageId, setShowInstructions, handleInteraction }: Options) => {
     // Start music only when playing (not on game over) so we don't start then immediately fade on death
     const musicStartedForRunRef = useRef(false);
     useEffect(() => {
@@ -64,12 +66,12 @@ export const useStageMusic = ({ gameState, playMusic, stopMusic, restartGame, qu
         else startMenuMusic(1.5, 0);
     }, [inRun, afterRun, startMenuMusic, stopMenuMusic]);
 
-    // A new run always starts at stage 1, so start stage 1's music - not the music of the
+    // A new run starts on the picked stage, so start that stage's music - not the music of the
     // stage the last run ended on.
     const playAgain = useCallback(() => {
-        playMusic(stageTrack(STAGES[0]));
+        playMusic(stageTrack(stageById(startStageId)));
         restartGame();
-    }, [playMusic, restartGame]);
+    }, [playMusic, restartGame, startStageId]);
 
     /**
      * START. The music is started right here, inside the tap, as well as when the run begins:

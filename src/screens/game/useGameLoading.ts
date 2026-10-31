@@ -11,11 +11,13 @@ import { nextStage, stageTrack } from './stageInfo';
 
 interface Options {
     stageId: string;
+    /** The stage picked on the title screen (test build): its music has to be in before START. */
+    startStageId: string;
     showContinue: boolean;
     preloadTrack: (trackKey?: string, onProgress?: (fraction: number) => void) => Promise<unknown>;
 }
 
-export const useGameLoading = ({ stageId, showContinue, preloadTrack }: Options) => {
+export const useGameLoading = ({ stageId, startStageId, showContinue, preloadTrack }: Options) => {
     // The menu lettering. Until it arrives, text shows in the system font rather than waiting.
     useFonts(MENU_FONT_FILES);
 
@@ -80,7 +82,20 @@ export const useGameLoading = ({ stageId, showContinue, preloadTrack }: Options)
         return () => { cancelled = true; };
     }, [showContinue, stageId, preloadTrack]);
 
+    /** How much of the picked stage's music has arrived, for START: the stage clock follows the music. */
+    const [startMusic, setStartMusic] = useState({ stageId: startStageId, percent: 0 });
+    const startMusicPercent = startMusic.stageId === startStageId ? startMusic.percent : 0;
+    useEffect(() => {
+        let cancelled = false;
+        preloadTrack(stageTrack(stageById(startStageId)), (fraction) => {
+            if (!cancelled) setStartMusic({ stageId: startStageId, percent: Math.floor(fraction * 100) });
+        }).finally(() => {
+            if (!cancelled) setStartMusic({ stageId: startStageId, percent: 100 });
+        });
+        return () => { cancelled = true; };
+    }, [startStageId, preloadTrack]);
+
     const readyToStart = assetsReady && musicReady;
 
-    return { readyToStart, musicReady, musicPercent, nextMusicPercent, onAssetsReady };
+    return { readyToStart, musicReady, musicPercent, nextMusicPercent, startMusicPercent, onAssetsReady };
 };

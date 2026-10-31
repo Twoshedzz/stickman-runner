@@ -32,6 +32,7 @@ export const shownKey = (state: GameState) => [
     isCountingDown(state),
     state.debugMode,
     state.stageId,
+    state.paceOption,
     state.score,
     state.player.health,
     state.player.maxHealth,

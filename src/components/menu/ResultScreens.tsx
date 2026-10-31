@@ -84,12 +84,14 @@ interface GameOverProps {
     /** This run's score on the world board, if it was entered. */
     world?: SendOutcome | null;
     onPlayAgain: () => void;
+    /** Back to the title, to pick another option (test build). */
+    onChangeOption: () => void;
     onHowToPlay: () => void;
     /** Opens the world top 10. Left out when there's no world board to show. */
     onWorldScores?: () => void;
 }
 
-export const GameOverScreen = ({ score, hiScore, newHiScore, world, onPlayAgain, onHowToPlay, onWorldScores }: GameOverProps) => {
+export const GameOverScreen = ({ score, hiScore, newHiScore, world, onPlayAgain, onChangeOption, onHowToPlay, onWorldScores }: GameOverProps) => {
     const blinkOn = useBlink(400);
     return (
         <MenuScreen>
@@ -105,6 +107,7 @@ export const GameOverScreen = ({ score, hiScore, newHiScore, world, onPlayAgain,
             <ArcadeMenu
                 items={[
                     { label: 'PLAY AGAIN', onPress: onPlayAgain },
+                    { label: 'CHANGE OPTION', onPress: onChangeOption },
                     ...(onWorldScores ? [{ label: 'WORLD SCORES', onPress: onWorldScores }] : []),
                     { label: 'HOW TO PLAY', onPress: onHowToPlay },
                 ]}
@@ -121,10 +124,12 @@ interface FinishedProps {
     /** This run's score on the world board, if it was entered. */
     world?: SendOutcome | null;
     onPlayAgain: () => void;
+    /** Back to the title, to pick another option (test build). */
+    onChangeOption: () => void;
 }
 
 /** Every stage cleared: the big finish, and the best runs with this one picked out. */
-export const FinishedScreen = ({ score, scoreTable, newScoreIndex, world, onPlayAgain }: FinishedProps) => (
+export const FinishedScreen = ({ score, scoreTable, newScoreIndex, world, onPlayAgain, onChangeOption }: FinishedProps) => (
     <MenuScreen>
         <Panel colour="rgba(255, 224, 102, 0.7)">
             <RNText style={[styles.title, styles.finished]}>FINISHED!</RNText>
@@ -135,7 +140,7 @@ export const FinishedScreen = ({ score, scoreTable, newScoreIndex, world, onPlay
         <View style={styles.table}>
             <BestRuns entries={scoreTable} highlight={newScoreIndex} />
         </View>
-        <ArcadeMenu items={[{ label: 'PLAY AGAIN', onPress: onPlayAgain }]} />
+        <ArcadeMenu items={[{ label: 'PLAY AGAIN', onPress: onPlayAgain }, { label: 'CHANGE OPTION', onPress: onChangeOption }]} />
     </MenuScreen>
 );
 

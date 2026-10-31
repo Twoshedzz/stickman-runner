@@ -5,10 +5,13 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { fillParent } from '../../components/fillParent';
+import { FONT } from '../../components/menu/menuStyle';
+import { RNText } from '../../components/RNText';
 import { EnergyBar } from '../../components/ui/EnergyBar';
 import { HealthBar } from '../../components/ui/HealthBar';
 import { PauseButton } from '../../components/ui/PauseButton';
 import { ScoreDisplay } from '../../components/ui/ScoreDisplay';
+import { paceAt } from '../../game/pace';
 import { canPause } from '../../game/pause';
 import { stageById } from '../../game/stages';
 import { GameState } from '../../game/state';
@@ -33,6 +36,9 @@ export const GameHud = ({ gameState, gameMetrics, hudInsets, onPause }: Props) =
             colour={stageById(gameState.stageId).theme.pickupColors.glow}
         />
         {canPause(gameState) && <PauseButton onPress={onPause} />}
+        <RNText style={styles.paceTag}>
+            {gameState.paceOption} {'·'} {paceAt(gameState.paceOption, stageById(gameState.stageId), gameState.stageProgress).toFixed(2)}×
+        </RNText>
     </View>
 );
 
@@ -40,5 +46,16 @@ const styles = StyleSheet.create({
     hudArea: {
         ...fillParent,
         pointerEvents: 'box-none',
+    },
+    // The test build's option and pace: small, down on the floor, clear of everything you dodge.
+    paceTag: {
+        position: 'absolute',
+        bottom: 5,
+        right: 20,
+        fontFamily: FONT.bold,
+        fontSize: 11,
+        letterSpacing: 1,
+        color: 'rgba(255, 255, 255, 0.6)',
+        pointerEvents: 'none',
     },
 });

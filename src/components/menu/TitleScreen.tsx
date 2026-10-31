@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { ScoreEntry } from '../../game/loop/useScoreTable';
+import type { TestChoice } from '../../game/loop/useTestChoice';
+import type { PaceOptionId } from '../../game/pace';
 import type { WorldEntry } from '../../scoreboard/rules';
 import { RNText } from '../RNText';
 import { ArcadeMenu } from './ArcadeMenu';
@@ -8,6 +10,7 @@ import { BestRuns } from './BestRuns';
 import { MenuScreen } from './MenuScreen';
 import { FONT, glow, NEON } from './menuStyle';
 import { ShinyLogo } from './ShinyLogo';
+import { TestPicker } from './TestPicker';
 import { WorldBoard } from './WorldBoard';
 
 /** Attract mode: how long the logo and each table stay up. */
@@ -25,13 +28,18 @@ interface Props {
     onHowToPlay: () => void;
     /** Opens the world top 10. Left out when there's no world board to show. */
     onWorldScores?: () => void;
+    /** 0-100: the picked stage's music, which has to be in before it can start. */
+    startMusicPercent: number;
+    testChoice: TestChoice;
+    onPickOption: (option: PaceOptionId) => void;
+    onPickStage: (stageId: string) => void;
 }
 
 /**
  * The title screen, like an arcade cabinet's attract mode: the logo, the world top 10, then
  * this phone's best runs, taking turns until someone starts a game.
  */
-export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowToPlay, onWorldScores }: Props) => {
+export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowToPlay, onWorldScores, startMusicPercent, testChoice, onPickOption, onPickStage }: Props) => {
     const features: Feature[] = worldEntries ? ['logo', 'world', 'best'] : ['logo', 'best'];
     const [step, setStep] = useState(0);
     const feature = features[step % features.length];
@@ -53,13 +61,17 @@ export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowT
                 ) : feature === 'best' ? (
                     <BestRuns entries={scoreTable} />
                 ) : (
-                    <ShinyLogo width={420} />
+                    <ShinyLogo width={340} />
                 )}
             </View>
 
+            <TestPicker choice={testChoice} onPickOption={onPickOption} onPickStage={onPickStage} />
+
             <ArcadeMenu
                 items={[
-                    { label: 'START GAME', onPress: onStart },
+                    startMusicPercent >= 100
+                        ? { label: 'START GAME', onPress: onStart }
+                        : { label: `LOADING MUSIC ${startMusicPercent}%`, disabled: true },
                     ...(onWorldScores ? [{ label: 'WORLD SCORES', onPress: onWorldScores }] : []),
                     { label: 'HOW TO PLAY', onPress: onHowToPlay },
                 ]}
@@ -90,10 +102,10 @@ const styles = StyleSheet.create({
         color: NEON.yellow,
     },
     feature: {
-        height: 150,
+        height: 118,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 6,
-        marginBottom: 6,
+        marginTop: 14,
+        marginBottom: 2,
     },
 });

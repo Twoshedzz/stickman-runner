@@ -45,15 +45,15 @@ const GameCanvas = React.lazy(() =>
  */
 export const GameScreen = () => {
     const { fixedPreview, needsRotate, viewWidth, viewHeight, scale, translateX, translateY, hudInsets } = useViewport();
-    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle, setMusicClock } = useGameLoop();
+    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle, setMusicClock, testChoice, pickOption, pickStartStage } = useGameLoop();
     const { playMusic, stopMusic, pauseMusic, resumeMusic, musicPosition, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
     const { pauseRun, resumeRun } = usePauseControls({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition });
     const { world, enterInitials, worldResult, worldScreen, myPlace, ownKeysOpenRef, submitInitials, skipInitials, browseWorld, closeWorld } = useWorldScoreFlow(gameState);
-    const { readyToStart, musicReady, musicPercent, nextMusicPercent, onAssetsReady } = useGameLoading({ stageId: gameState.stageId, showContinue: gameState.showContinue, preloadTrack });
+    const { readyToStart, musicReady, musicPercent, nextMusicPercent, startMusicPercent, onAssetsReady } = useGameLoading({ stageId: gameState.stageId, startStageId: testChoice.stageId, showContinue: gameState.showContinue, preloadTrack });
     const { handleInteraction, runGesture, touchHandlers } = useRunInput({ gameState, onJump, onDuck, onDuckRelease });
-    const { quitRun, playAgain, startGame, continueToNextStage, jumpToStageWithMusic } = useStageMusic({ gameState, playMusic, stopMusic, restartGame, quitToTitle, onContinue, jumpToStage, setShowInstructions, handleInteraction });
+    const { quitRun, playAgain, startGame, continueToNextStage, jumpToStageWithMusic } = useStageMusic({ gameState, playMusic, stopMusic, restartGame, quitToTitle, onContinue, jumpToStage, startStageId: testChoice.stageId, setShowInstructions, handleInteraction });
     useWebKeyboard({ gameState, onJump, onDuck, onDuckRelease, pauseRun, resumeRun, playAgain, showInstructions, ownKeysOpenRef });
 
     const screens = whichScreens(gameState, { readyToStart, showInstructions, enteringInitials: enterInitials !== null, worldScreen });
@@ -110,6 +110,10 @@ export const GameScreen = () => {
                             onStart={startGame}
                             onHowToPlay={openHowToPlay}
                             onWorldScores={browseWorld}
+                            startMusicPercent={startMusicPercent}
+                            testChoice={testChoice}
+                            onPickOption={pickOption}
+                            onPickStage={pickStartStage}
                         />
                     )}
                     {/* The world top 10, with this run's entry lit up if it's on there */}
@@ -153,6 +157,7 @@ export const GameScreen = () => {
                             newScoreIndex={newScoreIndex}
                             world={worldResult}
                             onPlayAgain={playAgain}
+                            onChangeOption={quitRun}
                         />
                     )}
                     {shows('gameOver') && (
@@ -162,6 +167,7 @@ export const GameScreen = () => {
                             newHiScore={gameState.score > 0 && newScoreIndex === 0}
                             world={worldResult}
                             onPlayAgain={playAgain}
+                            onChangeOption={quitRun}
                             onHowToPlay={openHowToPlay}
                             onWorldScores={browseWorld}
                         />
