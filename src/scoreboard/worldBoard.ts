@@ -17,6 +17,14 @@ const API = Platform.OS === 'web' ? '/api/scores' : `${SITE}/api/scores`;
 /** Give up waiting after this long: a slow answer is treated like no signal. */
 const TIMEOUT_MS = 6000;
 
+/**
+ * Whether scores can go to the world board. Off in the pace test build (step 12): previews share
+ * the real board, and test scores can't be compared with it. With it off, nothing is ever sent:
+ * not asked for initials, not posted, and any held-back score stays where it is. The board can
+ * still be looked at.
+ */
+export const WORLD_SCORES_OPEN: boolean = false;
+
 const CACHE_KEY = `WORLD_BOARD_SEASON_${SEASON}`;
 const PENDING_KEY = `WORLD_PENDING_SEASON_${SEASON}`;
 const INITIALS_KEY = 'LAST_INITIALS';
@@ -77,6 +85,7 @@ export const loadBoard = async (): Promise<{ status: BoardStatus; entries: World
 
 /** Send one score. Returns the new board too, when it got through. */
 const post = async (submission: Submission): Promise<{ result: SendOutcome; entries?: WorldEntry[] }> => {
+    if (!WORLD_SCORES_OPEN) return { result: { outcome: 'refused' } };
     try {
         const response = await request({
             method: 'POST',
@@ -105,6 +114,7 @@ const queue = async (submission: Submission) => {
  * and returns the board as it stands after the last one that got through.
  */
 export const flushPending = async (): Promise<WorldEntry[] | null> => {
+    if (!WORLD_SCORES_OPEN) return null;
     const pending = await readJson<Submission[]>(PENDING_KEY, []);
     if (pending.length === 0) return null;
     const stuck: Submission[] = [];
@@ -143,7 +153,7 @@ export const useWorldBoard = () => {
     const available = status === 'ok' || (status === 'offline' && entries.length > 0);
 
     const canEnter = useCallback(
-        (score: number) => available && qualifies(score, entries),
+        (score: number) => WORLD_SCORES_OPEN && available && qualifies(score, entries),
         [available, entries]
     );
 
