@@ -10,7 +10,8 @@ import { pulseBand } from "../game/beatPulse";
 import { shapeFor } from "../game/obstacleCatalogue";
 import { PICKUP_RADIUS } from "../game/pickups";
 import { getTheme, moonAt } from "../game/sky";
-import { remainingScroll, stageById } from "../game/stages";
+import { remainingPacedScroll } from "../game/pace";
+import { stageById } from "../game/stages";
 import { GameState } from "../game/state";
 import { HOLE_RY, ObstacleLayer } from "./ObstacleLayer";
 import { safeColor, safeOpacity } from "./safeColor";
@@ -82,7 +83,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
     const RUN_THROUGH = 60;
-    const finishX = remainingScroll(currentStage, gameState.stageProgress)
+    const finishX = remainingPacedScroll(gameState.paceOption, currentStage, gameState.stageProgress)
         + PLAYER_X + PLAYER_SIZE / 2 - RUN_THROUGH + gameOffsetX;
     const showFinish = finishX > -400 && finishX < viewWidth + 400;
 

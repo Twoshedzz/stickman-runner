@@ -2,6 +2,7 @@ import { JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X, SCREEN_WIDTH } from '../consta
 import { frameScale } from '../frame';
 import { moveFor, shapeFor } from '../obstacleCatalogue';
 import { closedUp, minGapSec, Pattern, PatternStep, PATTERNS, TIGHTEST_SPACING } from '../patterns';
+import { gameClockSec, paceOption } from '../pace';
 import { placePickups, resetPickups } from '../pickups';
 import { beatGridSec, buildAt, StageConfig, StagePacing } from '../stages';
 import { createSpawnerState, GameState } from '../state';
@@ -104,7 +105,7 @@ export const canAskForDouble = (state: GameState, count = 1) => {
 
 /** How many double jumps can be asked for now (0, 1 or 2), from the energy bar and the cooldown. */
 const doublesAllowedNow = (state: GameState) => {
-    if (state.elapsedSecInStage - state.spawner.lastHugeSec < DOUBLE_COOLDOWN_SEC) return 0;
+    if (gameClockSec(state) - state.spawner.lastHugeSec < DOUBLE_COOLDOWN_SEC) return 0;
     if (canAskForDouble(state, 2)) return 2;
     return canAskForDouble(state) ? 1 : 0;
 };
@@ -204,13 +205,14 @@ export const spawnObstacle = (
 
     // Not due yet: the rest after the last pattern isn't near the spawn point. It's due one
     // beat early, so the next pattern can go on whichever beat is nearest the end of the rest.
-    const grid = beatGridSec(currentStage);
+    // Off the beat (a pace above 1: game time doesn't run with the music) there's no grid.
+    const grid = paceOption(state.paceOption).onTheBeat ? beatGridSec(currentStage) : 0;
     if (spawner.lastRole && spawner.endX + spawner.restSec * speed > SPAWN_X + grid * speed) return;
 
     const progress = state.stageProgress;
     // How built up the stage is, following its music: sets the budget, rests and breathers.
     const built = buildAt(currentStage, progress);
-    const nowSec = state.elapsedSecInStage;
+    const nowSec = gameClockSec(state);
     const { pacing } = currentStage;
 
     const doublesAllowed = doublesAllowedNow(state);
@@ -237,16 +239,21 @@ export const spawnObstacle = (
     const arrivalAt = (x: number) => nowSec + (x + shapeFor(first).width / 2 - runnerX) / speed;
     const beatsIn = (sec: number) => (sec - firstSec) / grid;
     let startX = SPAWN_X;
-    let onBeat = firstSec + Math.ceil(beatsIn(arrivalAt(SPAWN_X))) * grid;
-    if (spawner.lastRole) {
-        const earliestX = Math.max(SPAWN_X, spawner.endX + minGapSec(spawner.lastRole, first) * speed);
-        const wantedX = Math.max(earliestX, spawner.endX + spawner.restSec * speed);
-        const earliest = arrivalAt(earliestX);
-        onBeat = firstSec + Math.round(beatsIn(arrivalAt(wantedX))) * grid;
-        if (onBeat < earliest - 1e-9) onBeat = firstSec + Math.ceil(beatsIn(earliest) - 1e-9) * grid;
-        startX = earliestX;
+    if (grid > 0) {
+        let onBeat = firstSec + Math.ceil(beatsIn(arrivalAt(SPAWN_X))) * grid;
+        if (spawner.lastRole) {
+            const earliestX = Math.max(SPAWN_X, spawner.endX + minGapSec(spawner.lastRole, first) * speed);
+            const wantedX = Math.max(earliestX, spawner.endX + spawner.restSec * speed);
+            const earliest = arrivalAt(earliestX);
+            onBeat = firstSec + Math.round(beatsIn(arrivalAt(wantedX))) * grid;
+            if (onBeat < earliest - 1e-9) onBeat = firstSec + Math.ceil(beatsIn(earliest) - 1e-9) * grid;
+            startX = earliestX;
+        }
+        startX += (onBeat - arrivalAt(startX)) * speed;
+    } else if (spawner.lastRole) {
+        // Off the beat: simply at the end of the rest, and never sooner than the fairness rule.
+        startX = Math.max(SPAWN_X, spawner.endX + Math.max(spawner.restSec, minGapSec(spawner.lastRole, first)) * speed);
     }
-    startX += (onBeat - arrivalAt(startX)) * speed;
 
     let endX = startX;
     const placedFrom = state.obstacles.length;
@@ -254,7 +261,8 @@ export const spawnObstacle = (
     // wide block and a narrow one both arrive exactly on the beat.
     const firstCentre = startX + shapeFor(first).width / 2;
     // Closer together as the stage builds to its finish.
-    const timings = gridTimings(closedUp(pattern, blend([1, TIGHTEST_SPACING], built)), grid);
+    const closed = closedUp(pattern, blend([1, TIGHTEST_SPACING], built));
+    const timings = grid > 0 ? gridTimings(closed, grid) : closed.map((s) => s.at);
     for (const [i, step] of pattern.steps.entries()) {
         const x = firstCentre + timings[i] * speed - shapeFor(step.role).width / 2;
         state.obstacles.push({

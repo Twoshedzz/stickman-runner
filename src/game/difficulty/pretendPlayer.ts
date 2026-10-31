@@ -11,15 +11,22 @@
  *   3. now and then doesn't react at all (looking away, a fumbled tap).
  * How big those mistakes are is its skill level. Nothing here changes the game.
  *
+ * At a pace above 1 (pace.ts) the game speeds up and the player doesn't: it still acts once per
+ * real frame, and its look-ahead and its timing errors stay in real seconds and real frames. So
+ * a faster game gets harder for it, the way it would for a person. `DT` and `sim.frame` below are
+ * real time, and anything taken from `state.speed` (game px per game second) is multiplied by
+ * the pace to get real time.
+ *
  * Run the full report with `npm run difficulty` (see difficulty.report.test.ts).
  */
 import { DUCK_DURATION_SEC, JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X } from '../constants';
 import { moveFor, ObstacleRole, shapeFor } from '../obstacleCatalogue';
-import { speedAt, StageConfig } from '../stages';
+import { gameClockSec, gameStep, PaceOptionId, paceAt } from '../pace';
+import { speedAt, StageConfig, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { stepWorld } from '../step';
 import { jump, releaseDuck, startDuck } from '../systems/physics';
-import { resetSpawner } from '../systems/spawn';
+import { resetSpawner, spawnObstacle } from '../systems/spawn';
 
 export interface Skill {
     name: string;
@@ -102,7 +109,14 @@ const BUSY_HALF_SEC: Record<'jump' | 'duck' | 'double', number> = {
 };
 
 /** An obstacle as the player meets it: when its middle reaches the runner, and what it asks. */
-interface Arrival { sec: number; role: ObstacleRole; speed: number }
+interface Arrival {
+    sec: number;
+    role: ObstacleRole;
+    /** How fast it comes, in real pixels per real second. */
+    speed: number;
+    /** The pace then: a move lasts this much less in real time. */
+    pace: number;
+}
 
 /** A stretch of time spent jumping or ducking for something. */
 export interface BusySpan { start: number; end: number }
@@ -117,7 +131,7 @@ export const busySpans = (arrivals: Arrival[], untilSec: number): BusySpan[] => 
         .filter((a) => a.sec <= untilSec && moveFor(a.role) !== 'collect')
         .map((a) => {
             const move = moveFor(a.role) as keyof typeof BUSY_HALF_SEC;
-            const half = Math.max(BUSY_HALF_SEC[move], (shapeFor(a.role).width + PLAYER_SIZE) / (2 * a.speed));
+            const half = Math.max(BUSY_HALF_SEC[move] / a.pace, (shapeFor(a.role).width + PLAYER_SIZE) / (2 * a.speed));
             return { start: a.sec - half, end: a.sec + half };
         })
         .sort((a, b) => a.start - b.start);
@@ -171,6 +185,9 @@ const spawnerRandom = (sim: Sim) => () => {
 };
 
 const copy = (sim: Sim): Sim => ({ ...sim, state: JSON.parse(JSON.stringify(sim.state)) });
+
+/** The pace now. */
+const paceNow = ({ state, stage }: Sim) => paceAt(state.paceOption, stage, state.stageProgress);
 
 /** One frame, the game loop's own step (step.ts) on a frame-counted clock. True if the runner was hit. */
 const step = (sim: Sim): boolean => {
@@ -236,7 +253,7 @@ const passesIdle = (sim: Sim, ids: number[]): boolean => {
 /** The widest run of moments this move gets past the group from here, or null if none does. */
 const findWindow = (sim: Sim, kind: Move['kind'], ids: number[], delay?: number) => {
     const first = sim.state.obstacles.find((o) => o.id === ids[0])!;
-    const framesToArrive = Math.ceil(((first.x - PLAYER_X) / sim.state.speed) * 60);
+    const framesToArrive = Math.ceil(((first.x - PLAYER_X) / (sim.state.speed * paceNow(sim))) * 60);
     const last = Math.max(1, Math.min(90, framesToArrive + 12));
     let best: { start: number; end: number } | null = null;
     let runStart = -1;
@@ -284,10 +301,11 @@ const plan = (
 };
 
 /** Play one stage from full health. `seed` sets both the obstacles and the player's mistakes. */
-export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunResult => {
+export const playStage = (stage: StageConfig, skill: Skill, seed: number, option: PaceOptionId = 'A'): RunResult => {
     const state = createInitialState();
     state.gameStarted = true;
     state.stageId = stage.id;
+    state.paceOption = option;
     resetSpawner(state);
     const sim: Sim = { state, stage, frame: 0, seed };
     let dice = seed * 7919 + 17;
@@ -305,18 +323,21 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     const seenPickups = new Set<number>();
     const pickupSecs: number[] = [];
     let collected = 0;
-    /** When the player last double jumped by mistake (a tap meant as a jump, made in the air). */
+    /** When the player last double jumped by mistake (a tap meant as a jump, made in the air), in game time. */
     let slipSec = -Infinity;
     let current: { ids: number[]; move: Move | null } | null = null;
 
     for (let f = 0; f < stageFrames(stage); f++) {
         const s = sim.state;
         const nowSec = sim.frame / 60;
+        const pace = paceNow(sim);
+        /** How fast things come, in real pixels per real second. */
+        const realSpeed = s.speed * pace;
         for (const o of s.obstacles) {
             if (seen.has(o.id)) continue;
             seen.add(o.id);
             const role = o.role ?? 'small';
-            arrivals.push({ sec: nowSec + (o.x + shapeFor(role).width / 2 - RUNNER_MID_X) / s.speed, role, speed: s.speed });
+            arrivals.push({ sec: nowSec + (o.x + shapeFor(role).width / 2 - RUNNER_MID_X) / realSpeed, role, speed: realSpeed, pace });
             if (shapeFor(role).heals) continue;
             result.obstacles++;
             result.obstacleSecs.push(arrivals[arrivals.length - 1].sec);
@@ -326,7 +347,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
         for (const p of s.pickups) {
             if (seenPickups.has(p.id)) continue;
             seenPickups.add(p.id);
-            pickupSecs.push(nowSec + (p.x - RUNNER_MID_X) / s.speed);
+            pickupSecs.push(nowSec + (p.x - RUNNER_MID_X) / realSpeed);
         }
         // Where each diamond is before the frame: one gone from near the runner was collected.
         const pickupX = new Map(s.pickups.map((p) => [p.id, p.x]));
@@ -337,9 +358,10 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
         }
         if (!current && s.player.falling <= 0) {
             const group = nextGroup(s);
-            if (group && group.first.x - PLAYER_X <= LOOK_AHEAD_SEC * s.speed) {
+            if (group && group.first.x - PLAYER_X <= LOOK_AHEAD_SEC * realSpeed) {
                 const move = plan(sim, group.ids, skill, random, result.windows);
-                if (move === 'no way' && nowSec - slipSec < SLIP_STRANDS_SEC) result.noWayAfterSlip++;
+                // A slip strands the player in game time: the float and the energy refill both run on it.
+                if (move === 'no way' && gameClockSec(s) - slipSec < SLIP_STRANDS_SEC) result.noWayAfterSlip++;
                 else if (move === 'no way') result.noWayThrough++;
                 current = { ids: group.ids, move: typeof move === 'object' ? move : null };
             }
@@ -349,7 +371,7 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
             if (sim.frame === move.at) {
                 if (move.kind === 'duck') startDuck(s, true);
                 else {
-                    if (tapWouldDouble(s)) slipSec = nowSec;
+                    if (tapWouldDouble(s)) slipSec = gameClockSec(s);
                     jump(s);
                 }
             }
@@ -389,4 +411,49 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number): RunRe
     result.pickupsCollected = collected;
     result.longestWithoutPickupSec = longestGap(reached);
     return result;
+};
+
+/**
+ * The most a whole run could score at an option: every obstacle and diamond that any of a few
+ * runs places, all at ×4, added up over the stages. More than anyone could get (the first
+ * obstacles of a run only score ×1), the same sum rules.test.ts checks MAX_SCORE against.
+ */
+export const mostPossibleScore = (option: PaceOptionId) => {
+    let most = 0;
+    for (const stage of STAGES) {
+        let busiest = 0;
+        for (const seed of [1, 2, 3, 4, 5]) {
+            let s = seed;
+            const random = () => {
+                s = (s * 1664525 + 1013904223) % 4294967296;
+                return s / 4294967296;
+            };
+            const state = createInitialState();
+            state.stageId = stage.id;
+            state.paceOption = option;
+            state.player.health = 5; // hurt, so hearts are placed too
+            const frames = stageFrames(stage);
+            const seen = new Set<string>();
+            for (let f = 0; f < frames; f++) {
+                state.stageProgress = f / frames;
+                state.elapsedSecInStage = f / 60;
+                state.speed = speedAt(stage, state.stageProgress);
+                const { steps, stepSec } = gameStep(DT, paceAt(option, stage, state.stageProgress));
+                for (let i = 0; i < steps; i++) {
+                    state.gameSec += stepSec;
+                    spawnObstacle(state, stage, stepSec, random);
+                    state.obstacles.forEach((o) => seen.add(`o${o.id}`));
+                    state.pickups.forEach((p) => seen.add(`p${p.id}`));
+                    const px = (state.speed / 60) * stepSec * 60;
+                    state.obstacles.forEach((o) => { o.x -= px; });
+                    state.pickups.forEach((p) => { p.x -= px; });
+                    state.obstacles = state.obstacles.filter((o) => o.x > -400);
+                    state.pickups = state.pickups.filter((p) => p.x > -400);
+                }
+            }
+            busiest = Math.max(busiest, seen.size);
+        }
+        most += busiest * 4;
+    }
+    return most;
 };
