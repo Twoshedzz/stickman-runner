@@ -522,7 +522,7 @@ Merged into `main` and live on 26 October, on Pete's word.
   you into the next obstacle: a tap just before landing could always mean "jump on landing".
   Obstacles rose about 15%, not a third: the gentle openings and the safe minimum gaps cap it.
 
-**Step 12 — test a faster game.** Planned 31 October; not started. Pete, after playing: the game
+**Step 12 — test a faster game.** Round 1 built 31 October (branch `claude/s12-speed-test-918ae3`), not yet played on a phone. Pete, after playing: the game
 can be more fun "simply by speeding up the pace of the game - the runner and the movement", and
 "speed of running can build over each stage... Each stage can start further into the
 acceleration curve". This moves away from keeping obstacles to the beat, so it's a test first:
@@ -563,6 +563,25 @@ find the ceiling, and may well be too much.
   real frames, so a faster game properly gets harder for them. The report compares all four:
   obstacles a minute, rests, survival per skill, diamonds, and "no way through", which must be 0.
 - Pushed to a Vercel preview, since builds served from the Mac stutter on the phone.
+
+*Round 1 result (20 runs per option; obstacles and rests from the steady player):*
+
+| Option, stage | Pace | Obstacles (a minute) | Typical rest | Survives: steady / average / beginner |
+|---|---|---|---|---|
+| A, stage 1 | 1.0 | 194 (65) | 0.39 s | 100 / 85 / 0% |
+| A, stage 4 | 1.0 | 200 (67) | 0.44 s | 100 / 65 / 0% |
+| B, stage 1 | 1.3 | 266 (89) | 0.30 s | 100 / 55 / 0% |
+| B, stage 4 | 1.3 | 259 (90) | 0.28 s | 95 / 10 / 0% |
+| C, stage 1 | 1.0 → 1.2 | 224 (75) | 0.35 s | 100 / 70 / 0% |
+| C, stage 4 | 1.3 → 1.5 | 278 (97) | 0.25 s | 95 / 10 / 0% |
+| D, stage 1 | 1.1 → 1.4 | 257 (86) | 0.29 s | 100 / 50 / 0% |
+| D, stage 4 | 1.4 → 1.7 | 304 (107) | 0.22 s | 90 / 0 / 0% |
+
+Option A's report matches `main` exactly. No way through is 0 at every option, stage and skill.
+Highest possible score: A 11,876, B 16,016, C 15,132, D 17,376, all under the 20,000 cap, though B
+and D miss the 25% margin, so the cap would need raising if either wins. Checked: tsc clean, eslint
+0 errors, 705 tests. Played at phone size in the browser (A, C, D), not on a real phone.
+On the title screen: pick OPTION and STAGE, then START. A small tag shows the option and pace.
 
 *Round 2, Pete and his son play it on the phone.* Stage 1 and stage 4 on each option. For each:
 was it more fun? Could you see things coming? Were hits your own fault? Does the jump feel snappy
@@ -822,7 +841,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
-| Gameplay step 12: test a faster game | Planned 31 October, waiting for Pete's go-ahead |
+| Gameplay step 12: test a faster game | Round 1 built 31 October, waiting for a preview and Pete's playtest |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
