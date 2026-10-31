@@ -583,6 +583,10 @@ and D miss the 25% margin, so the cap would need raising if either wins. Checked
 0 errors, 705 tests. Played at phone size in the browser (A, C, D), not on a real phone.
 On the title screen: pick OPTION and STAGE, then START. A small tag shows the option and pace.
 
+Preview, pushed 31 October with Pete's OK (db68b4d; main and the live site untouched):
+https://stickman-runner-bf5pryw66-twoshedzzs-projects.vercel.app. Checked in a browser: the picker
+changes option and stage, and option B on stage 4 starts at 1.30×. Not yet played on a phone.
+
 *Round 2, Pete and his son play it on the phone.* Stage 1 and stage 4 on each option. For each:
 was it more fun? Could you see things coming? Were hits your own fault? Does the jump feel snappy
 or twitchy? Is the floor pulse still welcome now obstacles aren't on the beat?
@@ -841,7 +845,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
-| Gameplay step 12: test a faster game | Round 1 built 31 October, waiting for a preview and Pete's playtest |
+| Gameplay step 12: test a faster game | Round 1 preview up 31 October, waiting for Pete's playtest |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
