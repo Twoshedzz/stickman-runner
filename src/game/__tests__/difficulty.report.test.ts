@@ -6,15 +6,21 @@
  *   npm test                  - just a quick check that the pretend player still works
  *
  * DIFFICULTY_RUNS sets how many runs per stage and skill (default 12).
+ * DIFFICULTY_OPTIONS picks which pace options to play (default all: A,B,C,D). Option A alone
+ * writes the report just as it was before the pace test, to compare with `main`.
  */
 import fs from 'fs';
 import path from 'path';
-import { paceBetween, RunResult, playStage, SKILLS } from '../difficulty/pretendPlayer';
+import { checkPatterns, clearsStage } from '../difficulty/patternBot';
+import { mostPossibleScore, paceBetween, RunResult, playStage, SKILLS } from '../difficulty/pretendPlayer';
+import { PACE_OPTIONS, PaceOption } from '../pace';
 import { STAGES } from '../stages';
 import { MAX_HEALTH } from '../constants';
+import { MAX_SCORE } from '../../scoreboard/rules';
 
 const FULL = process.env.DIFFICULTY_REPORT === '1';
 const RUNS = Number(process.env.DIFFICULTY_RUNS ?? 12);
+const OPTIONS = PACE_OPTIONS.filter((o) => (process.env.DIFFICULTY_OPTIONS ?? 'A,B,C,D').split(',').includes(o.id));
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const fixed = (n: number, digits = 1) => n.toFixed(digits);
@@ -28,162 +34,260 @@ describe('the pretend player', () => {
     });
 });
 
+/** Every stage at every skill level, at one pace option. */
+const playOption = (option: PaceOption) => {
+    const rows: string[] = [];
+    /** One option's line for each stage, for the table comparing the options. */
+    const compared: Record<string, { survives: string[]; noWay: number; afterSlip: number; cells: string[]; best: number }> = {};
+    const summary: string[] = [];
+    /** Timing windows by stage and role, gathered from the average player's runs. */
+    const windowRows: string[] = [];
+    /** How busy it is, the voids and the diamonds. */
+    const paceRows: string[] = [];
+    /** Obstacles met by kind, from the steady player's runs (who sees every stage to the end). */
+    const kindRows: string[] = [];
+    /** The build: the first and last thirds of each stage, from the steady and average players. */
+    const buildRows: string[] = [];
+    const KINDS = ['small', 'large', 'mover', 'overhead', 'hole', 'huge', 'void'] as const;
+    for (const skill of SKILLS) {
+        for (const stage of STAGES) {
+            const runs: RunResult[] = [];
+            for (let seed = 1; seed <= RUNS; seed++) runs.push(playStage(stage, skill, seed, option.id));
+            const survived = runs.filter((r) => r.survived).length / runs.length;
+            const byRole: Record<string, number> = {};
+            for (const r of runs) {
+                for (const [role, n] of Object.entries(r.hitsBy)) byRole[role] = (byRole[role] ?? 0) + (n ?? 0);
+            }
+            const worst = Object.entries(byRole)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([role, n]) => `${role} ${fixed(n / runs.length)}`)
+                .join(', ');
+            const noWay = runs.reduce((a, r) => a + r.noWayThrough, 0);
+            const afterSlip = runs.reduce((a, r) => a + r.noWayAfterSlip, 0);
+            rows.push(
+                `| ${skill.name} | ${stage.name} | ${Math.round(survived * 100)}% | ${fixed(mean(runs.map((r) => r.hits)))} ` +
+                `| ${fixed(mean(runs.map((r) => r.damage)))} | ${fixed(mean(runs.map((r) => r.healed)))} ` +
+                `| ${fixed(mean(runs.map((r) => r.seconds)), 0)}s | ${fixed(mean(runs.map((r) => r.obstacles)), 0)} ` +
+                `| ${worst || '-'} | ${noWay} | ${afterSlip} |`
+            );
+            const rests = runs.flatMap((r) => r.rests);
+            const minutes = runs.reduce((a, r) => a + r.seconds, 0) / 60;
+            const longRests = rests.filter((sec) => sec > 1).length;
+            const voids = runs.map((r) => r.voids);
+            paceRows.push(
+                `| ${skill.name} | ${stage.name} | ${Math.round(mean(runs.map((r) => r.busyShare)) * 100)}% ` +
+                `| ${Math.round((longRests / Math.max(1, rests.length)) * 100)}% | ${fixed(longRests / minutes)} ` +
+                `| ${fixed(mean(runs.map((r) => Math.max(0, ...r.rests))))}s (${fixed(Math.max(0, ...rests))}s) ` +
+                `| ${fixed(mean(voids))} (${Math.min(...voids)}-${Math.max(...voids)}) ` +
+                `| ${fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0)} ` +
+                `| ${fixed(mean(runs.map((r) => r.pickupsCollected)), 0)} of ${fixed(mean(runs.map((r) => r.pickupsPlaced)), 0)} ` +
+                `| ${fixed(mean(runs.map((r) => r.longestWithoutPickupSec)))}s (${fixed(Math.max(...runs.map((r) => r.longestWithoutPickupSec)))}s) |`
+            );
+            if (skill.name !== 'beginner') {
+                const third = (from: number, to: number) => {
+                    // Only the part each run actually played.
+                    const parts = runs
+                        .filter((r) => r.seconds > from)
+                        .map((r) => ({ r, end: Math.min(to, r.seconds) }));
+                    const paces = parts.map(({ r, end }) => paceBetween(r.busy, from, end));
+                    const minutes = parts.reduce((a, { end }) => a + (end - from), 0) / 60;
+                    const allRests = paces.flatMap((p) => p.rests);
+                    const obstacles = parts.reduce((a, { r, end }) => a + r.obstacleSecs.filter((t) => t >= from && t < end).length, 0);
+                    return [
+                        `${Math.round(mean(paces.map((p) => p.busyShare)) * 100)}%`,
+                        fixed(allRests.filter((sec) => sec > 1).length / Math.max(1e-9, minutes)),
+                        `${fixed(Math.max(0, ...allRests))}s`,
+                        fixed(obstacles / Math.max(1e-9, minutes), 0),
+                    ];
+                };
+                const first = third(0, stage.durationSec / 3);
+                const last = third((stage.durationSec * 2) / 3, stage.durationSec);
+                buildRows.push(`| ${skill.name} | ${stage.name} | ${first.map((c, i) => `${c} → ${last[i]}`).join(' | ')} |`);
+            }
+            if (skill.name === 'steady') {
+                const cells = KINDS.map((kind) => fixed(mean(runs.map((r) => r.obstaclesBy[kind] ?? 0)), 0));
+                kindRows.push(`| ${stage.name} | ${cells.join(' | ')} |`);
+            }
+            if (skill.name === 'average') {
+                const all: Record<string, number[]> = {};
+                for (const r of runs) {
+                    for (const [role, ws] of Object.entries(r.windows)) (all[role] ??= []).push(...(ws ?? []));
+                }
+                const cells = Object.entries(all)
+                    .sort((a, b) => a[0].localeCompare(b[0]))
+                    .map(([role, ws]) => {
+                        const sorted = [...ws].sort((a, b) => a - b);
+                        return `${role} ${fixed(sorted[Math.floor(sorted.length / 2)], 2)} (tightest ${fixed(sorted[0], 2)})`;
+                    });
+                windowRows.push(`| ${stage.name} | ${cells.join(', ')} |`);
+            }
+            const seen = (compared[stage.name] ??= { survives: [], noWay: 0, afterSlip: 0, cells: [], best: 0 });
+            seen.survives.push(`${Math.round(survived * 100)}%`);
+            seen.noWay += noWay;
+            seen.afterSlip += afterSlip;
+            if (skill.name === 'steady') {
+                seen.best = Math.max(...runs.map((r) => r.score));
+                const sortedRests = [...rests].sort((x, y) => x - y);
+                seen.cells = [
+                    fixed(mean(runs.map((r) => r.obstacles)), 0),
+                    fixed(runs.reduce((a, r) => a + r.obstacles, 0) / minutes, 0),
+                    `${Math.round(mean(runs.map((r) => r.busyShare)) * 100)}%`,
+                    `${fixed(sortedRests[Math.floor(sortedRests.length / 2)] ?? 0, 2)}s`,
+                    `${Math.round((longRests / Math.max(1, rests.length)) * 100)}% (${fixed(longRests / minutes)})`,
+                    `${fixed(mean(voids))}`,
+                    fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0),
+                ];
+            }
+            summary.push(`${option.id} ${skill.name.padEnd(9)} ${stage.name.padEnd(19)} survive ${String(Math.round(survived * 100)).padStart(3)}%  hits ${fixed(mean(runs.map((r) => r.hits)))}`);
+        }
+    }
+
+    const report = [
+        'Written by `npm run difficulty`: the pretend player (`src/game/difficulty/pretendPlayer.ts`)',
+        `plays each stage ${RUNS} times at each skill level, from full health (${MAX_HEALTH}), with the real`,
+        'game code. Do not edit by hand; run it again after changing obstacles, patterns or pacing.',
+        '',
+        'Skill levels: how far off each press lands (standard deviation), and how often an obstacle',
+        'gets no reaction at all.',
+        '',
+        ...SKILLS.map((s) => `- **${s.name}**: ±${s.timingSdSec.toFixed(2)} sec, misses ${Math.round(s.slipChance * 100)} in 100`),
+        '',
+        '| Skill | Stage | Survives | Hits | Health lost | Hearts healed | Lasts | Obstacles | Hit most by (per run) | No way through | After a slip |',
+        '|---|---|---|---|---|---|---|---|---|---|---|',
+        ...rows,
+        '',
+        '## Pace, voids and diamonds',
+        '',
+        '- **Busy**: the share of the time spent jumping or ducking for something. Each obstacle',
+        '  keeps the player busy for as long as its move takes (a jump 0.67 sec, a duck 0.55 sec,',
+        '  a double jump 1.2 sec), centred on it.',
+        '- **Rests**: the gaps in between. The share of them longer than a second, how many of those',
+        '  come a minute, and the longest rest (typical run, and the longest in any run).',
+        '- **Voids** per run (fewest-most), **diamonds** reaching the runner a minute, how many the',
+        '  pretend player collects without trying to (it only aims for the obstacles), and the',
+        '  longest stretch with no diamond coming (typical run, and the longest in any run).',
+        '',
+        '| Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |',
+        '|---|---|---|---|---|---|---|---|---|---|',
+        ...paceRows,
+        '',
+        '## The build',
+        '',
+        'Each stage eases in and builds to its busiest at the end. The same measures for the first',
+        'third of each stage → the last third: the share of time busy, rests over a second a',
+        'minute, the longest rest, and obstacles a minute. Only the part of each run played counts.',
+        '',
+        '| Skill | Stage | Busy | Rests over 1 s a minute | Longest rest | Obstacles a minute |',
+        '|---|---|---|---|---|---|',
+        ...buildRows,
+        '',
+        '## Obstacles by kind',
+        '',
+        'How many of each kind a run meets, from the steady player\'s runs.',
+        '',
+        `| Stage | ${KINDS.join(' | ')} |`,
+        `|---|${KINDS.map(() => '---').join('|')}|`,
+        ...kindRows,
+        '',
+        '## Timing windows',
+        '',
+        'How long the player has to press, in seconds, for each kind of obstacle: the typical',
+        'window, and the tightest one met. Wider is more forgiving. Groups (two blocks one jump',
+        'clears) count under their first obstacle.',
+        '',
+        '| Stage | Window by obstacle |',
+        '|---|---|',
+        ...windowRows,
+        '',
+        '"No way through" counts obstacles the player met with no timing at all that got past (for',
+        'example a wide block with too little energy for the double jump). It should be 0.',
+        '"After a slip" counts the same, but only within a few seconds of the player\'s own slip: a tap',
+        'made while still in the air from the last jump is a double jump, which can float into the',
+        'next obstacle. The game was fair; the player wasted the energy or the jump.',
+        '',
+    ].join('\n');
+    return { report, compared, summary };
+};
+
+/** The report for the pace test: the options side by side, then each one in full. */
+const comparisonReport = (played: ({ option: PaceOption } & ReturnType<typeof playOption>)[]) => {
+    const rows = played.flatMap(({ option, compared }) =>
+        STAGES.map((stage, i) => {
+            const c = compared[stage.name];
+            const [from, to] = option.stages[i];
+            const worldSpeed = `${Math.round(stage.speed[0] * from)} → ${Math.round(stage.speed[1] * to)}`;
+            return `| ${option.id} | ${stage.name} | ${from === to ? from.toFixed(1) : `${from.toFixed(1)} → ${to.toFixed(1)}`} | ${worldSpeed} | ${c.cells.join(' | ')} | ${c.survives.join(' / ')} | ${c.noWay} | ${c.afterSlip} |`;
+        })
+    );
+    const scores = played.map(({ option, compared }) => {
+        const most = mostPossibleScore(option.id);
+        const best = STAGES.reduce((a, stage) => a + compared[stage.name].best, 0);
+        return `| ${option.id}: ${option.name.toLowerCase()} | ${most} | ${most > MAX_SCORE ? `**over by ${most - MAX_SCORE}**` : `under by ${MAX_SCORE - most}`} | ${best} |`;
+    });
+    const bots = played.map(({ option }) => {
+        const { checks, failed } = checkPatterns(option);
+        const stagesFailed: string[] = [];
+        let tried = 0;
+        STAGES.forEach((stage, i) => {
+            for (const seed of [1, 2, 3]) {
+                tried++;
+                if (!clearsStage(option, i, seed)) stagesFailed.push(`${stage.name} (seed ${seed})`);
+            }
+        });
+        return `| ${option.id} | ${checks - failed.length} of ${checks} | ${tried - stagesFailed.length} of ${tried} | ${[...failed, ...stagesFailed].join(', ') || '-'} |`;
+    });
+    return [
+        '# Difficulty report: the pace test',
+        '',
+        'Written by `npm run difficulty` on the step 12 test branch: the pretend player',
+        '(`src/game/difficulty/pretendPlayer.ts`) plays each stage ' + RUNS + ' times at each skill level and',
+        'each pace option. The player\'s timing stays in real seconds and real frames, so a faster',
+        'game leaves it less room. Every time and "a minute" here is real time. Do not edit by hand.',
+        '',
+        '## The four options compared',
+        '',
+        '- **World px/sec**: how fast the world really moves, at the start → end of the stage.',
+        '- **Obstacles, a minute, time acting, rests, voids, diamonds**: from the steady player\'s runs,',
+        '  who see most stages to the end. **Time acting** is the share of the time spent jumping or',
+        '  ducking for something. **Typical rest** is the middle one of the gaps in between, and **rests',
+        '  over 1 s** gives their share and how many a minute.',
+        '- **Survives**: steady / average / beginner.',
+        '- **No way through** and **after a slip**: all skills added up, as explained below.',
+        '',
+        '| Option | Stage | Pace | World px/sec | Obstacles | …a minute | Time acting | Typical rest | Rests over 1 s (a minute) | Voids | Diamonds a minute | Survives | No way through | After a slip |',
+        '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+        ...rows,
+        '',
+        '## The highest possible score',
+        '',
+        `Every obstacle and diamond any of a few runs places, all at ×4 (more than anyone could really get), against the world board's limit, \`MAX_SCORE\` = ${MAX_SCORE}. The last column is the best a steady pretend player scored in each stage, added up.`,
+        '',
+        '| Option | Highest possible | Against MAX_SCORE | Steady player\'s best |',
+        '|---|---|---|---|',
+        ...scores,
+        '',
+        '## The pattern bot',
+        '',
+        'The search bot (`src/game/difficulty/patternBot.ts`) looks for a timing that clears each thing,',
+        'allowing ±3 real frames. Every pattern at each speed and pace an option\'s stages start or end',
+        'at (as designed and closed up), and whole stages of live-spawned obstacles with 3 seeds.',
+        '',
+        '| Option | Patterns cleared | Whole stages cleared | Could not clear |',
+        '|---|---|---|---|',
+        ...bots,
+        '',
+        ...played.flatMap(({ option, report }) => [`# Option ${option.id}: ${option.name.toLowerCase()}`, '', report]),
+    ].join('\n');
+};
+
 (FULL ? describe : describe.skip)('difficulty report', () => {
     it('plays every stage at every skill level', () => {
-        const rows: string[] = [];
-        const summary: string[] = [];
-        /** Timing windows by stage and role, gathered from the average player's runs. */
-        const windowRows: string[] = [];
-        /** How busy it is, the voids and the diamonds. */
-        const paceRows: string[] = [];
-        /** Obstacles met by kind, from the steady player's runs (who sees every stage to the end). */
-        const kindRows: string[] = [];
-        /** The build: the first and last thirds of each stage, from the steady and average players. */
-        const buildRows: string[] = [];
-        const KINDS = ['small', 'large', 'mover', 'overhead', 'hole', 'huge', 'void'] as const;
-        for (const skill of SKILLS) {
-            for (const stage of STAGES) {
-                const runs: RunResult[] = [];
-                for (let seed = 1; seed <= RUNS; seed++) runs.push(playStage(stage, skill, seed));
-                const survived = runs.filter((r) => r.survived).length / runs.length;
-                const byRole: Record<string, number> = {};
-                for (const r of runs) {
-                    for (const [role, n] of Object.entries(r.hitsBy)) byRole[role] = (byRole[role] ?? 0) + (n ?? 0);
-                }
-                const worst = Object.entries(byRole)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 3)
-                    .map(([role, n]) => `${role} ${fixed(n / runs.length)}`)
-                    .join(', ');
-                const noWay = runs.reduce((a, r) => a + r.noWayThrough, 0);
-                const afterSlip = runs.reduce((a, r) => a + r.noWayAfterSlip, 0);
-                rows.push(
-                    `| ${skill.name} | ${stage.name} | ${Math.round(survived * 100)}% | ${fixed(mean(runs.map((r) => r.hits)))} ` +
-                    `| ${fixed(mean(runs.map((r) => r.damage)))} | ${fixed(mean(runs.map((r) => r.healed)))} ` +
-                    `| ${fixed(mean(runs.map((r) => r.seconds)), 0)}s | ${fixed(mean(runs.map((r) => r.obstacles)), 0)} ` +
-                    `| ${worst || '-'} | ${noWay} | ${afterSlip} |`
-                );
-                const rests = runs.flatMap((r) => r.rests);
-                const minutes = runs.reduce((a, r) => a + r.seconds, 0) / 60;
-                const longRests = rests.filter((sec) => sec > 1).length;
-                const voids = runs.map((r) => r.voids);
-                paceRows.push(
-                    `| ${skill.name} | ${stage.name} | ${Math.round(mean(runs.map((r) => r.busyShare)) * 100)}% ` +
-                    `| ${Math.round((longRests / Math.max(1, rests.length)) * 100)}% | ${fixed(longRests / minutes)} ` +
-                    `| ${fixed(mean(runs.map((r) => Math.max(0, ...r.rests))))}s (${fixed(Math.max(0, ...rests))}s) ` +
-                    `| ${fixed(mean(voids))} (${Math.min(...voids)}-${Math.max(...voids)}) ` +
-                    `| ${fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0)} ` +
-                    `| ${fixed(mean(runs.map((r) => r.pickupsCollected)), 0)} of ${fixed(mean(runs.map((r) => r.pickupsPlaced)), 0)} ` +
-                    `| ${fixed(mean(runs.map((r) => r.longestWithoutPickupSec)))}s (${fixed(Math.max(...runs.map((r) => r.longestWithoutPickupSec)))}s) |`
-                );
-                if (skill.name !== 'beginner') {
-                    const third = (from: number, to: number) => {
-                        // Only the part each run actually played.
-                        const parts = runs
-                            .filter((r) => r.seconds > from)
-                            .map((r) => ({ r, end: Math.min(to, r.seconds) }));
-                        const paces = parts.map(({ r, end }) => paceBetween(r.busy, from, end));
-                        const minutes = parts.reduce((a, { end }) => a + (end - from), 0) / 60;
-                        const allRests = paces.flatMap((p) => p.rests);
-                        const obstacles = parts.reduce((a, { r, end }) => a + r.obstacleSecs.filter((t) => t >= from && t < end).length, 0);
-                        return [
-                            `${Math.round(mean(paces.map((p) => p.busyShare)) * 100)}%`,
-                            fixed(allRests.filter((sec) => sec > 1).length / Math.max(1e-9, minutes)),
-                            `${fixed(Math.max(0, ...allRests))}s`,
-                            fixed(obstacles / Math.max(1e-9, minutes), 0),
-                        ];
-                    };
-                    const first = third(0, stage.durationSec / 3);
-                    const last = third((stage.durationSec * 2) / 3, stage.durationSec);
-                    buildRows.push(`| ${skill.name} | ${stage.name} | ${first.map((c, i) => `${c} → ${last[i]}`).join(' | ')} |`);
-                }
-                if (skill.name === 'steady') {
-                    const cells = KINDS.map((kind) => fixed(mean(runs.map((r) => r.obstaclesBy[kind] ?? 0)), 0));
-                    kindRows.push(`| ${stage.name} | ${cells.join(' | ')} |`);
-                }
-                if (skill.name === 'average') {
-                    const all: Record<string, number[]> = {};
-                    for (const r of runs) {
-                        for (const [role, ws] of Object.entries(r.windows)) (all[role] ??= []).push(...(ws ?? []));
-                    }
-                    const cells = Object.entries(all)
-                        .sort((a, b) => a[0].localeCompare(b[0]))
-                        .map(([role, ws]) => {
-                            const sorted = [...ws].sort((a, b) => a - b);
-                            return `${role} ${fixed(sorted[Math.floor(sorted.length / 2)], 2)} (tightest ${fixed(sorted[0], 2)})`;
-                        });
-                    windowRows.push(`| ${stage.name} | ${cells.join(', ')} |`);
-                }
-                summary.push(`${skill.name.padEnd(9)} ${stage.name.padEnd(19)} survive ${String(Math.round(survived * 100)).padStart(3)}%  hits ${fixed(mean(runs.map((r) => r.hits)))}`);
-            }
-        }
-
-        const report = [
-            '# Difficulty report',
-            '',
-            'Written by `npm run difficulty`: the pretend player (`src/game/difficulty/pretendPlayer.ts`)',
-            `plays each stage ${RUNS} times at each skill level, from full health (${MAX_HEALTH}), with the real`,
-            'game code. Do not edit by hand; run it again after changing obstacles, patterns or pacing.',
-            '',
-            'Skill levels: how far off each press lands (standard deviation), and how often an obstacle',
-            'gets no reaction at all.',
-            '',
-            ...SKILLS.map((s) => `- **${s.name}**: ±${s.timingSdSec.toFixed(2)} sec, misses ${Math.round(s.slipChance * 100)} in 100`),
-            '',
-            '| Skill | Stage | Survives | Hits | Health lost | Hearts healed | Lasts | Obstacles | Hit most by (per run) | No way through | After a slip |',
-            '|---|---|---|---|---|---|---|---|---|---|---|',
-            ...rows,
-            '',
-            '## Pace, voids and diamonds',
-            '',
-            '- **Busy**: the share of the time spent jumping or ducking for something. Each obstacle',
-            '  keeps the player busy for as long as its move takes (a jump 0.67 sec, a duck 0.55 sec,',
-            '  a double jump 1.2 sec), centred on it.',
-            '- **Rests**: the gaps in between. The share of them longer than a second, how many of those',
-            '  come a minute, and the longest rest (typical run, and the longest in any run).',
-            '- **Voids** per run (fewest-most), **diamonds** reaching the runner a minute, how many the',
-            '  pretend player collects without trying to (it only aims for the obstacles), and the',
-            '  longest stretch with no diamond coming (typical run, and the longest in any run).',
-            '',
-            '| Skill | Stage | Busy | Rests over 1 s | …a minute | Longest rest | Voids | Diamonds a minute | Collected | Longest without |',
-            '|---|---|---|---|---|---|---|---|---|---|',
-            ...paceRows,
-            '',
-            '## The build',
-            '',
-            'Each stage eases in and builds to its busiest at the end. The same measures for the first',
-            'third of each stage → the last third: the share of time busy, rests over a second a',
-            'minute, the longest rest, and obstacles a minute. Only the part of each run played counts.',
-            '',
-            '| Skill | Stage | Busy | Rests over 1 s a minute | Longest rest | Obstacles a minute |',
-            '|---|---|---|---|---|---|',
-            ...buildRows,
-            '',
-            '## Obstacles by kind',
-            '',
-            'How many of each kind a run meets, from the steady player\'s runs.',
-            '',
-            `| Stage | ${KINDS.join(' | ')} |`,
-            `|---|${KINDS.map(() => '---').join('|')}|`,
-            ...kindRows,
-            '',
-            '## Timing windows',
-            '',
-            'How long the player has to press, in seconds, for each kind of obstacle: the typical',
-            'window, and the tightest one met. Wider is more forgiving. Groups (two blocks one jump',
-            'clears) count under their first obstacle.',
-            '',
-            '| Stage | Window by obstacle |',
-            '|---|---|',
-            ...windowRows,
-            '',
-            '"No way through" counts obstacles the player met with no timing at all that got past (for',
-            'example a wide block with too little energy for the double jump). It should be 0.',
-            '"After a slip" counts the same, but only within a few seconds of the player\'s own slip: a tap',
-            'made while still in the air from the last jump is a double jump, which can float into the',
-            'next obstacle. The game was fair; the player wasted the energy or the jump.',
-            '',
-        ].join('\n');
+        const played = OPTIONS.map((option) => ({ option, ...playOption(option) }));
+        const summary = played.flatMap((p) => p.summary);
+        const report = OPTIONS.length === 1 && OPTIONS[0].id === 'A'
+            ? `# Difficulty report\n\n${played[0].report}`
+            : comparisonReport(played);
         fs.writeFileSync(path.join(__dirname, '../../../docs/DIFFICULTY.md'), report);
         console.log(summary.join('\n'));
     });
