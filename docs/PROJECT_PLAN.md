@@ -36,14 +36,12 @@ back to a sunset on 23 October, so its name fits again.
 
 **Playable on an iPhone** as a home screen web app (see §6), as well as in Expo Go.
 
-**Current focus:** step 11, making the game busier and harder while always achievable (Pete,
-26 October), live on 26 October. Step 10 (a faster pace and voids) went live on 26 October. Before that, the
+**Current focus:** step 12, testing whether a faster game is more fun (Pete, 31 October). Step 11, busier and harder, went live on 26 October. Step 10 (a faster pace and voids) went live on 26 October. Before that, the
 **architecture pass** (§4A) was done and live (25 October): small tidy-ups
 that changed nothing you can see or feel, so new obstacles, stages and mechanics are each a change
 in one or two places. **U1**, the Expo SDK upgrade so Expo Go opens the game again, went live on 26 October.
-Next, back to the gameplay pass (§4): steps 0–8 are done and live (step 11 brought in step 8's
-calm and busy sections that follow the music); step 9 has its pulse on the floor, and the
-bonus for landing on the beat is next.
+Next, **step 12: testing a faster game** (§4), planned 31 October. The bonus for landing on the
+beat (step 9 part 2) is parked on the branch `parked/beat-bonus`. Steps 0–8 are done and live.
 
 ---
 
@@ -412,8 +410,9 @@ Hidden while paused. Tests in `beatPulse.test.ts`.
 4. **A tally:** "ON THE BEAT: 23" on the Stage Clear and Game Over screens, so there's
    something to beat next time.
 
-*Part 2, landing on the beat:* built 27 October (branch `claude/s9-beat-bonus-294aa9`), not yet
-played by Pete.
+*Part 2, landing on the beat:* **parked 31 October** (Pete: "the beat work is missing the mark").
+Kept on the local branch `parked/beat-bonus`, not merged and not pushed. Parts 3 and 4 won't be
+built. Part 1, the floor pulse, is still live. What the parked branch holds:
 - `src/game/beatBonus.ts`, run last in `stepWorld`: a landing within ±0.1 s of a pulse crossing
   the runner's line (only pulsing beats, so every other beat in stages 3–4) gives 2 points
   through the streak multiplier and a quarter of the energy bar, capped at full. A landing that
@@ -428,7 +427,7 @@ played by Pete.
   barely moved. Checked: tsc clean, eslint 0 errors, 579 tests.
 - *For Pete to decide when he plays it:* (1) 2 points is twice a diamond: keep it, or 1 point and
   keep the old cap; (2) does the ±0.1 s window feel too loose or too tight when you aim for it;
-  (3) does a quarter of the bar make the void pairs too easy.
+  (3) does a quarter of the bar make the void pairs too easy. (Not decided: parked first.)
 
 *Build order, each tried on the phone before the next.*
 1. **The pulse alone** (no scoring): the band, its timing, its brightness and how often. Check
@@ -522,6 +521,67 @@ Merged into `main` and live on 26 October, on Pete's word.
   (3) an early tap in mid-air does a double jump when there's energy for one, which can float
   you into the next obstacle: a tap just before landing could always mean "jump on landing".
   Obstacles rose about 15%, not a third: the gentle openings and the safe minimum gaps cap it.
+
+**Step 12 — test a faster game.** Planned 31 October; not started. Pete, after playing: the game
+can be more fun "simply by speeding up the pace of the game - the runner and the movement", and
+"speed of running can build over each stage... Each stage can start further into the
+acceleration curve". This moves away from keeping obstacles to the beat, so it's a test first:
+nothing changes on the live game until Pete has played it and chosen.
+
+*The idea: one pace dial, on a curve.* Pace speeds up everything together: the scrolling, the
+jump, the duck, the gaps between obstacles, energy refill. The music and the 3-minute stage don't
+change. Because a jump speeds up with the world, it still covers the same distance, so every
+obstacle size still works (a void still needs a double jump). Just raising the scroll speed
+wouldn't: from about 450 px/sec one plain jump would carry over a void.
+
+*Obstacle maths:* patterns are timed in seconds of game time, so a faster pace brings more
+obstacles a minute without changing any pattern. Obstacles leave the beat grid, because game
+time no longer runs with the music.
+
+*What gets tested* (same build, picked from a row on the title screen; each builds through the
+stage and each stage starts further along):
+
+| Option | Stage 1 | Stage 2 | Stage 3 | Stage 4 | World speed, px/sec | Time to see an obstacle, last moment of the game | One jump lasts, at the fastest |
+|---|---|---|---|---|---|---|---|
+| A: today | 1.0 | 1.0 | 1.0 | 1.0 | 260 → 360 | 1.5 s | 0.67 s |
+| B: flat | 1.3 | 1.3 | 1.3 | 1.3 | 338 → 468 | 1.2 s | 0.51 s |
+| C: gentle curve | 1.0 → 1.2 | 1.1 → 1.3 | 1.2 → 1.4 | 1.3 → 1.5 | 260 → 540 | 1.0 s | 0.44 s |
+| D: bold curve | 1.1 → 1.4 | 1.2 → 1.5 | 1.3 → 1.6 | 1.4 → 1.7 | 286 → 612 | 0.9 s | 0.39 s |
+
+B is there to show whether the build itself adds to the fun, or only the speed. D is meant to
+find the ceiling, and may well be too much.
+
+*Round 1, build the test (one session, its own branch, never merged as it stands):*
+- A pace setting in the shared step, driven by each option's curve. Everything runs on game time;
+  the stage clock, music and sky stay on real time.
+- The option picker on the title screen, with the option shown small during play.
+- **Test scores don't go to the world scoreboard:** previews share the real board, and these
+  scores can't be compared with it.
+- A slow frame moves further at a faster pace, so check the "capped at 2" frame rule
+  (`frame.ts`) still can't carry the runner through an obstacle.
+- Pretend player and pattern bot run at every option, with human timing kept in real seconds and
+  real frames, so a faster game properly gets harder for them. The report compares all four:
+  obstacles a minute, rests, survival per skill, diamonds, and "no way through", which must be 0.
+- Pushed to a Vercel preview, since builds served from the Mac stutter on the phone.
+
+*Round 2, Pete and his son play it on the phone.* Stage 1 and stage 4 on each option. For each:
+was it more fun? Could you see things coming? Were hits your own fault? Does the jump feel snappy
+or twitchy? Is the floor pulse still welcome now obstacles aren't on the beat?
+
+*Round 3, tune the winner.* Most likely dials: fewer obstacles if it's fast but too crowded (a
+density dial, separate from pace), more hearts or a gentler stage 1, where the curve starts and
+ends.
+
+*Round 4, make it real, only if it wins.* Take out the picker. Decide what happens to the beat
+grid and the floor pulse, and update decision 2. Raise the world scoreboard's score cap if needed
+and start a new season (`SEASON`), since faster scores won't compare with the old ones. Then the
+usual: Pete's OK, merge, push.
+
+*Known risks:*
+- Beginners: the pretend beginner already finishes no stage. Faster makes that worse, and Pete's
+  son plays too, so a kinder stage 1 may be needed whichever option wins.
+- Human limits: a rest of 0.27 s (a duck to a jump at pace 1.5) is close to how fast anyone can
+  react, though looking ahead helps. The bots can't judge this, which is why Round 2 matters most.
 
 ### How each step is checked
 
@@ -759,9 +819,10 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 7: holes in the floor | ✅ Done; in stage 1 from 35 sec |
 | Gameplay step 8: obstacle sequencing and difficulty | ✅ Done; its music sections came in step 11 |
 | Pretend player and difficulty report | ✅ Done (`npm run difficulty`) |
-| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse done; bonus built 27 October, to playtest |
+| Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
+| Gameplay step 12: test a faster game | Planned 31 October, waiting for Pete's go-ahead |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
