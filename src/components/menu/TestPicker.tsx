@@ -53,9 +53,13 @@ export const TestPicker = ({ choice, onPickOption, onPickStage }: Props) => {
 };
 
 const styles = StyleSheet.create({
+    // A dark band, so it reads over the sun and the horizon glow.
     picker: {
         alignItems: 'center',
         marginBottom: 4,
+        paddingVertical: 3,
+        paddingHorizontal: 10,
+        backgroundColor: 'rgba(4, 2, 12, 0.72)',
     },
     rows: {
         flexDirection: 'row',

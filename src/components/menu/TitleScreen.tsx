@@ -57,9 +57,9 @@ export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowT
 
             <View style={styles.feature}>
                 {feature === 'world' && worldEntries ? (
-                    <WorldBoard entries={worldEntries} />
+                    <View style={styles.smallTable}><WorldBoard entries={worldEntries} /></View>
                 ) : feature === 'best' ? (
-                    <BestRuns entries={scoreTable} />
+                    <View style={styles.smallTable}><BestRuns entries={scoreTable} /></View>
                 ) : (
                     <ShinyLogo width={340} />
                 )}
@@ -100,6 +100,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         letterSpacing: 3,
         color: NEON.yellow,
+    },
+    // The tables are drawn a little smaller, to leave room for the test build's picker.
+    smallTable: {
+        transform: [{ scale: 0.78 }],
     },
     feature: {
         height: 118,
