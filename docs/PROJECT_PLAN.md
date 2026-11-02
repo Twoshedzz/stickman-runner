@@ -604,6 +604,15 @@ Planner's decisions:
 To watch: on stage 4 the pretend average player finishes 10% of Medium runs and none on Hard. Hard
 can be that tough, but if Medium feels too hard its pace is the first thing to lower.
 
+Built 2 November on `claude/s12-difficulty-8f2140` (94f9207), not pushed. Planner re-ran the checks:
+types clean, lint 0 errors and 39 warnings, 691 tests passed and 1 skipped. Highest possible: Easy
+11,876, Medium 15,132, Hard 17,376, all at least 1.25× under the new `MAX_SCORE`. By the session's
+report, Easy's numbers match `main` and the bot clears everything on all three. Beyond the brief,
+Game Over and Finished are tighter on every difficulty, because the new button and name overflowed
+the screen. Still unchecked: an iPhone, the real database and Vercel function, reaching Finished by
+playing, and the no-signal queue in a browser (unit tests only). Previews share the real boards, so
+any score entered on a preview from this branch goes on them.
+
 *Round 2, Pete and his son play it on the phone.* Stage 1 and stage 4 on each option. For each:
 was it more fun? Could you see things coming? Were hits your own fault? Does the jump feel snappy
 or twitchy? Is the floor pulse still welcome now obstacles aren't on the beat?
@@ -862,7 +871,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
-| Gameplay step 12: faster game, as Easy, Medium and Hard | Pete chose on 2 November; being built on the test branch |
+| Gameplay step 12: faster game, as Easy, Medium and Hard | Built 2 November, waiting for a preview and Pete's playtest |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
