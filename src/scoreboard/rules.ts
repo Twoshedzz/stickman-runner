@@ -13,6 +13,13 @@ export const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 /** How many entries the board shows. The server keeps a few more, to say where you came. */
 export const BOARD_SIZE = 10;
 
+/** Each difficulty has its own board. Their paces are in src/game/pace.ts. */
+export const DIFFICULTY_IDS = ['easy', 'medium', 'hard'] as const;
+export type DifficultyId = (typeof DIFFICULTY_IDS)[number];
+
+export const isDifficulty = (value: unknown): value is DifficultyId =>
+    DIFFICULTY_IDS.includes(value as DifficultyId);
+
 /**
  * Bump this when the scoring rules change enough that old scores aren't comparable: the
  * board starts empty again, like a new season. The old one stays in the database.
@@ -21,10 +28,11 @@ export const SEASON = 1;
 
 /**
  * No run can score more than this. Each stage has a few hundred pickups and about 130
- * obstacles, all at ×4 at best; src/scoreboard/__tests__/rules.test.ts checks this stays
- * comfortably above the real maximum. A made-up score above it is turned away.
+ * obstacles at Easy's pace, more at Medium's and Hard's, all at ×4 at best. One limit for all
+ * three boards, set by Hard: src/scoreboard/__tests__/rules.test.ts checks it stays at least
+ * 1.25× the real maximum. A made-up score above it is turned away.
  */
-export const MAX_SCORE = 20000;
+export const MAX_SCORE = 25000;
 
 /**
  * Three-letter words that won't go on a public board. Kept short on purpose: three letters

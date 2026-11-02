@@ -1,15 +1,17 @@
 /**
  * The world scoreboard's web address: /api/scores on the game's site.
  *
- *   GET  -> { season, entries }   the top 10, best first
- *   POST { initials, score, completed } -> { rank, entries }
+ *   GET  ?difficulty=hard -> { season, difficulty, entries }   the top 10, best first
+ *   POST { initials, score, completed, difficulty } -> { rank, difficulty, entries }
+ *
+ * Each difficulty has its own board. A request naming none means Easy, and a request naming
+ * one that doesn't exist is refused (400).
  *
  * Vercel runs this as a small server function next to the static site. It needs the
  * Upstash database connected to the Vercel project (docs/PROJECT_PLAN.md §6, "World
  * scoreboard"); until then it answers 503 and the game quietly leaves the world board out.
  */
-import { SEASON } from '../src/scoreboard/rules';
-import { readBoard, senderAddress, submitScore, upstash } from './_lib/scoreboardServer';
+import { getBoard, senderAddress, submitScore, upstash } from './_lib/scoreboardServer';
 
 const reply = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
@@ -38,11 +40,12 @@ const connect = () => {
     return url && token ? upstash(url, token) : null;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
     const redis = connect();
     if (!redis) return reply(503, { error: 'not set up' });
     try {
-        return reply(200, { season: SEASON, entries: await readBoard(redis) });
+        const result = await getBoard(redis, request.url);
+        return reply(result.status, result.body);
     } catch (error) {
         console.error(error);
         return reply(502, { error: 'database' });

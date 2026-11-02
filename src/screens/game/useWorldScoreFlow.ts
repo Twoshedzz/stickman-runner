@@ -4,26 +4,29 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GameState } from '../../game/state';
-import { BOARD_SIZE } from '../../scoreboard/rules';
+import { BOARD_SIZE, DifficultyId } from '../../scoreboard/rules';
 import { SendOutcome, useWorldBoard } from '../../scoreboard/worldBoard';
 import { useLatest } from './useLatest';
 
 /**
- * The world scoreboard. When a run ends with a score that makes the world top 10, it
- * asks for initials before the Game Over or Finished screen. Debug runs never count.
+ * The world scoreboard. When a run ends with a score that makes its difficulty's top 10, it
+ * asks for initials before the Game Over or Finished screen. Debug runs never count. The board
+ * shown is the one for the state's difficulty, which on the title screen is the one picked.
  */
 export const useWorldScoreFlow = (gameState: GameState) => {
-    const world = useWorldBoard();
-    const [enterInitials, setEnterInitials] = useState<{ score: number; completed: boolean } | null>(null);
+    const world = useWorldBoard(gameState.difficulty);
+    const [enterInitials, setEnterInitials] = useState<{ score: number; completed: boolean; difficulty: DifficultyId } | null>(null);
     /** What became of the last run's score on the world board, for the end screens. */
     const [worldResult, setWorldResult] = useState<SendOutcome | null>(null);
+    /** Which board that score went to. */
+    const [enteredOn, setEnteredOn] = useState<DifficultyId | null>(null);
     /**
      * The world top 10 screen: straight after entering initials ('entered', then on to the
      * end screen), or opened from the title or Game Over menu ('browse').
      */
     const [worldScreen, setWorldScreen] = useState<'entered' | 'browse' | null>(null);
-    /** This run's own place on the board, to light up. */
-    const myPlace = worldResult?.outcome === 'sent' && worldResult.rank !== null && worldResult.rank < BOARD_SIZE
+    /** This run's own place on the board, to light up, if that's the board showing. */
+    const myPlace = enteredOn === gameState.difficulty && worldResult?.outcome === 'sent' && worldResult.rank !== null && worldResult.rank < BOARD_SIZE
         ? worldResult.rank
         : -1;
     const runCheckedRef = useRef(false);
@@ -36,21 +39,22 @@ export const useWorldScoreFlow = (gameState: GameState) => {
             if (runCheckedRef.current && gameState.gameStarted) {
                 runCheckedRef.current = false;
                 setWorldResult(null);
-                world.refresh();
+                world.refresh(gameState.difficulty);
             }
             return;
         }
         if (runCheckedRef.current) return;
         runCheckedRef.current = true;
-        if (!gameState.debugMode && world.canEnter(gameState.score)) {
-            setEnterInitials({ score: gameState.score, completed: gameState.gameComplete });
+        if (!gameState.debugMode && world.canEnter(gameState.score, gameState.difficulty)) {
+            setEnterInitials({ score: gameState.score, completed: gameState.gameComplete, difficulty: gameState.difficulty });
         }
-    }, [gameState.gameOver, gameState.gameStarted, gameState.debugMode, gameState.score, gameState.gameComplete, world]);
+    }, [gameState.gameOver, gameState.gameStarted, gameState.debugMode, gameState.score, gameState.gameComplete, gameState.difficulty, world]);
 
     const submitInitials = useCallback(async (initials: string) => {
         const entry = enterInitials;
         setEnterInitials(null);
         if (!entry) return;
+        setEnteredOn(entry.difficulty);
         setWorldResult({ outcome: 'sending' });
         setWorldScreen('entered');
         setWorldResult(await world.submit({ initials, ...entry }));

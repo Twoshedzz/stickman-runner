@@ -8,12 +8,25 @@
  *
  * (Folders starting with _ inside api/ are helpers, not web addresses of their own.)
  */
-import { BOARD_SIZE, isValidInitials, isValidScore, SEASON, WorldEntry } from '../../src/scoreboard/rules';
+import { BOARD_SIZE, DifficultyId, isDifficulty, isValidInitials, isValidScore, SEASON, WorldEntry } from '../../src/scoreboard/rules';
 
 /** Runs a batch of Redis commands and returns each one's result, in order. */
 export type Redis = (commands: (string | number)[][]) => Promise<unknown[]>;
 
-export const BOARD_KEY = `stickman:scores:season${SEASON}`;
+/**
+ * Each difficulty's board. Easy has the key from before there were difficulties, so the
+ * scores already on it stay there.
+ */
+export const boardKey = (difficulty: DifficultyId) =>
+    difficulty === 'easy' ? `stickman:scores:season${SEASON}` : `stickman:scores:season${SEASON}:${difficulty}`;
+
+/**
+ * Which board a request means, or null if it names one that doesn't exist. Naming none means
+ * Easy, so older builds still running keep working.
+ */
+const askedFor = (difficulty: unknown): DifficultyId | null =>
+    difficulty === undefined ? 'easy' : isDifficulty(difficulty) ? difficulty : null;
+
 /** Entries kept beyond the board, so a run that doesn't make the top 10 still learns its place. */
 const KEEP = 100;
 /** No one device (well, one internet address) sends more than this many scores in the window. */
@@ -52,9 +65,9 @@ const toEntry = (member: string, score: string | number): WorldEntry | null => {
     }
 };
 
-/** The top of the board, best first. */
-export const readBoard = async (redis: Redis): Promise<WorldEntry[]> => {
-    const [flat] = (await redis([['ZRANGE', BOARD_KEY, 0, BOARD_SIZE - 1, 'REV', 'WITHSCORES']])) as [string[]];
+/** The top of a difficulty's board, best first. */
+export const readBoard = async (redis: Redis, difficulty: DifficultyId): Promise<WorldEntry[]> => {
+    const [flat] = (await redis([['ZRANGE', boardKey(difficulty), 0, BOARD_SIZE - 1, 'REV', 'WITHSCORES']])) as [string[]];
     const entries: WorldEntry[] = [];
     // Comes back as one flat list: member, score, member, score...
     for (let i = 0; i + 1 < (flat ?? []).length; i += 2) {
@@ -69,9 +82,17 @@ export interface Reply {
     body: Record<string, unknown>;
 }
 
+/** A request for a board: `url` is the address asked for, with ?difficulty= on the end. */
+export const getBoard = async (redis: Redis, url: string): Promise<Reply> => {
+    const difficulty = askedFor(new URL(url, 'https://site').searchParams.get('difficulty') ?? undefined);
+    if (!difficulty) return { status: 400, body: { error: 'difficulty' } };
+    return { status: 200, body: { season: SEASON, difficulty, entries: await readBoard(redis, difficulty) } };
+};
+
 /**
- * Add a score sent by the game. Turns away anything that isn't three letters and a possible
- * score, and anyone sending a great many. Replies with where it came (0 = top) and the board.
+ * Add a score sent by the game to its difficulty's board. Turns away anything that isn't three
+ * letters and a possible score on a real board, and anyone sending a great many (across all the
+ * boards). Replies with where it came (0 = top) and the board.
  */
 export const submitScore = async (
     redis: Redis,
@@ -80,9 +101,11 @@ export const submitScore = async (
     now = new Date(),
     random: () => number = Math.random
 ): Promise<Reply> => {
-    const { initials, score, completed } = (body ?? {}) as Record<string, unknown>;
+    const { initials, score, completed, difficulty: asked } = (body ?? {}) as Record<string, unknown>;
     if (!isValidInitials(initials)) return { status: 400, body: { error: 'initials' } };
     if (!isValidScore(score)) return { status: 400, body: { error: 'score' } };
+    const difficulty = askedFor(asked);
+    if (!difficulty) return { status: 400, body: { error: 'difficulty' } };
 
     const rateKey = `stickman:rate:${address}`;
     const [count] = (await redis([['INCR', rateKey]])) as [number];
@@ -96,14 +119,15 @@ export const submitScore = async (
         n: random().toString(36).slice(2, 8),
     };
     const member = JSON.stringify(stored);
+    const key = boardKey(difficulty);
     const [, , rank] = await redis([
-        ['ZADD', BOARD_KEY, score, member],
-        ['ZREMRANGEBYRANK', BOARD_KEY, 0, -(KEEP + 1)],
-        ['ZREVRANK', BOARD_KEY, member],
+        ['ZADD', key, score, member],
+        ['ZREMRANGEBYRANK', key, 0, -(KEEP + 1)],
+        ['ZREVRANK', key, member],
     ]);
     return {
         status: 200,
-        body: { rank: typeof rank === 'number' ? rank : null, entries: await readBoard(redis) },
+        body: { rank: typeof rank === 'number' ? rank : null, difficulty, entries: await readBoard(redis, difficulty) },
     };
 };
 

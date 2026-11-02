@@ -2,10 +2,20 @@
  * The world scoreboard's rules, and a check that the score limit stays well above anything
  * a real run can reach as the scoring changes.
  */
-import { speedAt, STAGES } from '../../game/stages';
-import { createInitialState } from '../../game/state';
-import { spawnObstacle } from '../../game/systems/spawn';
-import { BOARD_SIZE, isValidInitials, isValidScore, MAX_SCORE, qualifies, WorldEntry } from '../rules';
+import { mostPossibleScore } from '../../game/difficulty/pretendPlayer';
+import { DIFFICULTIES } from '../../game/pace';
+import { BOARD_SIZE, DIFFICULTY_IDS, isDifficulty, isValidInitials, isValidScore, MAX_SCORE, qualifies, WorldEntry } from '../rules';
+
+describe('difficulties', () => {
+    it('the three in the pace table are the three with boards', () => {
+        expect(DIFFICULTIES.map((d) => d.id)).toEqual([...DIFFICULTY_IDS]);
+    });
+
+    it('anything else is not one', () => {
+        expect(isDifficulty('hard')).toBe(true);
+        for (const other of ['HARD', 'nightmare', '', null, undefined, 1]) expect(isDifficulty(other)).toBe(false);
+    });
+});
 
 describe('initials', () => {
     it('three capital letters', () => {
@@ -36,36 +46,12 @@ describe('scores', () => {
     });
 
     it('the limit is well above the most a real run could score', () => {
-        // Everything a whole run could possibly collect or clear, all at ×4.
-        let most = 0;
-        for (const stage of STAGES) {
-            let busiest = 0;
-            for (const seed of [1, 2, 3, 4, 5]) {
-                let s = seed;
-                const random = () => {
-                    s = (s * 1664525 + 1013904223) % 4294967296;
-                    return s / 4294967296;
-                };
-                const state = createInitialState();
-                state.stageId = stage.id;
-                state.player.health = 5; // hurt, so hearts are placed too
-                const frames = Math.round(stage.durationSec * 60);
-                const seen = new Set<string>();
-                for (let f = 0; f < frames; f++) {
-                    state.stageProgress = f / frames;
-                    state.elapsedSecInStage = f / 60;
-                    state.speed = speedAt(stage, state.stageProgress);
-                    spawnObstacle(state, stage, 1 / 60, random);
-                    state.obstacles.forEach((o) => seen.add(`o${o.id}`));
-                    state.pickups.forEach((p) => seen.add(`p${p.id}`));
-                    state.obstacles.forEach((o) => { o.x -= state.speed / 60; });
-                    state.pickups.forEach((p) => { p.x -= state.speed / 60; });
-                }
-                busiest = Math.max(busiest, seen.size);
-            }
-            most += busiest * 4;
+        // Everything a whole run could possibly collect or clear, all at ×4. Hard, the fastest,
+        // places the most.
+        for (const id of DIFFICULTY_IDS) {
+            expect(MAX_SCORE).toBeGreaterThan(mostPossibleScore(id) * 1.25);
         }
-        expect(MAX_SCORE).toBeGreaterThan(most * 1.25);
+        expect(mostPossibleScore('hard')).toBeGreaterThan(mostPossibleScore('easy'));
     });
 });
 

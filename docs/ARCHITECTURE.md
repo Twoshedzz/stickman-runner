@@ -62,6 +62,8 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 
 **Trade-off:** `distance` and `courseLength` are a clock in disguise (they drive the sky's timeline), not how far the runner has gone; that is `state.scroll`. Each stage's world speed rises between two numbers (`speed` in `stages.ts`), and obstacle gaps are set in seconds, so they stay fair at any speed.
 
+**Difficulty is game time running faster than the clock.** Easy, Medium and Hard (`src/game/pace.ts`, picked on the title screen) each have a pace per stage: 1.3 means 1.3 seconds of game in each real second. Everything in `stepWorld` runs on game time; the music, the stage clock, its progress, the sky and the finish stay on real time. A jump covers the same distance at any pace, so no obstacle needs a different size. Easy is pace 1, with obstacles on the music's beat; Medium and Hard run off the beat, since game time no longer runs with the music. The choice is held in memory, not saved: a fresh start is on Easy.
+
 ## 6. Phone primary; web as preview
 
 **Decision:** Optimise for the phone (Expo Go, later an installable app). Phone browsers are a close second: the game saved to the iPhone home screen fills the screen and is how it's tested for now. Keep web export and deploy docs for sharing, but do not treat CanvasKit stability as a hard requirement for “done.”
@@ -143,6 +145,8 @@ extra packages. The phone app calls the live site's address.
 - The board is optional: when it can't be reached (no signal, not set up, the dev server) the
   game carries on with its own best-runs table, and holds unsent scores until next time.
 
+There are three boards, one per difficulty. Easy has the database key from before there were difficulties, so it kept its scores, and a request naming no difficulty means Easy, so older builds still running keep working. The game loads all three at the start, keeps each one's last-seen copy apart, and a score held back for lack of signal remembers its difficulty.
+
 **Trade-off:** Scores can't be proved genuine without replaying runs on the server, which isn't
 worth it here. The server checks the shape of an entry, caps the score at what's possible, and
 limits how often one address can send. `api/tsconfig.json` makes the function plain CommonJS,
@@ -186,12 +190,13 @@ Drawing
        └─ pickups, the runner (Stickman.tsx), the finish line, sparks
 
 Around the run
- loop/useScoreTable.ts: the high score and best runs, saved when a run ends or
-                        pauses, or the app goes to the background
+ loop/useDifficultyChoice.ts: the difficulty picked, in memory, for each new run
+ loop/useScoreTable.ts: each difficulty's high score and best runs, saved when a run
+                        ends or pauses, or the app goes to the background
  src/hooks/musicShared.ts: the music rules the phone (expo-audio) and web versions share
 ```
 
-The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock by counting frames, then calls the same `stepWorld`. So anything added to `stepWorld` is played by the game and measured by `npm run difficulty` alike.
+The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock by counting frames, then calls the same `stepWorld`. So anything added to `stepWorld` is played by the game and measured by `npm run difficulty` alike. It plays every difficulty; its timing stays in real time, so a faster game leaves it less room, as it does a person.
 
 ## Where to change what
 
@@ -204,6 +209,7 @@ The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock b
 | Obstacle patterns and the gaps between them | `src/game/patterns.ts`; the spawner in `src/game/systems/spawn.ts` |
 | How hard each stage gets, and when each obstacle turns up | `pacing` in `src/game/stages.ts`: how it builds with its music (`build`), breathers, voids at set moments (`planned`) |
 | One frame's order (shared by the game and the pretend player) | `src/game/step.ts` |
+| Easy, Medium and Hard: each stage's pace | `DIFFICULTIES` in `src/game/pace.ts`; picked with `src/components/menu/DifficultyPicker.tsx` and `src/game/loop/useDifficultyChoice.ts` |
 | Loop / stage timing / Continue | `src/game/loop/useGameLoop.ts` |
 | When the screen draws again | `src/game/loop/redraw.ts` |
 | Stage clock following the music | `src/game/musicSync.ts` |
@@ -221,8 +227,8 @@ The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock b
 | Menu screens | `src/components/menu/` |
 | Touch and keyboard | `src/game/swipe.ts`, `src/screens/game/useRunInput.ts`, `src/screens/game/RunInputLayer.tsx`, `src/screens/game/useWebKeyboard.ts` |
 | Music | track list in `src/hooks/musicTracks.ts`; `src/hooks/useBackgroundMusic.ts` (+ `.web.ts`), `src/hooks/useMenuMusic.ts` (+ `.web.ts`), shared rules in `src/hooks/musicShared.ts`; when it starts and stops in `src/screens/game/useStageMusic.ts` |
-| High score and best runs | `src/game/loop/useScoreTable.ts` |
-| World scoreboard | `api/scores.ts`, `api/_lib/scoreboardServer.ts` (server); `src/scoreboard/` (rules, game side); `src/screens/game/useWorldScoreFlow.ts`; `src/components/menu/InitialsScreen.tsx`, `WorldBoard.tsx`, `WorldScoresScreen.tsx` |
+| High score and best runs, per difficulty | `src/game/loop/useScoreTable.ts` |
+| World scoreboards, per difficulty | `api/scores.ts`, `api/_lib/scoreboardServer.ts` (server); `src/scoreboard/` (rules, game side); `src/screens/game/useWorldScoreFlow.ts`; `src/components/menu/InitialsScreen.tsx`, `WorldBoard.tsx`, `WorldScoresScreen.tsx` |
 | Viewport / centering | `src/screens/game/useViewport.ts` (`viewWidth`), `src/components/GameCanvas.tsx` (`gameOffsetX`), `src/components/GridFloor.tsx` (`vanishX`) |
 | How hard it is, measured | `src/game/difficulty/pretendPlayer.ts`; `npm run difficulty` writes [DIFFICULTY.md](./DIFFICULTY.md) |
 
@@ -248,7 +254,8 @@ Checks: the usual ones (`npm test` plays every pattern with the real physics at 
 1. **Music**: the track in `assets/`, and a key for it in `MUSIC_TRACKS` (`src/hooks/musicTracks.ts`). Measure where the music really ends and its beat (seconds per beat, and when the first beat falls).
 2. **Scenery**: a component in `src/components/backgrounds/` that takes `SceneryProps` (image strips from a `scripts/generate-*-strips.js`, shapes, or both). Add a name to `BackgroundType` in `stages.ts` and an entry to `SCENERY` in `backgrounds/scenery.ts`. If it loads images, mark it `loadsAssets: true` and call `onAssetsReady` once they're ready.
 3. **`src/game/stages.ts`**: a new entry in `STAGES`, in play order. Copying the nearest stage is easiest: `id`, `name`, `theme` colours, `assets.backgroundType`, `audio.musicTrack`, `pacing`, `speed`, `durationSec` (where the music ends), `beat`, `courseLength: COURSE_LENGTH`, its `timeline`, and a `sky` block only if it needs touches of its own.
-4. **The world scoreboard's cap**: `MAX_SCORE` in `src/scoreboard/rules.ts` turns away scores no real game could reach. A fifth stage may need it raised; `rules.test.ts` checks it stays above the real maximum. It's checked on the server too, so the change goes live with the site.
+4. **`DIFFICULTIES` in `src/game/pace.ts`**: the new stage's pace in each difficulty's `stages`, in play order.
+5. **The world scoreboard's cap**: `MAX_SCORE` in `src/scoreboard/rules.ts` turns away scores no real game could reach. A fifth stage may need it raised; `rules.test.ts` checks it stays 1.25× above the real maximum at each difficulty. It's checked on the server too, so the change goes live with the site.
 
 Continue, the last-stage check, the stage banner and the debug stage buttons all follow `STAGES`, so nothing else lists the stages.
 
@@ -273,7 +280,7 @@ Checks: the usual ones, then `npm run difficulty`. A mechanic that only adds poi
 - **Draw code adds `gameOffsetX`.** Game logic works in the 600-wide space; on wide screens it's drawn centered, so anything drawn at a game position adds the offset (§11).
 - **Stages run on the clock.** Progress, distance, the sky and the finish come from time, never from frames or how far the world has scrolled (§5).
 - **Anything new a menu shows from game state goes in `shownKey`** in `src/game/loop/redraw.ts`; away from play the screen only draws when that changes. `redraw.test.ts` checks the key against `whichScreens`.
-- **A change meant to change nothing leaves `npm run difficulty` byte-identical.** The pretend player uses fixed dice, so any difference means the game plays differently. Run it before and after and compare the two fresh runs (12 runs per stage and skill is the default; the committed DIFFICULTY.md was made with `DIFFICULTY_RUNS=20`, so don't compare against that). Put DIFFICULTY.md back afterwards if it was only a check.
+- **A change meant to change nothing leaves `npm run difficulty` byte-identical.** The pretend player uses fixed dice, so any difference means the game plays differently. Run it before and after and compare the two fresh runs (12 runs per stage and skill is the default; the committed DIFFICULTY.md was made with `DIFFICULTY_RUNS=20`, so don't compare against that; `DIFFICULTY_LEVELS=easy` plays only Easy, which is quicker). Put DIFFICULTY.md back afterwards if it was only a check.
 
 ## Related docs
 

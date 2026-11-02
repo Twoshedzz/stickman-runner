@@ -11,6 +11,8 @@ const SWIPE_PX = 20;
 
 interface Props {
     score: number;
+    /** Whose board it is, as shown. */
+    difficultyName: string;
     /** Start from the initials used last time, so it's usually one tap. */
     initials: string;
     keyboard: boolean;
@@ -25,7 +27,7 @@ const startingLetters = (initials: string) =>
  * The run made the world top 10: three letters, arcade style. ▲ and ▼ (or a swipe up or
  * down on the letter) step through the alphabet; on a keyboard, just type.
  */
-export const InitialsScreen = ({ score, initials, keyboard, onSubmit, onSkip }: Props) => {
+export const InitialsScreen = ({ score, difficultyName, initials, keyboard, onSubmit, onSkip }: Props) => {
     const [letters, setLetters] = useState(() => startingLetters(initials));
     const [cursor, setCursor] = useState(0);
     const [refused, setRefused] = useState(false);
@@ -74,7 +76,7 @@ export const InitialsScreen = ({ score, initials, keyboard, onSubmit, onSkip }: 
         <MenuScreen>
             {/* A dark window, so the letters read clearly over the sun and grid. */}
             <View style={styles.panel}>
-                <RNText style={styles.kicker}>YOU&apos;RE IN THE WORLD TOP 10!</RNText>
+                <RNText style={styles.kicker}>YOU&apos;RE IN THE {difficultyName} WORLD TOP 10!</RNText>
                 <RNText style={styles.score}>{String(score).padStart(6, '0')}</RNText>
                 <RNText style={styles.prompt}>ENTER YOUR INITIALS</RNText>
 

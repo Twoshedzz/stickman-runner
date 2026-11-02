@@ -11,12 +11,13 @@ const COLUMN = BOARD_SIZE / 2;
  * The world top 10, arcade style: place, initials, score, and a star for runs that cleared
  * every stage. Two columns of five, so it fits where the best-runs table does.
  * `highlight` picks out the player's own entry: the whole row in cyan, blinking.
+ * `difficultyName` says whose board it is, in the heading, away from the title's picker.
  */
-export const WorldBoard = ({ entries, highlight = -1 }: { entries: WorldEntry[]; highlight?: number }) => {
+export const WorldBoard = ({ entries, highlight = -1, difficultyName }: { entries: WorldEntry[]; highlight?: number; difficultyName?: string }) => {
     const blinkOn = useBlink(400);
     return (
         <View style={styles.table}>
-            <RNText style={styles.heading}>WORLD TOP {BOARD_SIZE}</RNText>
+            <RNText style={styles.heading}>WORLD TOP {BOARD_SIZE}{difficultyName ? ` · ${difficultyName}` : ''}</RNText>
             {entries.length === 0 ? (
                 <RNText style={styles.empty}>NO SCORES YET {'—'} BE THE FIRST</RNText>
             ) : (

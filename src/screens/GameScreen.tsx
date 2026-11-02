@@ -15,6 +15,7 @@ import { FinishedScreen, GameOverScreen, StageClearScreen } from '../components/
 import { TitleScreen } from '../components/menu/TitleScreen';
 import { WorldScoresScreen } from '../components/menu/WorldScoresScreen';
 import { useGameLoop } from '../game/loop/useGameLoop';
+import { difficultyById } from '../game/pace';
 import { stageById } from '../game/stages';
 import { useBackgroundMusic } from '../hooks/useBackgroundMusic';
 import { DebugPanel } from './game/DebugPanel';
@@ -45,7 +46,7 @@ const GameCanvas = React.lazy(() =>
  */
 export const GameScreen = () => {
     const { fixedPreview, needsRotate, viewWidth, viewHeight, scale, translateX, translateY, hudInsets } = useViewport();
-    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle, setMusicClock } = useGameLoop();
+    const { gameState, gameMetrics, onJump, onDuck, onDuckRelease, restartGame, tick, highScore, scoreTable, newScoreIndex, toggleDebugMode, onContinue, jumpToStage, pauseGame, resumeGame, quitToTitle, setMusicClock, difficulty, pickDifficulty } = useGameLoop();
     const { playMusic, stopMusic, pauseMusic, resumeMusic, musicPosition, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
@@ -61,6 +62,7 @@ export const GameScreen = () => {
     const openHowToPlay = () => setShowInstructions(true);
     const stage = stageById(gameState.stageId);
     const stageNo = stageNumber(gameState.stageId);
+    const difficultyName = difficultyById(gameState.difficulty).name;
 
     return (
         <View style={[styles.container, fixedPreview && styles.containerWeb]}>
@@ -110,12 +112,15 @@ export const GameScreen = () => {
                             onStart={startGame}
                             onHowToPlay={openHowToPlay}
                             onWorldScores={browseWorld}
+                            difficulty={difficulty}
+                            onPickDifficulty={pickDifficulty}
                         />
                     )}
                     {/* The world top 10, with this run's entry lit up if it's on there */}
                     {shows('worldScores') && (
                         <WorldScoresScreen
                             entries={world.entries}
+                            difficultyName={difficultyName}
                             highlight={myPlace}
                             world={worldScreen === 'entered' ? worldResult : null}
                             offline={world.status === 'offline'}
@@ -140,6 +145,7 @@ export const GameScreen = () => {
                     {shows('initials') && enterInitials && (
                         <InitialsScreen
                             score={enterInitials.score}
+                            difficultyName={difficultyName}
                             initials={world.lastInitials}
                             keyboard={fixedPreview}
                             onSubmit={submitInitials}
@@ -149,19 +155,23 @@ export const GameScreen = () => {
                     {shows('finished') && (
                         <FinishedScreen
                             score={gameState.score}
+                            difficultyName={difficultyName}
                             scoreTable={scoreTable}
                             newScoreIndex={newScoreIndex}
                             world={worldResult}
                             onPlayAgain={playAgain}
+                            onChangeDifficulty={quitRun}
                         />
                     )}
                     {shows('gameOver') && (
                         <GameOverScreen
                             score={gameState.score}
+                            difficultyName={difficultyName}
                             hiScore={highScore}
                             newHiScore={gameState.score > 0 && newScoreIndex === 0}
                             world={worldResult}
                             onPlayAgain={playAgain}
+                            onChangeDifficulty={quitRun}
                             onHowToPlay={openHowToPlay}
                             onWorldScores={browseWorld}
                         />

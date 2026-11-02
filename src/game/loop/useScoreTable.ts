@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DIFFICULTY_IDS, DifficultyId } from '../../scoreboard/rules';
 import { GameState } from '../state';
 
 /** One run in the score table. */
@@ -11,97 +12,113 @@ export interface ScoreEntry {
     completed: boolean;
 }
 
-const HIGH_SCORE_KEY = 'HIGH_SCORE';
-const SCORE_TABLE_KEY = 'SCORE_TABLE';
 const SCORE_TABLE_SIZE = 5;
 
 /**
- * The high score and the best runs, kept between sessions.
+ * Where a difficulty's scores are kept on the phone. Easy has the keys from before there were
+ * difficulties, so the scores people already have stay there.
+ */
+export const scoreKeys = (difficulty: DifficultyId) =>
+    difficulty === 'easy'
+        ? { highScore: 'HIGH_SCORE', table: 'SCORE_TABLE' }
+        : { highScore: `HIGH_SCORE_${difficulty}`, table: `SCORE_TABLE_${difficulty}` };
+
+/**
+ * The high score and the best runs for each difficulty, kept between sessions. Hands back the
+ * ones for `difficulty`, the one picked on the title screen.
  *
  * The high score on screen follows the score live, but it's only written to the phone's
  * storage at moments that matter: the end of a run, a pause, and the app going to the
  * background (so a run that's killed part-way still keeps it). Writing it on every frame
  * the score went up was wasted work.
  */
-export const useScoreTable = () => {
-    const [highScore, setHighScore] = useState(0);
-    const highScoreRef = useRef(0);
-    /** The high score as last read from or written to storage. */
-    const storedHighScoreRef = useRef(0);
+export const useScoreTable = (difficulty: DifficultyId) => {
+    const [highScores, setHighScores] = useState<Record<DifficultyId, number>>({ easy: 0, medium: 0, hard: 0 });
+    const highScoresRef = useRef(highScores);
+    /** The high scores as last read from or written to storage. */
+    const storedHighScoresRef = useRef({ ...highScores });
 
     // The best runs. Every run that scores goes in, not only ones that finish, so a big
     // score that died in stage 4 still counts.
-    const [scoreTable, setScoreTable] = useState<ScoreEntry[]>([]);
-    const scoreTableRef = useRef<ScoreEntry[]>([]);
-    /** Where the run that just ended landed in the table, or -1 if it didn't make it. */
+    const [scoreTables, setScoreTables] = useState<Record<DifficultyId, ScoreEntry[]>>({ easy: [], medium: [], hard: [] });
+    const scoreTablesRef = useRef(scoreTables);
+    /** Where the run that just ended landed in its table, or -1 if it didn't make it. */
     const [newScoreIndex, setNewScoreIndex] = useState(-1);
     const recordedRef = useRef(false);
 
-    // Load the score table
+    // Load the score tables
     useEffect(() => {
-        AsyncStorage.getItem(SCORE_TABLE_KEY).then((raw) => {
-            if (!raw) return;
-            try {
-                const saved = JSON.parse(raw);
-                if (Array.isArray(saved)) {
-                    scoreTableRef.current = saved;
-                    setScoreTable(saved);
+        for (const id of DIFFICULTY_IDS) {
+            AsyncStorage.getItem(scoreKeys(id).table).then((raw) => {
+                if (!raw) return;
+                try {
+                    const saved = JSON.parse(raw);
+                    if (Array.isArray(saved)) {
+                        scoreTablesRef.current = { ...scoreTablesRef.current, [id]: saved };
+                        setScoreTables(scoreTablesRef.current);
+                    }
+                } catch {
+                    // A corrupt table just starts empty again.
                 }
-            } catch {
-                // A corrupt table just starts empty again.
-            }
-        });
-    }, []);
-
-    // Load the high score
-    useEffect(() => {
-        AsyncStorage.getItem(HIGH_SCORE_KEY).then(value => {
-            if (value) {
-                const score = parseInt(value, 10);
-                setHighScore(score);
-                highScoreRef.current = score;
-                storedHighScoreRef.current = score;
-            }
-        });
-    }, []);
-
-    /** Every frame of a run: a score past the high score becomes the new one, on screen. */
-    const noteScore = useCallback((score: number) => {
-        if (score > highScoreRef.current) {
-            highScoreRef.current = score;
-            setHighScore(score);
+            });
         }
     }, []);
 
-    /** Write the high score to storage, if it's gone up since it was last written. */
+    // Load the high scores
+    useEffect(() => {
+        for (const id of DIFFICULTY_IDS) {
+            AsyncStorage.getItem(scoreKeys(id).highScore).then(value => {
+                if (value) {
+                    const score = parseInt(value, 10);
+                    highScoresRef.current = { ...highScoresRef.current, [id]: score };
+                    setHighScores(highScoresRef.current);
+                    storedHighScoresRef.current[id] = score;
+                }
+            });
+        }
+    }, []);
+
+    /** Every frame of a run: a score past the high score becomes the new one, on screen. */
+    const noteScore = useCallback((id: DifficultyId, score: number) => {
+        if (score > highScoresRef.current[id]) {
+            highScoresRef.current = { ...highScoresRef.current, [id]: score };
+            setHighScores(highScoresRef.current);
+        }
+    }, []);
+
+    /** Write the high scores to storage, any that have gone up since they were last written. */
     const saveHighScore = useCallback(() => {
-        if (highScoreRef.current > storedHighScoreRef.current) {
-            storedHighScoreRef.current = highScoreRef.current;
-            AsyncStorage.setItem(HIGH_SCORE_KEY, highScoreRef.current.toString());
+        for (const id of DIFFICULTY_IDS) {
+            if (highScoresRef.current[id] > storedHighScoresRef.current[id]) {
+                storedHighScoresRef.current[id] = highScoresRef.current[id];
+                AsyncStorage.setItem(scoreKeys(id).highScore, highScoresRef.current[id].toString());
+            }
         }
     }, []);
 
     /**
-     * A run has ended: save the high score, and put the run in the table, once. Debug runs are
-     * left out of the table, since debug mode switches off damage and would flood it.
+     * A run has ended: save the high score, and put the run in its difficulty's table, once.
+     * Debug runs are left out of the table, since debug mode switches off damage and would
+     * flood it.
      */
     const recordRun = useCallback((state: GameState) => {
         if (recordedRef.current) return;
         recordedRef.current = true;
         saveHighScore();
         if (state.score > 0 && !state.debugMode) {
+            const id = state.difficulty;
             const entry: ScoreEntry = {
                 score: state.score,
                 date: new Date().toISOString(),
                 completed: state.gameComplete,
             };
-            const table = [...scoreTableRef.current, entry]
+            const table = [...scoreTablesRef.current[id], entry]
                 .sort((a, b) => b.score - a.score)
                 .slice(0, SCORE_TABLE_SIZE);
-            scoreTableRef.current = table;
-            setScoreTable(table);
+            scoreTablesRef.current = { ...scoreTablesRef.current, [id]: table };
+            setScoreTables(scoreTablesRef.current);
             setNewScoreIndex(table.indexOf(entry));
-            AsyncStorage.setItem(SCORE_TABLE_KEY, JSON.stringify(table));
+            AsyncStorage.setItem(scoreKeys(id).table, JSON.stringify(table));
         } else {
             setNewScoreIndex(-1);
         }
@@ -118,5 +135,9 @@ export const useScoreTable = () => {
         setNewScoreIndex(-1);
     }, []);
 
-    return { highScore, scoreTable, newScoreIndex, noteScore, saveHighScore, recordRun, unrecordRun, newRun };
+    return {
+        highScore: highScores[difficulty],
+        scoreTable: scoreTables[difficulty],
+        newScoreIndex, noteScore, saveHighScore, recordRun, unrecordRun, newRun,
+    };
 };

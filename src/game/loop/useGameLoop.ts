@@ -9,6 +9,7 @@ import { stepWorld } from '../step';
 import { jump, releaseDuck, startDuck } from '../systems/physics';
 import { resetSpawner } from '../systems/spawn';
 import { movesEveryFrame, shownKey } from './redraw';
+import { useDifficultyChoice } from './useDifficultyChoice';
 import { useScoreTable } from './useScoreTable';
 
 export type { ScoreEntry } from './useScoreTable';
@@ -30,6 +31,7 @@ const startStage = (state: GameState, stageId: string) => {
     state.stageId = stageId;
     state.distance = 0;
     state.scroll = 0;
+    state.gameSec = 0;
     state.stageStatus = 'playing';
     state.stageStartTime = Date.now() / 1000; // Reset so stage 2+ progress is from 0
     state.obstacles = [];
@@ -70,7 +72,8 @@ export const useGameLoop = () => {
     const musicClockRef = useRef<((trackKey: string) => number | null) | null>(null);
     /** The stage being played, looked up again only when the stage changes. */
     const stageRef = useRef<StageConfig>(stageById(stateRef.current.stageId));
-    const { highScore, scoreTable, newScoreIndex, noteScore, saveHighScore, recordRun, unrecordRun, newRun } = useScoreTable();
+    const { difficulty, applyDifficulty, pickDifficulty } = useDifficultyChoice(stateRef);
+    const { highScore, scoreTable, newScoreIndex, noteScore, saveHighScore, recordRun, unrecordRun, newRun } = useScoreTable(difficulty);
 
     /**
      * Leaving the app (another app, or the phone locked) pauses a run that's going, so it
@@ -180,7 +183,7 @@ export const useGameLoop = () => {
                 }
 
                 // The high score on screen keeps up with the score (it's saved when the run ends or pauses).
-                noteScore(state.score);
+                noteScore(state.difficulty, state.score);
 
                 // Sync UI State (Throttled by actual changes)
                 // Use floor for energy to reduce updates (only update on integer changes)
@@ -220,6 +223,7 @@ export const useGameLoop = () => {
     /** A fresh game state, not yet recorded, with the HUD numbers reset. `started`: straight into the run. */
     const resetRun = useCallback((started: boolean) => {
         stateRef.current = createInitialState();
+        applyDifficulty(stateRef.current);
         lastFrameTimeRef.current = 0;
         stateRef.current.gameStarted = started;
         newRun();
@@ -227,7 +231,7 @@ export const useGameLoop = () => {
         const metrics = startingMetrics();
         metricsRef.current = metrics;
         setGameMetrics(metrics);
-    }, [newRun]);
+    }, [newRun, applyDifficulty]);
 
     /** Play again from the start. */
     const restartGame = useCallback(() => resetRun(true), [resetRun]);
@@ -340,6 +344,8 @@ export const useGameLoop = () => {
         quitToTitle,
         toggleDebugMode,
         jumpToStage,
+        difficulty,
+        pickDifficulty,
         tick: renderTrigger,
         highScore,
         scoreTable,
