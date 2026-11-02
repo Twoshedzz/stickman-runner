@@ -613,6 +613,13 @@ the screen. Still unchecked: an iPhone, the real database and Vercel function, r
 playing, and the no-signal queue in a browser (unit tests only). Previews share the real boards, so
 any score entered on a preview from this branch goes on them.
 
+Preview, pushed 2 November with Pete's OK (94f9207; main and the live site untouched):
+https://stickman-runner-7s6bn6sk3-twoshedzzs-projects.vercel.app. Checked in a browser, muted and
+with no scores entered: the real function answers for all three boards (Easy keeps its 10 entries,
+top 8,651; Medium and Hard are empty) and refuses an unknown difficulty; picking Hard shows Hard's
+empty board; a reload returns to Easy; a run starts on Hard at stage 1 with no pace tag. Sending a
+score to the real database is still unchecked, as is an iPhone.
+
 *Round 2, Pete and his son play it on the phone.* Stage 1 and stage 4 on each option. For each:
 was it more fun? Could you see things coming? Were hits your own fault? Does the jump feel snappy
 or twitchy? Is the floor pulse still welcome now obstacles aren't on the beat?
@@ -871,7 +878,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
-| Gameplay step 12: faster game, as Easy, Medium and Hard | Built 2 November, waiting for a preview and Pete's playtest |
+| Gameplay step 12: faster game, as Easy, Medium and Hard | Preview up 2 November, waiting for Pete's playtest |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
