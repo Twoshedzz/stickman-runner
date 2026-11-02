@@ -522,7 +522,7 @@ Merged into `main` and live on 26 October, on Pete's word.
   you into the next obstacle: a tap just before landing could always mean "jump on landing".
   Obstacles rose about 15%, not a third: the gentle openings and the safe minimum gaps cap it.
 
-**Step 12 — test a faster game.** Round 1 built 31 October (branch `claude/s12-speed-test-918ae3`), not yet played on a phone. Pete, after playing: the game
+**Step 12 — test a faster game.** Done: on Pete's OK it was merged and pushed to main on 2 November as Easy, Medium and Hard. Pete, after playing: the game
 can be more fun "simply by speeding up the pace of the game - the runner and the movement", and
 "speed of running can build over each stage... Each stage can start further into the
 acceleration curve". This moves away from keeping obstacles to the beat, so it's a test first:
@@ -878,7 +878,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
-| Gameplay step 12: faster game, as Easy, Medium and Hard | Preview up 2 November, waiting for Pete's playtest |
+| Gameplay step 12: faster game, as Easy, Medium and Hard | Done: merged and pushed 2 November on Pete's OK |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
