@@ -879,6 +879,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
 | Gameplay step 12: faster game, as Easy, Medium and Hard | Done: merged and pushed 2 November on Pete's OK |
+| Step 13: fixes before parking (music, stuck loading, turning the phone, crashes, How to Play) | Being built on its own branch; Pete asked 2 November |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
