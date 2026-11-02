@@ -587,6 +587,23 @@ Preview, pushed 31 October with Pete's OK (db68b4d; main and the live site untou
 https://stickman-runner-bf5pryw66-twoshedzzs-projects.vercel.app. Checked in a browser: the picker
 changes option and stage, and option B on stage 4 starts at 1.30×. Not yet played on a phone.
 
+*Pete's verdict, 2 November: "I think D is good". The test becomes three difficulty settings.* Easy
+is option A, Medium is C and Hard is D; B is dropped. Pete's rules: the setting is chosen on the home
+screen, each difficulty has its own high score, and the setting lasts over several runs in a session
+unless the player changes it between runs.
+
+Planner's decisions:
+- It isn't saved on the phone, so a fresh start is on Easy (today's game, and the kindest first go).
+- Each difficulty also has its own best runs and its own world top 10. A faster game can score more
+  (highest possible: Easy 11,876, Hard 17,376), so one shared board wouldn't be fair.
+- Existing scores were all played at today's pace, so they stay on Easy, both on phones and on the
+  world board. Nothing is wiped and `SEASON` stays at 1.
+- `MAX_SCORE` goes from 20,000 to 25,000, to keep the 1.25× margin above Hard's highest possible.
+- The test picker goes: every run starts on stage 1, and the pace tag comes off the screen.
+
+To watch: on stage 4 the pretend average player finishes 10% of Medium runs and none on Hard. Hard
+can be that tough, but if Medium feels too hard its pace is the first thing to lower.
+
 *Round 2, Pete and his son play it on the phone.* Stage 1 and stage 4 on each option. For each:
 was it more fun? Could you see things coming? Were hits your own fault? Does the jump feel snappy
 or twitchy? Is the floor pulse still welcome now obstacles aren't on the beat?
@@ -845,7 +862,7 @@ Items marked **(A1)**, **(A4)** or **(A6)** were done in the architecture pass (
 | Gameplay step 9: the beat pulse (a bonus for landing on the beat) | Pulse live; bonus parked 31 October (`parked/beat-bonus`) |
 | Gameplay step 10: faster pace and voids | ✅ Live 26 October |
 | Gameplay step 11: busier and harder, always achievable | ✅ Live 26 October; duck swipe fix 27 October |
-| Gameplay step 12: test a faster game | Round 1 preview up 31 October, waiting for Pete's playtest |
+| Gameplay step 12: faster game, as Easy, Medium and Hard | Pete chose on 2 November; being built on the test branch |
 | Music stays in step after pauses | ✅ Done |
 | Menu music (fades in after a game) | ✅ Done |
 | 3D obstacles | ✅ Done |
