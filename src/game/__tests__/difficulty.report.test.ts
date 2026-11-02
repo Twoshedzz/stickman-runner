@@ -6,21 +6,22 @@
  *   npm test                  - just a quick check that the pretend player still works
  *
  * DIFFICULTY_RUNS sets how many runs per stage and skill (default 12).
- * DIFFICULTY_OPTIONS picks which pace options to play (default all: A,B,C,D). Option A alone
- * writes the report just as it was before the pace test, to compare with `main`.
+ * DIFFICULTY_LEVELS picks which difficulties to play (default all: easy,medium,hard). Easy alone
+ * writes the report in the shape it had before there were difficulties, to compare two runs of a
+ * change meant to change nothing.
  */
 import fs from 'fs';
 import path from 'path';
 import { checkPatterns, clearsStage } from '../difficulty/patternBot';
 import { mostPossibleScore, paceBetween, RunResult, playStage, SKILLS } from '../difficulty/pretendPlayer';
-import { PACE_OPTIONS, PaceOption } from '../pace';
+import { DIFFICULTIES, Difficulty } from '../pace';
 import { STAGES } from '../stages';
 import { MAX_HEALTH } from '../constants';
 import { MAX_SCORE } from '../../scoreboard/rules';
 
 const FULL = process.env.DIFFICULTY_REPORT === '1';
 const RUNS = Number(process.env.DIFFICULTY_RUNS ?? 12);
-const OPTIONS = PACE_OPTIONS.filter((o) => (process.env.DIFFICULTY_OPTIONS ?? 'A,B,C,D').split(',').includes(o.id));
+const LEVELS = DIFFICULTIES.filter((d) => (process.env.DIFFICULTY_LEVELS ?? 'easy,medium,hard').split(',').includes(d.id));
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
 const fixed = (n: number, digits = 1) => n.toFixed(digits);
@@ -34,10 +35,10 @@ describe('the pretend player', () => {
     });
 });
 
-/** Every stage at every skill level, at one pace option. */
-const playOption = (option: PaceOption) => {
+/** Every stage at every skill level, at one difficulty. */
+const playLevel = (level: Difficulty) => {
     const rows: string[] = [];
-    /** One option's line for each stage, for the table comparing the options. */
+    /** One difficulty's line for each stage, for the table comparing them. */
     const compared: Record<string, { survives: string[]; noWay: number; afterSlip: number; cells: string[]; best: number }> = {};
     const summary: string[] = [];
     /** Timing windows by stage and role, gathered from the average player's runs. */
@@ -52,7 +53,7 @@ const playOption = (option: PaceOption) => {
     for (const skill of SKILLS) {
         for (const stage of STAGES) {
             const runs: RunResult[] = [];
-            for (let seed = 1; seed <= RUNS; seed++) runs.push(playStage(stage, skill, seed, option.id));
+            for (let seed = 1; seed <= RUNS; seed++) runs.push(playStage(stage, skill, seed, level.id));
             const survived = runs.filter((r) => r.survived).length / runs.length;
             const byRole: Record<string, number> = {};
             for (const r of runs) {
@@ -139,7 +140,7 @@ const playOption = (option: PaceOption) => {
                     fixed(runs.reduce((a, r) => a + r.pickupsPlaced, 0) / minutes, 0),
                 ];
             }
-            summary.push(`${option.id} ${skill.name.padEnd(9)} ${stage.name.padEnd(19)} survive ${String(Math.round(survived * 100)).padStart(3)}%  hits ${fixed(mean(runs.map((r) => r.hits)))}`);
+            summary.push(`${level.id.padEnd(6)} ${skill.name.padEnd(9)} ${stage.name.padEnd(19)} survive ${String(Math.round(survived * 100)).padStart(3)}%  hits ${fixed(mean(runs.map((r) => r.hits)))}`);
         }
     }
 
@@ -210,43 +211,44 @@ const playOption = (option: PaceOption) => {
     return { report, compared, summary };
 };
 
-/** The report for the pace test: the options side by side, then each one in full. */
-const comparisonReport = (played: ({ option: PaceOption } & ReturnType<typeof playOption>)[]) => {
-    const rows = played.flatMap(({ option, compared }) =>
+/** The whole report: the difficulties side by side, then each one in full. */
+const comparisonReport = (played: ({ level: Difficulty } & ReturnType<typeof playLevel>)[]) => {
+    const rows = played.flatMap(({ level, compared }) =>
         STAGES.map((stage, i) => {
             const c = compared[stage.name];
-            const [from, to] = option.stages[i];
+            const [from, to] = level.stages[i];
             const worldSpeed = `${Math.round(stage.speed[0] * from)} → ${Math.round(stage.speed[1] * to)}`;
-            return `| ${option.id} | ${stage.name} | ${from === to ? from.toFixed(1) : `${from.toFixed(1)} → ${to.toFixed(1)}`} | ${worldSpeed} | ${c.cells.join(' | ')} | ${c.survives.join(' / ')} | ${c.noWay} | ${c.afterSlip} |`;
+            return `| ${level.name} | ${stage.name} | ${from === to ? from.toFixed(1) : `${from.toFixed(1)} → ${to.toFixed(1)}`} | ${worldSpeed} | ${c.cells.join(' | ')} | ${c.survives.join(' / ')} | ${c.noWay} | ${c.afterSlip} |`;
         })
     );
-    const scores = played.map(({ option, compared }) => {
-        const most = mostPossibleScore(option.id);
+    const scores = played.map(({ level, compared }) => {
+        const most = mostPossibleScore(level.id);
         const best = STAGES.reduce((a, stage) => a + compared[stage.name].best, 0);
-        return `| ${option.id}: ${option.name.toLowerCase()} | ${most} | ${most > MAX_SCORE ? `**over by ${most - MAX_SCORE}**` : `under by ${MAX_SCORE - most}`} | ${best} |`;
+        return `| ${level.name} | ${most} | ${most > MAX_SCORE ? `**over by ${most - MAX_SCORE}**` : `under by ${MAX_SCORE - most}`} | ${(MAX_SCORE / most).toFixed(2)}× | ${best} |`;
     });
-    const bots = played.map(({ option }) => {
-        const { checks, failed } = checkPatterns(option);
+    const bots = played.map(({ level }) => {
+        const { checks, failed } = checkPatterns(level);
         const stagesFailed: string[] = [];
         let tried = 0;
         STAGES.forEach((stage, i) => {
             for (const seed of [1, 2, 3]) {
                 tried++;
-                if (!clearsStage(option, i, seed)) stagesFailed.push(`${stage.name} (seed ${seed})`);
+                if (!clearsStage(level, i, seed)) stagesFailed.push(`${stage.name} (seed ${seed})`);
             }
         });
-        return `| ${option.id} | ${checks - failed.length} of ${checks} | ${tried - stagesFailed.length} of ${tried} | ${[...failed, ...stagesFailed].join(', ') || '-'} |`;
+        return `| ${level.name} | ${checks - failed.length} of ${checks} | ${tried - stagesFailed.length} of ${tried} | ${[...failed, ...stagesFailed].join(', ') || '-'} |`;
     });
     return [
-        '# Difficulty report: the pace test',
+        '# Difficulty report',
         '',
-        'Written by `npm run difficulty` on the step 12 test branch: the pretend player',
-        '(`src/game/difficulty/pretendPlayer.ts`) plays each stage ' + RUNS + ' times at each skill level and',
-        'each pace option. The player\'s timing stays in real seconds and real frames, so a faster',
-        'game leaves it less room. Every time and "a minute" here is real time. Do not edit by hand.',
+        'Written by `npm run difficulty`: the pretend player (`src/game/difficulty/pretendPlayer.ts`)',
+        'plays each stage ' + RUNS + ' times at each skill level and each difficulty. The player\'s timing stays',
+        'in real seconds and real frames, so a faster game leaves it less room. Every time and "a',
+        'minute" here is real time. Do not edit by hand.',
         '',
-        '## The four options compared',
+        '## The three difficulties compared',
         '',
+        '- **Pace**: how fast game time runs against real time, at the start → end of the stage (`src/game/pace.ts`).',
         '- **World px/sec**: how fast the world really moves, at the start → end of the stage.',
         '- **Obstacles, a minute, time acting, rests, voids, diamonds**: from the steady player\'s runs,',
         '  who see most stages to the end. **Time acting** is the share of the time spent jumping or',
@@ -255,7 +257,7 @@ const comparisonReport = (played: ({ option: PaceOption } & ReturnType<typeof pl
         '- **Survives**: steady / average / beginner.',
         '- **No way through** and **after a slip**: all skills added up, as explained below.',
         '',
-        '| Option | Stage | Pace | World px/sec | Obstacles | …a minute | Time acting | Typical rest | Rests over 1 s (a minute) | Voids | Diamonds a minute | Survives | No way through | After a slip |',
+        '| Difficulty | Stage | Pace | World px/sec | Obstacles | …a minute | Time acting | Typical rest | Rests over 1 s (a minute) | Voids | Diamonds a minute | Survives | No way through | After a slip |',
         '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
         ...rows,
         '',
@@ -263,29 +265,29 @@ const comparisonReport = (played: ({ option: PaceOption } & ReturnType<typeof pl
         '',
         `Every obstacle and diamond any of a few runs places, all at ×4 (more than anyone could really get), against the world board's limit, \`MAX_SCORE\` = ${MAX_SCORE}. The last column is the best a steady pretend player scored in each stage, added up.`,
         '',
-        '| Option | Highest possible | Against MAX_SCORE | Steady player\'s best |',
-        '|---|---|---|---|',
+        '| Difficulty | Highest possible | Against MAX_SCORE | Margin | Steady player\'s best |',
+        '|---|---|---|---|---|',
         ...scores,
         '',
         '## The pattern bot',
         '',
         'The search bot (`src/game/difficulty/patternBot.ts`) looks for a timing that clears each thing,',
-        'allowing ±3 real frames. Every pattern at each speed and pace an option\'s stages start or end',
+        'allowing ±3 real frames. Every pattern at each speed and pace a difficulty\'s stages start or end',
         'at (as designed and closed up), and whole stages of live-spawned obstacles with 3 seeds.',
         '',
-        '| Option | Patterns cleared | Whole stages cleared | Could not clear |',
+        '| Difficulty | Patterns cleared | Whole stages cleared | Could not clear |',
         '|---|---|---|---|',
         ...bots,
         '',
-        ...played.flatMap(({ option, report }) => [`# Option ${option.id}: ${option.name.toLowerCase()}`, '', report]),
+        ...played.flatMap(({ level, report }) => [`# ${level.name[0]}${level.name.slice(1).toLowerCase()}`, '', report]),
     ].join('\n');
 };
 
 (FULL ? describe : describe.skip)('difficulty report', () => {
     it('plays every stage at every skill level', () => {
-        const played = OPTIONS.map((option) => ({ option, ...playOption(option) }));
+        const played = LEVELS.map((level) => ({ level, ...playLevel(level) }));
         const summary = played.flatMap((p) => p.summary);
-        const report = OPTIONS.length === 1 && OPTIONS[0].id === 'A'
+        const report = LEVELS.length === 1 && LEVELS[0].id === 'easy'
             ? `# Difficulty report\n\n${played[0].report}`
             : comparisonReport(played);
         fs.writeFileSync(path.join(__dirname, '../../../docs/DIFFICULTY.md'), report);

@@ -11,6 +11,8 @@ import { WorldBoard } from './WorldBoard';
 
 interface Props {
     entries: WorldEntry[];
+    /** Whose board it is, as shown. */
+    difficultyName: string;
     /** The player's own place on the board, to light up; -1 for none. */
     highlight: number;
     /** What became of this run's score, if one was just entered. */
@@ -26,7 +28,7 @@ interface Props {
  * The world top 10 as a screen of its own: straight after entering initials (with the new
  * entry lit up, as arcade machines do), or from the title and Game Over menus.
  */
-export const WorldScoresScreen = ({ entries, highlight, world, offline, doneLabel, onDone }: Props) => {
+export const WorldScoresScreen = ({ entries, difficultyName, highlight, world, offline, doneLabel, onDone }: Props) => {
     // Enter (or Escape) on a keyboard does the same as the button.
     useEffect(() => {
         if (Platform.OS !== 'web') return;
@@ -44,7 +46,7 @@ export const WorldScoresScreen = ({ entries, highlight, world, offline, doneLabe
     return (
         <MenuScreen>
             {line ? <RNText style={styles.line}>{line}</RNText> : null}
-            <WorldBoard entries={entries} highlight={highlight} />
+            <WorldBoard entries={entries} highlight={highlight} difficultyName={difficultyName} />
             <ArcadeMenu items={[{ label: doneLabel, onPress: onDone }]} />
         </MenuScreen>
     );

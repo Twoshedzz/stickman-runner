@@ -17,9 +17,9 @@ const Panel = ({ children, colour = 'rgba(255, 0, 204, 0.7)' }: { children: Reac
     <View style={[styles.panel, { borderColor: colour, boxShadow: `0 0 14px ${colour}` }]}>{children}</View>
 );
 
-const ScoreLine = ({ label, value, colour = NEON.yellow }: { label: string; value: number; colour?: string }) => (
+const ScoreLine = ({ label, value, colour = NEON.yellow, compact = false }: { label: string; value: number; colour?: string; compact?: boolean }) => (
     <View style={styles.scoreLine}>
-        <RNText style={styles.scoreLabel} numberOfLines={1}>{label}</RNText>
+        <RNText style={[styles.scoreLabel, compact && styles.scoreLabelCompact]} numberOfLines={1}>{label}</RNText>
         <RNText style={[styles.scoreValue, { color: colour }]}>{padded(value)}</RNText>
     </View>
 );
@@ -78,36 +78,42 @@ export const StageClearScreen = ({ stageNumber, score, nextStageNumber, nextStag
 
 interface GameOverProps {
     score: number;
+    /** The run's difficulty, as shown. */
+    difficultyName: string;
     hiScore: number;
     /** This run set the best score. */
     newHiScore: boolean;
     /** This run's score on the world board, if it was entered. */
     world?: SendOutcome | null;
     onPlayAgain: () => void;
-    /** Back to the title, to pick another option (test build). */
-    onChangeOption: () => void;
+    /** Back to the title, to pick another difficulty. */
+    onChangeDifficulty: () => void;
     onHowToPlay: () => void;
     /** Opens the world top 10. Left out when there's no world board to show. */
     onWorldScores?: () => void;
 }
 
-export const GameOverScreen = ({ score, hiScore, newHiScore, world, onPlayAgain, onChangeOption, onHowToPlay, onWorldScores }: GameOverProps) => {
+export const GameOverScreen = ({ score, difficultyName, hiScore, newHiScore, world, onPlayAgain, onChangeDifficulty, onHowToPlay, onWorldScores }: GameOverProps) => {
     const blinkOn = useBlink(400);
     return (
         <MenuScreen>
             <Panel>
+                <RNText style={styles.kicker}>{difficultyName}</RNText>
                 <RNText style={[styles.title, styles.gameOver]}>GAME OVER</RNText>
+                {/* Side by side, to leave room for a menu of four. */}
                 <View style={styles.scores}>
-                    <ScoreLine label="SCORE" value={score} colour={NEON.white} />
-                    <ScoreLine label="HI-SCORE" value={hiScore} />
+                    <ScoreLine label="SCORE" value={score} colour={NEON.white} compact />
+                    <ScoreLine label="HI-SCORE" value={hiScore} compact />
                 </View>
-                <RNText style={[styles.newHi, { opacity: newHiScore && blinkOn ? 1 : 0 }]}>NEW HI-SCORE!</RNText>
-                <WorldLine world={world} />
+                <View style={styles.news}>
+                    {newHiScore && <RNText style={[styles.newHi, { opacity: blinkOn ? 1 : 0 }]}>NEW HI-SCORE!</RNText>}
+                    <WorldLine world={world} />
+                </View>
             </Panel>
             <ArcadeMenu
                 items={[
                     { label: 'PLAY AGAIN', onPress: onPlayAgain },
-                    { label: 'CHANGE OPTION', onPress: onChangeOption },
+                    { label: 'CHANGE DIFFICULTY', onPress: onChangeDifficulty },
                     ...(onWorldScores ? [{ label: 'WORLD SCORES', onPress: onWorldScores }] : []),
                     { label: 'HOW TO PLAY', onPress: onHowToPlay },
                 ]}
@@ -118,29 +124,33 @@ export const GameOverScreen = ({ score, hiScore, newHiScore, world, onPlayAgain,
 
 interface FinishedProps {
     score: number;
+    /** The run's difficulty, as shown. */
+    difficultyName: string;
     scoreTable: ScoreEntry[];
     /** Where this run landed in the table, to highlight it. -1 if it didn't make it. */
     newScoreIndex: number;
     /** This run's score on the world board, if it was entered. */
     world?: SendOutcome | null;
     onPlayAgain: () => void;
-    /** Back to the title, to pick another option (test build). */
-    onChangeOption: () => void;
+    /** Back to the title, to pick another difficulty. */
+    onChangeDifficulty: () => void;
 }
 
 /** Every stage cleared: the big finish, and the best runs with this one picked out. */
-export const FinishedScreen = ({ score, scoreTable, newScoreIndex, world, onPlayAgain, onChangeOption }: FinishedProps) => (
+export const FinishedScreen = ({ score, difficultyName, scoreTable, newScoreIndex, world, onPlayAgain, onChangeDifficulty }: FinishedProps) => (
     <MenuScreen>
         <Panel colour="rgba(255, 224, 102, 0.7)">
             <RNText style={[styles.title, styles.finished]}>FINISHED!</RNText>
-            {/* The screen is full, so the world board line takes the subtitle's place. */}
-            {worldText(world) ? <WorldLine world={world} /> : <RNText style={styles.subtitle}>ALL FOUR STAGES CLEARED</RNText>}
+            {/* The screen is full, so the world board line takes the subtitle's place, next to the difficulty. */}
+            {worldText(world)
+                ? <RNText style={styles.world}>{difficultyName} {'·'} {worldText(world)}</RNText>
+                : <RNText style={styles.subtitle}>ALL FOUR STAGES CLEARED {'·'} {difficultyName}</RNText>}
             <ScoreLine label="SCORE" value={score} />
         </Panel>
         <View style={styles.table}>
             <BestRuns entries={scoreTable} highlight={newScoreIndex} />
         </View>
-        <ArcadeMenu items={[{ label: 'PLAY AGAIN', onPress: onPlayAgain }, { label: 'CHANGE OPTION', onPress: onChangeOption }]} />
+        <ArcadeMenu items={[{ label: 'PLAY AGAIN', onPress: onPlayAgain }, { label: 'CHANGE DIFFICULTY', onPress: onChangeDifficulty }]} />
     </MenuScreen>
 );
 
@@ -168,11 +178,14 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     gameOver: {
+        fontSize: 32,
+        marginBottom: 2,
         color: NEON.pink,
         ...glow(NEON.pink, 18),
     },
     finished: {
-        fontSize: 40,
+        fontSize: 28,
+        marginBottom: 2,
         color: NEON.yellow,
         ...glow('#ff8a3d', 16),
     },
@@ -184,8 +197,14 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     scores: {
-        gap: 2,
+        flexDirection: 'row',
+        gap: 24,
+    },
+    news: {
+        flexDirection: 'row',
         alignItems: 'center',
+        gap: 16,
+        minHeight: 26,
     },
     scoreLine: {
         flexDirection: 'row',
@@ -199,6 +218,9 @@ const styles = StyleSheet.create({
         color: NEON.hotPink,
         width: 120,
         textAlign: 'right',
+    },
+    scoreLabelCompact: {
+        width: 'auto',
     },
     scoreValue: {
         fontFamily: FONT.bold,
@@ -217,19 +239,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         letterSpacing: 4,
         color: NEON.cyan,
-        marginTop: 6,
         ...glow(NEON.cyan, 10),
     },
     table: {
-        marginTop: 8,
-        marginBottom: 10,
+        marginBottom: 4,
     },
     world: {
         fontFamily: FONT.bold,
         fontSize: 12,
         letterSpacing: 3,
         color: NEON.cyan,
-        marginTop: 4,
         ...glow(NEON.cyan, 8),
     },
 });

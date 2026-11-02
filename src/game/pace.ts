@@ -1,6 +1,6 @@
 /**
- * The pace dial (step 12 in docs/PROJECT_PLAN.md, a test build): how fast game time runs
- * against real time. At pace 1.3, 1.3 seconds of game happen in each real second.
+ * The difficulties, and the pace dial behind them: how fast game time runs against real time.
+ * At pace 1.3, 1.3 seconds of game happen in each real second.
  *
  * Everything in stepWorld runs on game time: the scrolling, the jump and gravity, the duck,
  * moving spheres, the gaps between obstacles, energy refill, the hurt and fall timers, the
@@ -10,14 +10,16 @@
  * The music, the stage clock, the stage's progress, the sky and the finish stay on real time.
  * The people playing do too: the pretend player's and the bot's timing is in real frames.
  */
+import type { DifficultyId } from '../scoreboard/rules';
 import { frameScale } from './frame';
 import { remainingScroll, StageConfig, STAGES } from './stages';
 import { GameState } from './state';
 
-export type PaceOptionId = 'A' | 'B' | 'C' | 'D';
+export type { DifficultyId };
 
-export interface PaceOption {
-    id: PaceOptionId;
+export interface Difficulty {
+    id: DifficultyId;
+    /** As shown on the screens. */
     name: string;
     /** Obstacles snap to the music's beat. Only at pace 1, where game time runs with the music. */
     onTheBeat: boolean;
@@ -25,21 +27,20 @@ export interface PaceOption {
     stages: [number, number][];
 }
 
-/** The options Pete compares, picked on the title screen. */
-export const PACE_OPTIONS: PaceOption[] = [
-    { id: 'A', name: 'TODAY', onTheBeat: true, stages: [[1, 1], [1, 1], [1, 1], [1, 1]] },
-    { id: 'B', name: 'FLAT', onTheBeat: false, stages: [[1.3, 1.3], [1.3, 1.3], [1.3, 1.3], [1.3, 1.3]] },
-    { id: 'C', name: 'GENTLE CURVE', onTheBeat: false, stages: [[1.0, 1.2], [1.1, 1.3], [1.2, 1.4], [1.3, 1.5]] },
-    { id: 'D', name: 'BOLD CURVE', onTheBeat: false, stages: [[1.1, 1.4], [1.2, 1.5], [1.3, 1.6], [1.4, 1.7]] },
+/** Picked on the title screen. A new stage needs a row in each. */
+export const DIFFICULTIES: Difficulty[] = [
+    { id: 'easy', name: 'EASY', onTheBeat: true, stages: [[1, 1], [1, 1], [1, 1], [1, 1]] },
+    { id: 'medium', name: 'MEDIUM', onTheBeat: false, stages: [[1.0, 1.2], [1.1, 1.3], [1.2, 1.4], [1.3, 1.5]] },
+    { id: 'hard', name: 'HARD', onTheBeat: false, stages: [[1.1, 1.4], [1.2, 1.5], [1.3, 1.6], [1.4, 1.7]] },
 ];
 
-export const paceOption = (id: PaceOptionId) => PACE_OPTIONS.find((o) => o.id === id) ?? PACE_OPTIONS[0];
+export const difficultyById = (id: DifficultyId) => DIFFICULTIES.find((d) => d.id === id) ?? DIFFICULTIES[0];
 
-const stagePace = (id: PaceOptionId, stage: StageConfig) =>
-    paceOption(id).stages[Math.max(0, STAGES.indexOf(stage))];
+const stagePace = (id: DifficultyId, stage: StageConfig) =>
+    difficultyById(id).stages[Math.max(0, STAGES.indexOf(stage))];
 
 /** The pace at a point in a stage (0 = start, 1 = end). */
-export const paceAt = (id: PaceOptionId, stage: StageConfig, progress: number) => {
+export const paceAt = (id: DifficultyId, stage: StageConfig, progress: number) => {
     const [start, end] = stagePace(id, stage);
     return start + (end - start) * progress;
 };
@@ -50,7 +51,7 @@ export const paceAt = (id: PaceOptionId, stage: StageConfig, progress: number) =
  * itself, which is what the game has always used.
  */
 export const gameClockSec = (state: GameState) =>
-    paceOption(state.paceOption).onTheBeat ? state.elapsedSecInStage : state.gameSec;
+    difficultyById(state.difficulty).onTheBeat ? state.elapsedSecInStage : state.gameSec;
 
 /**
  * How to play one real frame of `deltaTimeSec` at a pace: this many steps, each this long in
@@ -71,9 +72,9 @@ export const gameStep = (deltaTimeSec: number, pace: number) => {
     return { steps, stepSec: frames / steps / 60 };
 };
 
-/** How many more pixels the world will travel before the stage ends, at this option's pace. */
-export const remainingPacedScroll = (id: PaceOptionId, stage: StageConfig, progress: number) => {
-    if (paceOption(id).onTheBeat) return remainingScroll(stage, progress);
+/** How many more pixels the world will travel before the stage ends, at this difficulty's pace. */
+export const remainingPacedScroll = (id: DifficultyId, stage: StageConfig, progress: number) => {
+    if (difficultyById(id).onTheBeat) return remainingScroll(stage, progress);
     const [s0, s1] = stage.speed;
     const [p0, p1] = stagePace(id, stage);
     const ds = s1 - s0;

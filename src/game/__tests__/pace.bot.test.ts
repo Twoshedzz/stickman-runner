@@ -1,20 +1,20 @@
 /**
- * The pace test build (step 12): can it all still be done at every option, with human-sized
- * timing kept in real frames? patterns.test.ts does the same for option A.
+ * Can it all still be done at Medium and Hard, with human-sized timing kept in real frames?
+ * patterns.test.ts does the same for Easy.
  */
 import { checkPatterns, clearsStage } from '../difficulty/patternBot';
-import { PACE_OPTIONS } from '../pace';
+import { DIFFICULTIES } from '../pace';
 import { STAGES } from '../stages';
 
-describe.each(PACE_OPTIONS.filter((o) => !o.onTheBeat).map((o) => [o.id, o] as const))('option %s', (_id, option) => {
-    it('every pattern can be cleared at every speed and pace the option reaches', () => {
-        expect(checkPatterns(option).failed).toEqual([]);
+describe.each(DIFFICULTIES.filter((d) => !d.onTheBeat).map((d) => [d.id, d] as const))('%s', (_id, difficulty) => {
+    it('every pattern can be cleared at every speed and pace the difficulty reaches', () => {
+        expect(checkPatterns(difficulty).failed).toEqual([]);
     });
 
     STAGES.forEach((stage, stageIndex) => {
         for (const seed of [1, 2, 3]) {
             it(`a whole stage can be cleared: ${stage.name} (seed ${seed})`, () => {
-                expect(clearsStage(option, stageIndex, seed)).toBe(true);
+                expect(clearsStage(difficulty, stageIndex, seed)).toBe(true);
             });
         }
     });

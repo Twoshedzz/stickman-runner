@@ -11,7 +11,7 @@
  */
 import { MAX_ENERGY, PLAYER_SIZE, PLAYER_X } from '../constants';
 import { closedUp, PATTERNS, TIGHTEST_SPACING } from '../patterns';
-import { gameStep, PaceOption, paceAt } from '../pace';
+import { gameStep, Difficulty, paceAt } from '../pace';
 import { speedAt, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { checkCollisions } from '../systems/collisions';
@@ -25,7 +25,7 @@ export interface Sim {
     state: GameState;
     /** Real frames played. */
     frame: number;
-    /** The pace away from a stage, for a single pattern. A stage takes it from its option's curve. */
+    /** The pace away from a stage, for a single pattern. A stage takes it from its difficulty's curve. */
     pace?: number;
     /** For whole-stage runs: which stage is spawning, and the random number generator's position. */
     stageIndex?: number;
@@ -46,9 +46,9 @@ const nextRandom = (sim: Sim) => {
     return sim.seed / 4294967296;
 };
 
-/** The pace now: a stage's option curve, or the fixed pace of a single pattern. */
+/** The pace now: a stage's difficulty curve, or the fixed pace of a single pattern. */
 const paceNow = ({ state, stageIndex, pace }: Sim) =>
-    stageIndex !== undefined ? paceAt(state.paceOption, STAGES[stageIndex], state.stageProgress) : pace ?? 1;
+    stageIndex !== undefined ? paceAt(state.difficulty, STAGES[stageIndex], state.stageProgress) : pace ?? 1;
 
 /** One frame of the game, in the same order as the real game loop. Returns true if the runner was hit. */
 export const step = (sim: Sim, arrivals: Arrivals): boolean => {
@@ -189,13 +189,13 @@ export const patternArrivals = (steps: { role: Obstacle['role']; at: number }[],
         phase: s.role === 'mover' ? phase : undefined,
     }))]]);
 
-/** Every speed and pace an option's stages start or end at. */
-const speedsAndPaces = (option: PaceOption) => {
+/** Every speed and pace a difficulty's stages start or end at. */
+const speedsAndPaces = (difficulty: Difficulty) => {
     const found = new Map<string, { speed: number; pace: number }>();
     STAGES.forEach((stage, i) => {
         [0, 1].forEach((end) => {
             const speed = stage.speed[end];
-            const pace = option.stages[i][end];
+            const pace = difficulty.stages[i][end];
             found.set(`${speed}@${pace}`, { speed, pace });
         });
     });
@@ -203,16 +203,16 @@ const speedsAndPaces = (option: PaceOption) => {
 };
 
 /**
- * Every pattern at every speed and pace an option's stages reach, as designed and closed up.
+ * Every pattern at every speed and pace a difficulty's stages reach, as designed and closed up.
  * How many checks that was, and any the bot couldn't clear.
  */
-export const checkPatterns = (option: PaceOption) => {
+export const checkPatterns = (difficulty: Difficulty) => {
     const failed: string[] = [];
     let checks = 0;
     for (const pattern of PATTERNS) {
         const phases = pattern.steps.some((s) => s.role === 'mover') ? [0, 0.8, 1.6, 2.4, 3.1] : [0];
         for (const spacing of [1, TIGHTEST_SPACING]) {
-            for (const { speed, pace } of speedsAndPaces(option)) {
+            for (const { speed, pace } of speedsAndPaces(difficulty)) {
                 for (const phase of phases) {
                     checks++;
                     startSearch(200000);
@@ -227,12 +227,12 @@ export const checkPatterns = (option: PaceOption) => {
     return { checks, failed };
 };
 
-/** A whole stage of live-spawned obstacles at an option's pace. True if the bot clears it. */
-export const clearsStage = (option: PaceOption, stageIndex: number, seed: number) => {
+/** A whole stage of live-spawned obstacles at a difficulty's pace. True if the bot clears it. */
+export const clearsStage = (difficulty: Difficulty, stageIndex: number, seed: number) => {
     const stage = STAGES[stageIndex];
     const sim: Sim = { ...freshSim(stage.speed[0]), stageIndex, seed };
     sim.state.stageId = stage.id;
-    sim.state.paceOption = option.id;
+    sim.state.difficulty = difficulty.id;
     // A little hurt, so hearts get placed too.
     sim.state.player.health = 5;
     // Voids give the search many double-jump timings to try, so it needs more room.

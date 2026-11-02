@@ -21,7 +21,7 @@
  */
 import { DUCK_DURATION_SEC, JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X } from '../constants';
 import { moveFor, ObstacleRole, shapeFor } from '../obstacleCatalogue';
-import { gameClockSec, gameStep, PaceOptionId, paceAt } from '../pace';
+import { gameClockSec, gameStep, DifficultyId, paceAt } from '../pace';
 import { speedAt, StageConfig, STAGES } from '../stages';
 import { createInitialState, GameState } from '../state';
 import { stepWorld } from '../step';
@@ -187,7 +187,7 @@ const spawnerRandom = (sim: Sim) => () => {
 const copy = (sim: Sim): Sim => ({ ...sim, state: JSON.parse(JSON.stringify(sim.state)) });
 
 /** The pace now. */
-const paceNow = ({ state, stage }: Sim) => paceAt(state.paceOption, stage, state.stageProgress);
+const paceNow = ({ state, stage }: Sim) => paceAt(state.difficulty, stage, state.stageProgress);
 
 /** One frame, the game loop's own step (step.ts) on a frame-counted clock. True if the runner was hit. */
 const step = (sim: Sim): boolean => {
@@ -301,11 +301,11 @@ const plan = (
 };
 
 /** Play one stage from full health. `seed` sets both the obstacles and the player's mistakes. */
-export const playStage = (stage: StageConfig, skill: Skill, seed: number, option: PaceOptionId = 'A'): RunResult => {
+export const playStage = (stage: StageConfig, skill: Skill, seed: number, difficulty: DifficultyId = 'easy'): RunResult => {
     const state = createInitialState();
     state.gameStarted = true;
     state.stageId = stage.id;
-    state.paceOption = option;
+    state.difficulty = difficulty;
     resetSpawner(state);
     const sim: Sim = { state, stage, frame: 0, seed };
     let dice = seed * 7919 + 17;
@@ -414,11 +414,11 @@ export const playStage = (stage: StageConfig, skill: Skill, seed: number, option
 };
 
 /**
- * The most a whole run could score at an option: every obstacle and diamond that any of a few
+ * The most a whole run could score at a difficulty: every obstacle and diamond that any of a few
  * runs places, all at ×4, added up over the stages. More than anyone could get (the first
  * obstacles of a run only score ×1), the same sum rules.test.ts checks MAX_SCORE against.
  */
-export const mostPossibleScore = (option: PaceOptionId) => {
+export const mostPossibleScore = (difficulty: DifficultyId) => {
     let most = 0;
     for (const stage of STAGES) {
         let busiest = 0;
@@ -430,7 +430,7 @@ export const mostPossibleScore = (option: PaceOptionId) => {
             };
             const state = createInitialState();
             state.stageId = stage.id;
-            state.paceOption = option;
+            state.difficulty = difficulty;
             state.player.health = 5; // hurt, so hearts are placed too
             const frames = stageFrames(stage);
             const seen = new Set<string>();
@@ -438,7 +438,7 @@ export const mostPossibleScore = (option: PaceOptionId) => {
                 state.stageProgress = f / frames;
                 state.elapsedSecInStage = f / 60;
                 state.speed = speedAt(stage, state.stageProgress);
-                const { steps, stepSec } = gameStep(DT, paceAt(option, stage, state.stageProgress));
+                const { steps, stepSec } = gameStep(DT, paceAt(difficulty, stage, state.stageProgress));
                 for (let i = 0; i < steps; i++) {
                     state.gameSec += stepSec;
                     spawnObstacle(state, stage, stepSec, random);

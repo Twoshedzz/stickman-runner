@@ -1,6 +1,6 @@
 import { BASE_SPEED, MAX_HEALTH, PLAYER_SIZE, RUNNER_GROUND_Y } from './constants';
 import { ObstacleRole } from './obstacleCatalogue';
-import type { PaceOptionId } from './pace';
+import type { DifficultyId } from './pace';
 import { Particle } from './particles';
 
 export interface SpawnerState {
@@ -111,8 +111,8 @@ export interface GameState {
     stageStartTime: number; // Unix seconds when stage started (for time-based progress)
     /** Seconds elapsed in current stage (run cycle, spawner timing). */
     elapsedSecInStage: number;
-    /** Which row of the pace table this run uses (see pace.ts). */
-    paceOption: PaceOptionId;
+    /** This run's difficulty: which row of the pace table it uses (see pace.ts). */
+    difficulty: DifficultyId;
     /** Seconds of game time this stage: runs ahead of the stage clock at a pace above 1. */
     gameSec: number;
     shield: number;
@@ -165,7 +165,7 @@ export const createInitialState = (): GameState => ({
     stageProgress: 0,
     stageStartTime: 0,
     elapsedSecInStage: 0,
-    paceOption: 'A',
+    difficulty: 'easy',
     gameSec: 0,
     shield: 0,
     debugMode: false,

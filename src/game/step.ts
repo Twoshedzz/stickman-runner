@@ -56,7 +56,7 @@ export const stepWorld = (
 ): boolean => {
     // What happened this frame (see GameEvent), for anything that wants to react to it.
     state.events = [];
-    const { steps, stepSec } = gameStep(deltaTimeSec, paceAt(state.paceOption, stage, state.stageProgress));
+    const { steps, stepSec } = gameStep(deltaTimeSec, paceAt(state.difficulty, stage, state.stageProgress));
     let hit = false;
     for (let i = 0; i < steps && !state.gameOver; i++) {
         if (stepGame(state, stage, stepSec, random, sparks)) hit = true;

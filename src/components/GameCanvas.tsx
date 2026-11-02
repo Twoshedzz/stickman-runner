@@ -83,7 +83,7 @@ export const GameCanvas = ({ gameState, tick, viewWidth: viewWidthProp, onAssets
     // Where the finish line crosses the runner's depth. It reaches the runner a quarter of a
     // second before the stage ends, so they finish standing just past it rather than on it.
     const RUN_THROUGH = 60;
-    const finishX = remainingPacedScroll(gameState.paceOption, currentStage, gameState.stageProgress)
+    const finishX = remainingPacedScroll(gameState.difficulty, currentStage, gameState.stageProgress)
         + PLAYER_X + PLAYER_SIZE / 2 - RUN_THROUGH + gameOffsetX;
     const showFinish = finishX > -400 && finishX < viewWidth + 400;
 

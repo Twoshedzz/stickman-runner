@@ -3,7 +3,7 @@
  * memory and understands just the commands the server uses.
  */
 import { BOARD_SIZE, MAX_SCORE } from '../../../src/scoreboard/rules';
-import { BOARD_KEY, readBoard, Redis, senderAddress, submitScore } from '../scoreboardServer';
+import { boardKey, getBoard, readBoard, Redis, senderAddress, submitScore } from '../scoreboardServer';
 
 /** Just enough of Redis: sorted sets and counters. */
 const fakeRedis = () => {
@@ -67,7 +67,7 @@ describe('sending a score', () => {
         const reply = await send(redis, { initials: 'CCC', score: 700 });
         expect(reply.status).toBe(200);
         expect(reply.body.rank).toBe(1);
-        const board = await readBoard(redis);
+        const board = await readBoard(redis, 'easy');
         expect(board.map((e) => [e.initials, e.score, e.completed])).toEqual([
             ['BBB', 900, true],
             ['CCC', 700, false],
@@ -80,7 +80,7 @@ describe('sending a score', () => {
         const { redis } = fakeRedis();
         await send(redis, { initials: 'AAA', score: 500 });
         await send(redis, { initials: 'AAA', score: 500 });
-        expect(await readBoard(redis)).toHaveLength(2);
+        expect(await readBoard(redis, 'easy')).toHaveLength(2);
     });
 
     it('turns away bad initials and impossible scores', async () => {
@@ -114,13 +114,86 @@ describe('sending a score', () => {
         for (let i = 1; i <= 105; i++) {
             await send(redis, { initials: 'AAA', score: i }, `address ${i}`);
         }
-        expect(sets.get(BOARD_KEY)!.size).toBe(100);
-        const board = await readBoard(redis);
+        expect(sets.get(boardKey('easy'))!.size).toBe(100);
+        const board = await readBoard(redis, 'easy');
         expect(board).toHaveLength(BOARD_SIZE);
         expect(board[0].score).toBe(105);
         // A score below everything kept is trimmed straight off: no place to report.
         const low = await send(redis, { initials: 'ZZZ', score: 1 }, 'late');
         expect(low.body.rank).toBeNull();
+    });
+});
+
+describe('a board for each difficulty', () => {
+    const URL = 'https://game.example/api/scores';
+    const initials = (body: Record<string, unknown>) => (body.entries as { initials: string }[]).map((e) => e.initials);
+
+    it('Easy stays on the key the board has always had', () => {
+        expect(boardKey('easy')).toBe('stickman:scores:season1');
+        expect(boardKey('medium')).not.toBe(boardKey('easy'));
+        expect(boardKey('hard')).not.toBe(boardKey('medium'));
+    });
+
+    it('scores already on the board are on Easy', async () => {
+        const { redis } = fakeRedis();
+        await redis([['ZADD', 'stickman:scores:season1', 900, JSON.stringify({ i: 'OLD', d: '', c: false, n: 'x' })]]);
+        expect(initials((await getBoard(redis, `${URL}?difficulty=easy`)).body)).toEqual(['OLD']);
+        expect(initials((await getBoard(redis, `${URL}?difficulty=hard`)).body)).toEqual([]);
+    });
+
+    it('a score goes on its own board, and the reply is that board', async () => {
+        const { redis } = fakeRedis();
+        await send(redis, { initials: 'EEE', score: 100, difficulty: 'easy' });
+        await send(redis, { initials: 'MMM', score: 200, difficulty: 'medium' });
+        const hard = await send(redis, { initials: 'HHH', score: 50, difficulty: 'hard' });
+        expect(hard.body.rank).toBe(0);
+        expect(hard.body.difficulty).toBe('hard');
+        expect(initials(hard.body)).toEqual(['HHH']);
+        expect((await readBoard(redis, 'easy')).map((e) => e.initials)).toEqual(['EEE']);
+        expect((await readBoard(redis, 'medium')).map((e) => e.initials)).toEqual(['MMM']);
+        expect(initials((await getBoard(redis, `${URL}?difficulty=hard`)).body)).toEqual(['HHH']);
+    });
+
+    it('naming no difficulty means Easy, for older builds', async () => {
+        const { redis } = fakeRedis();
+        const reply = await send(redis, { initials: 'OLD', score: 100 });
+        expect(reply.status).toBe(200);
+        expect((await readBoard(redis, 'easy')).map((e) => e.initials)).toEqual(['OLD']);
+        const board = await getBoard(redis, URL);
+        expect(board.status).toBe(200);
+        expect(board.body.difficulty).toBe('easy');
+        expect(initials(board.body)).toEqual(['OLD']);
+    });
+
+    it('an unknown difficulty is refused, and nothing is stored or counted', async () => {
+        const { redis, sets, counters } = fakeRedis();
+        for (const difficulty of ['nightmare', 'HARD', '', null, 1]) {
+            const reply = await send(redis, { initials: 'AAA', score: 100, difficulty });
+            expect(reply.status).toBe(400);
+            expect(reply.body.error).toBe('difficulty');
+        }
+        expect(sets.size).toBe(0);
+        expect(counters.size).toBe(0);
+        expect((await getBoard(redis, `${URL}?difficulty=nightmare`)).status).toBe(400);
+        expect((await getBoard(redis, `${URL}?difficulty=`)).status).toBe(400);
+    });
+
+    it('the flood limit counts across all the boards', async () => {
+        const { redis } = fakeRedis();
+        const statuses = [];
+        for (let i = 0; i < 11; i++) {
+            statuses.push((await send(redis, { initials: 'AAA', score: 10 + i, difficulty: i % 2 ? 'hard' : 'medium' })).status);
+        }
+        expect(statuses.filter((s) => s === 200)).toHaveLength(10);
+        expect(statuses[10]).toBe(429);
+    });
+
+    it('a score above the limit is turned away on every board, and the limit itself is not', async () => {
+        const { redis } = fakeRedis();
+        for (const difficulty of ['easy', 'medium', 'hard']) {
+            expect((await send(redis, { initials: 'AAA', score: MAX_SCORE + 1, difficulty }, difficulty)).status).toBe(400);
+            expect((await send(redis, { initials: 'AAA', score: MAX_SCORE, difficulty }, difficulty)).status).toBe(200);
+        }
     });
 });
 

@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { ScoreEntry } from '../../game/loop/useScoreTable';
-import type { TestChoice } from '../../game/loop/useTestChoice';
-import type { PaceOptionId } from '../../game/pace';
+import type { DifficultyId } from '../../game/pace';
 import type { WorldEntry } from '../../scoreboard/rules';
 import { RNText } from '../RNText';
 import { ArcadeMenu } from './ArcadeMenu';
 import { BestRuns } from './BestRuns';
+import { DifficultyPicker } from './DifficultyPicker';
 import { MenuScreen } from './MenuScreen';
 import { FONT, glow, NEON } from './menuStyle';
 import { ShinyLogo } from './ShinyLogo';
-import { TestPicker } from './TestPicker';
 import { WorldBoard } from './WorldBoard';
 
 /** Attract mode: how long the logo and each table stay up. */
@@ -20,6 +19,7 @@ const ATTRACT_SCORES_MS = 5000;
 type Feature = 'logo' | 'world' | 'best';
 
 interface Props {
+    /** The high score, best runs and world top 10 are all the picked difficulty's. */
     hiScore: number;
     scoreTable: ScoreEntry[];
     /** The world top 10, or null when there's no world board to show. */
@@ -28,18 +28,15 @@ interface Props {
     onHowToPlay: () => void;
     /** Opens the world top 10. Left out when there's no world board to show. */
     onWorldScores?: () => void;
-    /** 0-100: the picked stage's music, which has to be in before it can start. */
-    startMusicPercent: number;
-    testChoice: TestChoice;
-    onPickOption: (option: PaceOptionId) => void;
-    onPickStage: (stageId: string) => void;
+    difficulty: DifficultyId;
+    onPickDifficulty: (difficulty: DifficultyId) => void;
 }
 
 /**
  * The title screen, like an arcade cabinet's attract mode: the logo, the world top 10, then
  * this phone's best runs, taking turns until someone starts a game.
  */
-export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowToPlay, onWorldScores, startMusicPercent, testChoice, onPickOption, onPickStage }: Props) => {
+export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowToPlay, onWorldScores, difficulty, onPickDifficulty }: Props) => {
     const features: Feature[] = worldEntries ? ['logo', 'world', 'best'] : ['logo', 'best'];
     const [step, setStep] = useState(0);
     const feature = features[step % features.length];
@@ -65,13 +62,11 @@ export const TitleScreen = ({ hiScore, scoreTable, worldEntries, onStart, onHowT
                 )}
             </View>
 
-            <TestPicker choice={testChoice} onPickOption={onPickOption} onPickStage={onPickStage} />
+            <DifficultyPicker difficulty={difficulty} onPick={onPickDifficulty} />
 
             <ArcadeMenu
                 items={[
-                    startMusicPercent >= 100
-                        ? { label: 'START GAME', onPress: onStart }
-                        : { label: `LOADING MUSIC ${startMusicPercent}%`, disabled: true },
+                    { label: 'START GAME', onPress: onStart },
                     ...(onWorldScores ? [{ label: 'WORLD SCORES', onPress: onWorldScores }] : []),
                     { label: 'HOW TO PLAY', onPress: onHowToPlay },
                 ]}
@@ -101,7 +96,7 @@ const styles = StyleSheet.create({
         letterSpacing: 3,
         color: NEON.yellow,
     },
-    // The tables are drawn a little smaller, to leave room for the test build's picker.
+    // The tables are drawn a little smaller, to leave room for the difficulty picker.
     smallTable: {
         transform: [{ scale: 0.78 }],
     },

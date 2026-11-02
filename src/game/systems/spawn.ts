@@ -2,7 +2,7 @@ import { JUMP_ENERGY_COST, PLAYER_SIZE, PLAYER_X, SCREEN_WIDTH } from '../consta
 import { frameScale } from '../frame';
 import { moveFor, shapeFor } from '../obstacleCatalogue';
 import { closedUp, minGapSec, Pattern, PatternStep, PATTERNS, TIGHTEST_SPACING } from '../patterns';
-import { gameClockSec, paceOption } from '../pace';
+import { difficultyById, gameClockSec } from '../pace';
 import { placePickups, resetPickups } from '../pickups';
 import { beatGridSec, buildAt, StageConfig, StagePacing } from '../stages';
 import { createSpawnerState, GameState } from '../state';
@@ -206,7 +206,7 @@ export const spawnObstacle = (
     // Not due yet: the rest after the last pattern isn't near the spawn point. It's due one
     // beat early, so the next pattern can go on whichever beat is nearest the end of the rest.
     // Off the beat (a pace above 1: game time doesn't run with the music) there's no grid.
-    const grid = paceOption(state.paceOption).onTheBeat ? beatGridSec(currentStage) : 0;
+    const grid = difficultyById(state.difficulty).onTheBeat ? beatGridSec(currentStage) : 0;
     if (spawner.lastRole && spawner.endX + spawner.restSec * speed > SPAWN_X + grid * speed) return;
 
     const progress = state.stageProgress;
