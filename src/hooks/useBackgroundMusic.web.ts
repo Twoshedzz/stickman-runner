@@ -4,7 +4,8 @@
  */
 import { Asset } from 'expo-asset';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fadeOut, resumeLeadIn } from './musicShared';
+import { fetchWithStallLimit } from '../loadWithLimits';
+import { fadeOut, replayTrack, resumeLeadIn } from './musicShared';
 import { DEFAULT_TRACK, MUSIC_TRACKS } from './musicTracks';
 
 interface TrackLoad {
@@ -15,25 +16,8 @@ interface TrackLoad {
 
 /** Fetches a file, reporting how much has arrived, and hands back an in-memory address for it. */
 async function downloadWithProgress(uri: string, report: (fraction: number) => void): Promise<string> {
-    const response = await fetch(uri);
-    if (!response.ok) throw new Error(`Download failed: ${response.status}`);
-    const total = Number(response.headers.get('content-length')) || 0;
-    const type = response.headers.get('content-type') || 'audio/mpeg';
-    if (!response.body || !total) {
-        // No size given, so no progress to show; just wait for all of it.
-        return URL.createObjectURL(await response.blob());
-    }
-    const reader = response.body.getReader();
-    const chunks: BlobPart[] = [];
-    let received = 0;
-    for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.length;
-        report(Math.min(0.99, received / total));
-    }
-    return URL.createObjectURL(new Blob(chunks, { type }));
+    const { chunks, type } = await fetchWithStallLimit(uri, { onProgress: report });
+    return URL.createObjectURL(new Blob(chunks, { type: type || 'audio/mpeg' }));
 }
 
 export const useBackgroundMusic = () => {
@@ -43,6 +27,8 @@ export const useBackgroundMusic = () => {
     const currentTrackRef = useRef<string | null>(null);
     /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
     const playGenerationRef = useRef(0);
+    /** A stop has started and not finished: the track may still be fading out. */
+    const stoppingRef = useRef(false);
     /** Music has been asked to play and not asked to stop: used to restart it if it was refused. */
     const wantPlayingRef = useRef(false);
     /** Tracks already fetched and buffered, so starting them is instant. */
@@ -128,7 +114,8 @@ export const useBackgroundMusic = () => {
      * an audio file until it's played, so instead the whole file is downloaded here and played
      * from memory, which also lets the loading screen show how far along it is.
      *
-     * Always resolves, even on failure: a missing track must not stop the game starting.
+     * Always resolves, even on failure: a missing track must not stop the game starting. A
+     * download that stalls gives up (see fetchWithStallLimit), and playMusic streams it instead.
      */
     const preloadTrack = useCallback((trackKey: string = DEFAULT_TRACK, onProgress?: (fraction: number) => void) => {
         const existing = loadsRef.current.get(trackKey);
@@ -157,14 +144,14 @@ export const useBackgroundMusic = () => {
                 audio.loop = true;
                 audio.preload = 'auto';
                 audio.load();
-                await new Promise<void>((resolve) => {
+                const playable = await new Promise<boolean>((resolve) => {
                     // It's already in memory, so this is quick; the timeout is only a safety net.
-                    if (audio.readyState >= 3) return resolve();
-                    audio.addEventListener('canplaythrough', () => resolve(), { once: true });
-                    audio.addEventListener('error', () => resolve(), { once: true });
-                    setTimeout(resolve, 3000);
+                    if (audio.readyState >= 3) return resolve(true);
+                    audio.addEventListener('canplaythrough', () => resolve(true), { once: true });
+                    audio.addEventListener('error', () => resolve(false), { once: true });
+                    setTimeout(() => resolve(true), 3000);
                 });
-                preloadedRef.current.set(trackKey, audio);
+                if (playable) preloadedRef.current.set(trackKey, audio);
             } catch {
                 // Leave it unpreloaded; playMusic will stream it instead.
             } finally {
@@ -181,6 +168,8 @@ export const useBackgroundMusic = () => {
 
             // Tell any in-flight fade-out to leave the audio alone from here on.
             playGenerationRef.current += 1;
+            const wasStopping = stoppingRef.current;
+            stoppingRef.current = false;
             wantPlayingRef.current = true;
 
             const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
@@ -189,15 +178,23 @@ export const useBackgroundMusic = () => {
 
             // Same track already playing: do nothing (avoids restart on every jump / duplicate calls)
             if (prev && prevTrack === trackKey) {
-                prev.volume = 1; // a fade may have left it part-way down
-                prev.play().catch(() => {});
+                replayTrack({
+                    rewind: () => { prev.currentTime = 0; },
+                    setVolume: (volume) => { prev.volume = volume; },
+                    play: () => { prev.play().catch(() => {}); },
+                }, wasStopping);
                 return;
             }
 
             if (prev) {
                 prev.pause();
-                prev.src = '';
-                prev.load();
+                if (preloadedRef.current.get(prevTrack ?? '') === prev) {
+                    // Kept for the next time this track plays, so it has to keep its file.
+                    prev.currentTime = 0;
+                } else {
+                    prev.src = '';
+                    prev.load();
+                }
                 webAudioRef.current = null;
             }
             currentTrackRef.current = trackKey;
@@ -260,8 +257,10 @@ export const useBackgroundMusic = () => {
         const overtaken = () => playGenerationRef.current !== generation || webAudioRef.current !== audio;
         try {
             wantPlayingRef.current = false;
+            stoppingRef.current = true;
             setMusicStatus('Stopping...');
             if (!(await fadeOut((volume) => { audio.volume = volume; }, overtaken))) return;
+            stoppingRef.current = false;
             audio.pause();
             audio.currentTime = 0;
             currentTrackRef.current = null;

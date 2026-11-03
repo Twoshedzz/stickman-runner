@@ -53,7 +53,7 @@ interface Props {
     /** 0 = every window dark, 1 = fully lit. */
     lightLevel: number;
     viewWidth?: number;
-    /** Called once the buildings are ready, so the start screen can appear. */
+    /** Called once the buildings are ready, or can't be loaded, so the start screen can appear. */
     onAssetsReady?: () => void;
 }
 
@@ -113,7 +113,7 @@ function tiles(
 export const NeonCityScenery = ({ distance, lightLevel, viewWidth: viewWidthProp, onAssetsReady }: Props) => {
     const viewWidth = viewWidthProp ?? SCREEN_WIDTH;
 
-    const frontBase = useStripImages("city-front-base", FRONT_BASE);
+    const frontBase = useStripImages("city-front-base", FRONT_BASE, onAssetsReady);
     const backBase = useStripImages("city-back-base", BACK_BASE);
     const frontLit = useStripImages("city-front-lit", FRONT_LIT);
     const backLit = useStripImages("city-back-lit", BACK_LIT);

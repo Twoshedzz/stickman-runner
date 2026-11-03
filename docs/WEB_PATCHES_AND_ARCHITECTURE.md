@@ -41,23 +41,29 @@ is CanvasKit's memory in MB. It should level off, not climb steadily.
 ## How the web loads Skia
 
 - `src/skiaWasmPreload.web.ts` runs first (imported at the top of `app/_layout.tsx`). It downloads
-  CanvasKit's `.wasm` file (from unpkg, at the version in `CANVASKIT_VERSION`), then starts
-  CanvasKit and puts it on `globalThis.CanvasKit`.
+  CanvasKit's `.wasm` file from the game's own site (`/canvaskit.wasm`), or from unpkg (at the
+  version in `CANVASKIT_VERSION`) if that fails, then starts CanvasKit and puts it on
+  `globalThis.CanvasKit`.
+- Each source is given up on after 30 seconds with no data, so a slow download carries on but a
+  stalled one moves to the next source (`src/loadWithLimits.ts`). The live site answers unknown
+  addresses with its home page and a 200 (`vercel.json`), so the file's first bytes are checked to
+  be a real `.wasm`. If nothing works, `SkiaWrapper` shows a plain message and a reload button.
 - Since CanvasKit 0.41 it can't be handed the downloaded file directly (the old `wasmBinary`
   option is gone); it only asks where the file is (`locateFile`). The preload gives it a local
   `blob:` address for the copy already downloaded, so the file isn't fetched twice.
 - The page is also rendered once in Node when it's built (static output). Nothing is drawn there,
-  so the preload skips CanvasKit outside a browser.
+  so the preload does nothing outside a browser.
 - `src/components/SkiaWrapper.web.tsx` waits for the preload before showing anything drawn with
-  Skia, and has a fallback that loads CanvasKit itself if the preload didn't run.
+  Skia.
 - `public/canvaskit.wasm` is a copy of the installed CanvasKit's file. A test
   (`src/__tests__/canvaskitFile.test.ts`) checks it, and the `CANVASKIT_VERSION` in the preload and
   the wrapper, match the installed CanvasKit, so a Skia upgrade that changes CanvasKit fails the
   tests until they're updated: copy `node_modules/canvaskit-wasm/bin/full/canvaskit.wasm` over
   `public/canvaskit.wasm` and change the two version numbers.
-- Found in U1, not changed: the preload first tries to read the file from the game's own site
-  without waiting (`trySyncSameOriginWasm`), but browsers don't allow that kind of read on a web
-  page, so it always falls back to unpkg. The game has always downloaded CanvasKit from unpkg.
+- Until step 13 the game always downloaded CanvasKit from unpkg. The preload's first try at its own
+  site read the file "without waiting" (a synchronous request), which browsers refuse on a web page,
+  so it always failed and `public/canvaskit.wasm` was never used. Replacing it changed no timing:
+  the file has always arrived later than the first code ran, and CanvasKit starts only after it has.
 
 ## If a patch is needed again
 

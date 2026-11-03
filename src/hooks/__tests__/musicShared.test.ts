@@ -1,5 +1,5 @@
 /** The music rules shared by the phone and web hooks (musicShared.ts). */
-import { fadeOut, resumeLeadIn } from '../musicShared';
+import { fadeOut, replayTrack, resumeLeadIn } from '../musicShared';
 
 describe('fadeOut', () => {
     beforeEach(() => jest.useFakeTimers());
@@ -36,5 +36,31 @@ describe('resumeLeadIn', () => {
 
     it("doesn't wait for a moment too short to matter", () => {
         expect(resumeLeadIn(3, 2.98)).toEqual({ rewindSec: 2.98, waitSec: 0 });
+    });
+});
+
+describe('replayTrack', () => {
+    const fakeTrack = () => {
+        const calls: string[] = [];
+        return {
+            calls,
+            track: {
+                rewind: () => calls.push('rewind'),
+                setVolume: (v: number) => calls.push(`volume ${v}`),
+                play: () => calls.push('play'),
+            },
+        };
+    };
+
+    it('carries on from where it is when no stop was in progress', () => {
+        const { calls, track } = fakeTrack();
+        replayTrack(track, false);
+        expect(calls).toEqual(['volume 1', 'play']);
+    });
+
+    it('goes back to the start, before playing, when a new run comes inside the fade', () => {
+        const { calls, track } = fakeTrack();
+        replayTrack(track, true);
+        expect(calls).toEqual(['rewind', 'volume 1', 'play']);
     });
 });

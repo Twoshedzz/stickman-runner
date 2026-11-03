@@ -1,13 +1,13 @@
 /**
- * Web-only: do not render children until __SKIA_WASM_BINARY__ is set.
+ * Web-only: do not render children until the download of __SKIA_WASM_BINARY__ has finished.
  * Ensures no worklets or lazy chunks can run before the main thread has the binary,
  * reducing the chance of "both async and sync fetching of the wasm failed" in late chunks.
+ * If it failed, the children are shown anyway: SkiaWrapper shows what went wrong.
  */
 import React from 'react';
 
 const SKIA_BINARY = '__SKIA_WASM_BINARY__';
 const SKIA_PROMISE = '__SKIA_WASM_PROMISE__';
-const LOAD_TIMEOUT_MS = 15000;
 
 type GlobalWithSkia = typeof globalThis & {
   [SKIA_BINARY]?: Uint8Array;
@@ -23,13 +23,9 @@ function useWasmBinaryReady(): boolean {
       return;
     }
     const p = g[SKIA_PROMISE];
-    if (p) {
-      p.then(() => setReady(true)).catch(() => setReady(false));
-    } else {
-      setReady(false);
-    }
-    const t = setTimeout(() => setReady(true), LOAD_TIMEOUT_MS);
-    return () => clearTimeout(t);
+    // The download has its own limits (skiaWasmPreload.web.ts), so this always ends.
+    if (p) p.catch(() => {}).then(() => setReady(true));
+    else setReady(true);
   }, []);
   return ready;
 }

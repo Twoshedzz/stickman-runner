@@ -4,7 +4,7 @@
  */
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fadeOut, resumeLeadIn } from './musicShared';
+import { fadeOut, replayTrack, resumeLeadIn } from './musicShared';
 import { DEFAULT_TRACK, MUSIC_TRACKS } from './musicTracks';
 
 export const useBackgroundMusic = () => {
@@ -14,6 +14,8 @@ export const useBackgroundMusic = () => {
     const currentTrackRef = useRef<string | null>(null);
     /** Bumped on every play. A fade-out that sees this change has been overtaken and stops. */
     const playGenerationRef = useRef(0);
+    /** A stop has started and not finished: the track may still be fading out. */
+    const stoppingRef = useRef(false);
     /** Tracks already loaded, so starting them is instant. */
     const preloadedRef = useRef<Map<string, ReturnType<typeof createAudioPlayer>>>(new Map());
     /** A resume waiting to start (see resumeMusic), cancelled if the game pauses again first. */
@@ -76,14 +78,19 @@ export const useBackgroundMusic = () => {
 
             // Tell any in-flight fade-out to leave the audio alone from here on.
             playGenerationRef.current += 1;
+            const wasStopping = stoppingRef.current;
+            stoppingRef.current = false;
 
             const source = MUSIC_TRACKS[trackKey] ?? MUSIC_TRACKS[DEFAULT_TRACK];
             const player = playerRef.current;
 
             // Same track already playing: do nothing (avoids restart on every jump / duplicate calls)
             if (player?.isLoaded && currentTrackRef.current === trackKey) {
-                player.volume = 1; // a fade may have left it part-way down
-                player.play();
+                replayTrack({
+                    rewind: () => { player.seekTo(0); },
+                    setVolume: (volume) => { player.volume = volume; },
+                    play: () => player.play(),
+                }, wasStopping);
                 return;
             }
 
@@ -121,8 +128,10 @@ export const useBackgroundMusic = () => {
         const generation = playGenerationRef.current;
         const overtaken = () => playGenerationRef.current !== generation || playerRef.current !== player;
         try {
+            stoppingRef.current = true;
             setMusicStatus('Stopping...');
             if (!(await fadeOut((volume) => { player.volume = volume; }, overtaken))) return;
+            stoppingRef.current = false;
             player.pause();
             player.seekTo(0);
             currentTrackRef.current = null;

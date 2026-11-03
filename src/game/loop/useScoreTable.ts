@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DIFFICULTY_IDS, DifficultyId } from '../../scoreboard/rules';
 import { GameState } from '../state';
+import { setCrashSave } from './crashSave';
 
 /** One run in the score table. */
 export interface ScoreEntry {
@@ -95,6 +96,8 @@ export const useScoreTable = (difficulty: DifficultyId) => {
             }
         }
     }, []);
+
+    useEffect(() => setCrashSave(saveHighScore), [saveHighScore]);
 
     /**
      * A run has ended: save the high score, and put the run in its difficulty's table, once.
