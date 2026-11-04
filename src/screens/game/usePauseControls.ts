@@ -16,13 +16,15 @@ interface Options {
     pauseMusic: () => void;
     resumeMusic: (rewindSec: number) => void;
     musicPosition: (trackKey: string) => number | null;
+    /** A phone browser held upright: the game is hidden behind the prompt to turn it. */
+    needsRotate: boolean;
 }
 
 /**
  * Pausing. The button (or P / Esc) stops the run and its music; RESUME counts 3-2-1 with
  * the music rewound to play through the count (see src/game/pause.ts).
  */
-export const usePauseControls = ({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition }: Options) => {
+export const usePauseControls = ({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition, needsRotate }: Options) => {
     const countingDown = isCountingDown(gameState);
     // Also catches a pause the game made itself, when the app went to the background.
     useEffect(() => {
@@ -31,6 +33,12 @@ export const usePauseControls = ({ gameState, pauseGame, resumeGame, setMusicClo
     const pauseRun = useCallback(() => {
         if (pauseGame()) pauseMusic();
     }, [pauseGame, pauseMusic]);
+    // The phone turned upright hides the game, so a run that's going stops. A 3-2-1 is left to
+    // finish, and if the phone is still upright then, the run stops at that moment.
+    const hiddenRunGoing = needsRotate && canPause(gameState);
+    useEffect(() => {
+        if (hiddenRunGoing) pauseRun();
+    }, [hiddenRunGoing, pauseRun]);
     // Leaving the app mid-run pauses the run (in the game loop), so pause its music here and
     // now too. Waiting for the screen to catch up let the music play for a moment on return,
     // which put it a little out of step with the game.

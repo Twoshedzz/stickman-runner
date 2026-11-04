@@ -1,45 +1,42 @@
 import React from 'react';
+import { AppErrorBoundary } from './AppErrorBoundary';
+import { CrashScreen, reloadPage } from './CrashScreen';
 
 // Must match @shopify/react-native-skia's canvaskit-wasm dependency
 const CANVASKIT_VERSION = '0.41.0';
-
-const WASM_URL = `https://unpkg.com/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full/canvaskit.wasm`;
 
 function getWasmUrl(file: string): string {
     if (typeof window === 'undefined') return file;
     return `https://unpkg.com/canvaskit-wasm@${CANVASKIT_VERSION}/bin/full/${file}`;
 }
 
-function SkiaFallback() {
-    return (
-        <div style={{ padding: 24, color: '#fff', background: '#111', minHeight: '100vh', fontFamily: 'system-ui' }}>
-            <p style={{ marginBottom: 8 }}>Skia failed to load (CanvasKit WASM).</p>
-            <p style={{ opacity: 0.8, fontSize: 14 }}>Use <strong>Expo Go</strong> on a device to play the full game. On web you can still test the UI and controls (game area will show a placeholder).</p>
-        </div>
-    );
-}
+/** The drawing engine never arrived, so there's no game to show. */
+const LoadFailed = () => (
+    <CrashScreen
+        title="THE GAME COULDN'T LOAD"
+        message="PART OF IT DIDN'T DOWNLOAD. CHECK YOUR CONNECTION, THEN TRY AGAIN."
+        buttonLabel="RELOAD"
+        onPress={reloadPage}
+    />
+);
 
 const LoadingFallback = () => (
     <div style={{ padding: 20, color: '#fff', background: '#222' }}>Loading Skia…</div>
 );
 
-class SkiaErrorBoundary extends React.Component<
-    { children: React.ReactNode },
-    { hasError: boolean }
-> {
-    state = { hasError: false };
-    static getDerivedStateFromError = () => ({ hasError: true });
+/** As well as React errors, catches CanvasKit aborting outside React's reach. */
+class SkiaErrorBoundary extends AppErrorBoundary {
     _rejectionHandler = (e: PromiseRejectionEvent) => {
         const msg = e?.reason?.message ?? String(e?.reason ?? '');
         if (msg.includes('Aborted') || msg.includes('wasm')) {
-            this.setState({ hasError: true });
+            this.trip();
             e.preventDefault?.();
         }
     };
     _errorHandler = (event: ErrorEvent) => {
         const msg = event.message ?? String(event.error ?? '');
         if (msg.includes('Aborted') || msg.includes('wasm')) {
-            this.setState({ hasError: true });
+            this.trip();
             event.preventDefault?.();
             return true;
         }
@@ -53,10 +50,6 @@ class SkiaErrorBoundary extends React.Component<
     componentWillUnmount() {
         window.removeEventListener('unhandledrejection', this._rejectionHandler);
         window.removeEventListener('error', this._boundErrorHandler);
-    }
-    render() {
-        if (this.state.hasError) return <SkiaFallback />;
-        return this.props.children;
     }
 }
 
@@ -73,31 +66,8 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
     // is cached before any worklet can load it (avoids "both async and sync fetching failed").
     React.useEffect(() => {
         let cancelled = false;
-        const ready = typeof globalThis !== 'undefined' && (globalThis as SkiaPreloadGlobal).__SKIA_CANVASKIT_READY__;
-        if (!ready) {
-            // Preload not run (e.g. SSR); fetch and init ourselves
-            fetch(WASM_URL, { credentials: 'omit' })
-                .then((r) => {
-                    if (!r.ok) throw new Error(`WASM fetch failed: ${r.status}`);
-                    return r.arrayBuffer();
-                })
-                .then((ab) => import('canvaskit-wasm/bin/full/canvaskit').then((m) => {
-                    // CanvasKit only asks where the file is (see skiaWasmPreload.web.ts): point it at this copy.
-                    const url = URL.createObjectURL(new Blob([ab], { type: 'application/wasm' }));
-                    return m.default({ locateFile: () => url });
-                }))
-                .then((ck) => {
-                    if (!cancelled) {
-                        (globalThis as unknown as { CanvasKit?: unknown }).CanvasKit = ck;
-                        setCanvaskitReady(true);
-                    }
-                })
-                .catch((err) => {
-                    if (!cancelled) setLoadError(true);
-                    console.warn('Skia WASM fetch/init failed:', err);
-                });
-            return () => { cancelled = true; };
-        }
+        // The preload is the first thing the app imports, so in a browser it has always run.
+        const ready = (globalThis as SkiaPreloadGlobal).__SKIA_CANVASKIT_READY__ ?? Promise.reject(new Error('The preload never ran'));
         ready
             .then(() => { if (!cancelled) setCanvaskitReady(true); })
             .catch((err) => {
@@ -112,7 +82,7 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (loadError) {
-        return <SkiaFallback />;
+        return <LoadFailed />;
     }
 
     if (!canvaskitReady) {
@@ -132,10 +102,6 @@ export const SkiaWrapper = ({ children }: { children: React.ReactNode }) => {
             </SkiaErrorBoundary>
         );
     } catch {
-        return (
-            <div style={{ padding: 24, color: '#fff', background: '#111' }}>
-                Skia failed to load. Use Expo Go on a device or refresh.
-            </div>
-        );
+        return <LoadFailed />;
     }
 };

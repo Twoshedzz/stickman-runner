@@ -25,6 +25,22 @@ export const fadeOut = async (setVolume: (volume: number) => void, overtaken: ()
 };
 
 /**
+ * The track that's already loaded has been asked for again. A normal start asks twice (the START
+ * tap, then an effect), and that mustn't restart the song. But if it was on its way out, this is a
+ * new run inside the fade: the stage clock is back at zero, so the song has to go back too.
+ *
+ * Plays straight away, so on iPhone Safari it still starts inside the tap.
+ */
+export const replayTrack = (
+    track: { rewind: () => void; setVolume: (volume: number) => void; play: () => void },
+    wasStopping: boolean,
+) => {
+    if (wasStopping) track.rewind();
+    track.setVolume(1); // a fade may have left it part-way down
+    track.play();
+};
+
+/**
  * Carrying on after a pause: the music is rewound by `leadInSec` so it plays through the
  * game's 3-2-1 and is back where it stopped as play resumes. Paused in the first seconds of
  * the track there isn't that much to rewind, so it starts a little later instead.

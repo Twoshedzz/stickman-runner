@@ -167,6 +167,10 @@ export const HowToPlayScreen = ({ keyboard, onBack }: { keyboard: boolean; onBac
                 <PageArrow symbol="▶" enabled={page < PAGES - 1} onPress={next} />
             </View>
 
+            <RNText style={styles.difficulty}>
+                PICK EASY, MEDIUM OR HARD ON THE HOME SCREEN {'·'} HARDER IS FASTER {'·'} EACH KEEPS ITS OWN SCORES
+            </RNText>
+
             <View style={styles.dots}>
                 {Array.from({ length: PAGES }, (_, i) => (
                     <View key={i} style={[styles.dot, i === page && styles.dotOn]} />
@@ -189,7 +193,7 @@ const styles = StyleSheet.create({
     pageRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 4,
     },
     columns: {
         flexDirection: 'row',
@@ -207,11 +211,19 @@ const styles = StyleSheet.create({
         fontSize: 30,
         ...glow(NEON.cyan, 10),
     },
+    difficulty: {
+        fontFamily: FONT.body,
+        fontSize: 9,
+        letterSpacing: 1,
+        color: NEON.yellow,
+        textAlign: 'center',
+        marginTop: 4,
+    },
     dots: {
         flexDirection: 'row',
         gap: 8,
-        marginTop: 8,
-        marginBottom: 8,
+        marginTop: 4,
+        marginBottom: 4,
     },
     dot: {
         width: 6,

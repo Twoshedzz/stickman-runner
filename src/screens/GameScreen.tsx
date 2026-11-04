@@ -50,7 +50,7 @@ export const GameScreen = () => {
     const { playMusic, stopMusic, pauseMusic, resumeMusic, musicPosition, preloadTrack } = useBackgroundMusic();
     const [showInstructions, setShowInstructions] = React.useState(false);
 
-    const { pauseRun, resumeRun } = usePauseControls({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition });
+    const { pauseRun, resumeRun } = usePauseControls({ gameState, pauseGame, resumeGame, setMusicClock, pauseMusic, resumeMusic, musicPosition, needsRotate });
     const { world, enterInitials, worldResult, worldScreen, myPlace, ownKeysOpenRef, submitInitials, skipInitials, browseWorld, closeWorld } = useWorldScoreFlow(gameState);
     const { readyToStart, musicReady, musicPercent, nextMusicPercent, onAssetsReady } = useGameLoading({ stageId: gameState.stageId, showContinue: gameState.showContinue, preloadTrack });
     const { handleInteraction, runGesture, touchHandlers } = useRunInput({ gameState, onJump, onDuck, onDuckRelease });

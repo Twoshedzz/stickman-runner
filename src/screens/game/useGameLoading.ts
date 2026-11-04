@@ -9,6 +9,9 @@ import { MENU_FONT_FILES } from '../../components/menu/menuStyle';
 import { stageById, STAGES } from '../../game/stages';
 import { nextStage, stageTrack } from './stageInfo';
 
+/** Play starts after this long even without the scenery: a stage with no city beats no game. */
+const ASSETS_WAIT_MS = 60000;
+
 interface Options {
     stageId: string;
     showContinue: boolean;
@@ -22,13 +25,18 @@ export const useGameLoading = ({ stageId, showContinue, preloadTrack }: Options)
     // Loading overlay: hide black block until building strip (and other assets) are ready.
     const [assetsReady, setAssetsReady] = useState(false);
     const onAssetsReady = useCallback(() => setAssetsReady(true), []);
+    useEffect(() => {
+        const id = setTimeout(onAssetsReady, ASSETS_WAIT_MS);
+        return () => clearTimeout(id);
+    }, [onAssetsReady]);
 
     /**
      * The stage can't start until its music has loaded.
      *
      * Each track is 3 minutes to match the stage exactly, so if the stage starts first the
      * music runs behind the sunrise for the whole run. Waiting here costs a moment on the
-     * start screen and keeps them locked together.
+     * start screen and keeps them locked together. A download that fails or stalls gives up
+     * (see preloadTrack), so this always ends and the game starts without it.
      */
     const [musicReady, setMusicReady] = useState(false);
     /** How much of the first track has arrived, 0-100, for the loading screen. */

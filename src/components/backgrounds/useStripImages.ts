@@ -14,29 +14,33 @@ import { Skia } from "@shopify/react-native-skia";
 import type { SkImage } from "@shopify/react-native-skia";
 import { Asset } from "expo-asset";
 import { useEffect, useState } from "react";
+import { retry, withTimeout } from "../../loadWithLimits";
+
+/** Each strip is a small file (a few KB), so this is plenty even on slow mobile data. */
+const STRIP_LIMIT_MS = 30000;
+const RETRY_DELAYS_MS = [1000, 3000];
 
 const loaded = new Map<string, SkImage[]>();
 const inFlight = new Map<string, Promise<SkImage[]>>();
 
-async function fetchStrips(sources: number[]): Promise<SkImage[]> {
-    const assets = await Asset.loadAsync(sources);
-    const uris = assets
-        .map((asset) => asset?.localUri ?? asset?.uri)
-        .filter((uri): uri is string => !!uri);
+/** One strip, fetched and decoded. A web page in place of the picture fails to decode. */
+async function fetchStrip(source: number): Promise<SkImage> {
+    const [asset] = await withTimeout(Asset.loadAsync(source), STRIP_LIMIT_MS);
+    const uri = asset?.localUri ?? asset?.uri;
+    if (!uri) throw new Error("No address for this strip");
+    const bytes = await withTimeout(Skia.Data.fromURI(uri), STRIP_LIMIT_MS);
+    const image = bytes ? Skia.Image.MakeImageFromEncoded(bytes) : null;
+    if (!image) throw new Error("Couldn't decode this strip");
+    return image;
+}
 
-    // Each image is fetched and decoded on its own, and becomes null if it fails.
+async function fetchStrips(sources: number[]): Promise<SkImage[]> {
+    // Each image is fetched and decoded on its own, and becomes null if it keeps failing.
     // Promise.all would otherwise reject on the first failure and leave its siblings
     // rejecting with nobody listening, which surfaces as an uncaught "Failed to fetch".
     // One bad strip now just means one missing strip.
     const images = await Promise.all(
-        uris.map(async (uri) => {
-            try {
-                const bytes = await Skia.Data.fromURI(uri);
-                return bytes ? Skia.Image.MakeImageFromEncoded(bytes) : null;
-            } catch {
-                return null;
-            }
-        })
+        sources.map((source) => retry(() => fetchStrip(source), RETRY_DELAYS_MS).catch(() => null))
     );
     return images.filter((image): image is SkImage => !!image);
 }
@@ -57,7 +61,8 @@ function loadOnce(key: string, sources: number[]): Promise<SkImage[]> {
     return pending;
 }
 
-export function useStripImages(key: string, sources: number[]): SkImage[] {
+/** `onGaveUp` is called if none of the set could be loaded, after the retries. */
+export function useStripImages(key: string, sources: number[], onGaveUp?: () => void): SkImage[] {
     const [images, setImages] = useState<SkImage[]>(() => loaded.get(key) ?? []);
 
     useEffect(() => {
@@ -68,13 +73,15 @@ export function useStripImages(key: string, sources: number[]): SkImage[] {
         }
         let cancelled = false;
         loadOnce(key, sources).then((result) => {
-            if (!cancelled && result.length > 0) setImages(result);
+            if (cancelled) return;
+            if (result.length > 0) setImages(result);
+            else onGaveUp?.();
         });
         return () => {
             cancelled = true;
         };
         // `sources` is a module-level constant in every caller, so this runs once per key.
-    }, [key, sources]);
+    }, [key, sources, onGaveUp]);
 
     return images;
 }

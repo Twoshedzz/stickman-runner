@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
 import { RNText } from '../src/components/RNText';
 import { WasmGate } from '../src/components/WasmGate';
 
@@ -41,16 +42,18 @@ export default function RootLayout() {
   const warm = useWasmWarm();
   if (!warm) return <MinimalLoading />;
   return (
-    // Needed for the swipe-down-to-duck gesture; without it gestures never fire.
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <WasmGate>
-        <React.Suspense fallback={<MinimalLoading />}>
-          <SkiaWrapper>
-            <RootLayoutContent />
-          </SkiaWrapper>
-        </React.Suspense>
-      </WasmGate>
-    </GestureHandlerRootView>
+    <AppErrorBoundary>
+      {/* Needed for the swipe-down-to-duck gesture; without it gestures never fire. */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <WasmGate>
+          <React.Suspense fallback={<MinimalLoading />}>
+            <SkiaWrapper>
+              <RootLayoutContent />
+            </SkiaWrapper>
+          </React.Suspense>
+        </WasmGate>
+      </GestureHandlerRootView>
+    </AppErrorBoundary>
   );
 }
 

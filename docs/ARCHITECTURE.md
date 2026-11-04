@@ -89,7 +89,7 @@ Why Stickman Runner is shaped the way it is — the choices we made, what they e
 
 ## 8. Scenery as image strips with light overlays
 
-**Decision:** Scenery is a few pre-made PNG strips per layer, tiled by how far the world has scrolled, rather than shapes drawn every frame. Stage 1's city (`NeonCityScenery.tsx`) draws its unlit buildings (`assets/city/*_none_*`) and stacks lit-window overlays on top (`assets/city/lights/`, made by `scripts/generate-city-lights.js`) at the current light level, so windows come on through the night and go off towards dawn. Stages 2–4 draw strips made by their own `scripts/generate-*-strips.js`, plus shapes (sun, sea, fireworks). The city tells the game when its images are ready, so play waits on the loading screen until they are.
+**Decision:** Scenery is a few pre-made PNG strips per layer, tiled by how far the world has scrolled, rather than shapes drawn every frame. Stage 1's city (`NeonCityScenery.tsx`) draws its unlit buildings (`assets/city/*_none_*`) and stacks lit-window overlays on top (`assets/city/lights/`, made by `scripts/generate-city-lights.js`) at the current light level, so windows come on through the night and go off towards dawn. Stages 2–4 draw strips made by their own `scripts/generate-*-strips.js`, plus shapes (sun, sea, fireworks). The city tells the game when its images are ready, so play waits on the loading screen until they are, or until they've failed after retries, or for 60 seconds at most (`useGameLoading.ts`): a stage with no city beats no game.
 
 **Why**
 
@@ -192,7 +192,7 @@ Drawing
 Around the run
  loop/useDifficultyChoice.ts: the difficulty picked, in memory, for each new run
  loop/useScoreTable.ts: each difficulty's high score and best runs, saved when a run
-                        ends or pauses, or the app goes to the background
+                        ends or pauses, the app goes to the background, or it crashes
  src/hooks/musicShared.ts: the music rules the phone (expo-audio) and web versions share
 ```
 
@@ -230,6 +230,8 @@ The pretend player (`src/game/difficulty/pretendPlayer.ts`) sets its own clock b
 | High score and best runs, per difficulty | `src/game/loop/useScoreTable.ts` |
 | World scoreboards, per difficulty | `api/scores.ts`, `api/_lib/scoreboardServer.ts` (server); `src/scoreboard/` (rules, game side); `src/screens/game/useWorldScoreFlow.ts`; `src/components/menu/InitialsScreen.tsx`, `WorldBoard.tsx`, `WorldScoresScreen.tsx` |
 | Viewport / centering | `src/screens/game/useViewport.ts` (`viewWidth`), `src/components/GameCanvas.tsx` (`gameOffsetX`), `src/components/GridFloor.tsx` (`vanishX`) |
+| Limits on loading (stalled downloads, retries) | `src/loadWithLimits.ts`; used by the music, the scenery strips and `src/skiaWasmPreload.web.ts` |
+| The crash screen | `src/components/AppErrorBoundary.tsx`, `src/components/CrashScreen.tsx`; the high score saved on the way (`src/game/loop/crashSave.ts`) |
 | How hard it is, measured | `src/game/difficulty/pretendPlayer.ts`; `npm run difficulty` writes [DIFFICULTY.md](./DIFFICULTY.md) |
 
 ## Recipes
